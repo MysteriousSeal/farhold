@@ -2,7 +2,7 @@ import { mkCanvas } from '../core/dom';
 import { OUT, TAU, clamp, fbm, hs, lerp, mulberry, pick, rand, strSeed, vn } from '../core/math';
 import { game } from '../game/state';
 import { genDungeonChunk } from './dungeon';
-import { poiSolid, poisNear } from './poi';
+import { houseRoute, poiSolid, poisNear } from './poi';
 import { CH, classify, corr, groundF, hField, terr, walkT } from './terrain';
 /* ---------- World chunks ---------- */
 export const WCH = new Map();
@@ -387,23 +387,35 @@ function paintPoiGround(x, p) {
     x.fill();
     x.strokeStyle = dirt;
     x.lineCap = 'round';
-    x.lineWidth = 26;
+    x.lineJoin = 'round';
+    x.lineWidth = 24;
     for (const h of p.houses) {
+      const r = houseRoute(p, h);
       x.beginPath();
-      x.moveTo(p.x, p.y + 10);
-      x.quadraticCurveTo(
-        (p.x + h.x) / 2 + 20,
-        (p.y + h.y) / 2,
-        h.x + h.door * h.w * 0.22,
-        h.y + 10,
-      );
+      x.moveTo(r[0].x, r[0].y);
+      for (let i = 1; i < r.length - 1; i++) x.arcTo(r[i].x, r[i].y, r[i + 1].x, r[i + 1].y, 26);
+      x.lineTo(r[r.length - 1].x, r[r.length - 1].y);
       x.stroke();
     }
+    // road south of the plaza that thins out into a worn trail
     x.lineWidth = 22;
     x.beginPath();
     x.moveTo(p.x, p.y);
-    x.lineTo(p.x, p.y + 300);
+    x.lineTo(p.x, p.y + 150);
     x.stroke();
+    const tr = mulberry(strSeed(p.key + 'trail'));
+    let tx = p.x;
+    for (let ty = p.y + 150; ty < p.y + 340; ty += 8) {
+      const k = (ty - p.y - 150) / 190;
+      tx += (tr() - 0.5) * 3;
+      const skip = tr() < k * 0.75,
+        rw = 11 * (1 - k * 0.7) * (0.8 + tr() * 0.4),
+        jx = (tr() - 0.5) * 8 * k;
+      if (skip) continue;
+      x.beginPath();
+      x.ellipse(tx + jx, ty, rw, 6, 0, 0, TAU);
+      x.fill();
+    }
     const r2 = mulberry(strSeed(p.key + 'cob'));
     x.fillStyle = 'rgba(120,90,60,.3)';
     for (let i = 0; i < 120; i++) {

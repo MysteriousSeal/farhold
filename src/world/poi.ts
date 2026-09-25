@@ -188,6 +188,8 @@ function makeVillage(x, y, key, home?) {
       v.houses.some((o) => Math.abs(o.x - h.x) < (o.w + h.w) / 2 + 14 && Math.abs(o.y - h.y) < 70)
     )
       continue;
+    // keep the main road running south from the plaza clear of houses
+    if (h.y > y && Math.abs(h.x - x) < w / 2 + 30) continue;
     v.houses.push(h);
     v.solids.push({ x0: hx - w / 2, x1: hx + w / 2, y0: hy - 40, y1: hy });
   }
@@ -300,4 +302,61 @@ export function poiSolid(p, x, y, r) {
       return true;
   }
   return false;
+}
+
+/* ---------- Village paths ---------- */
+type Pt = { x: number; y: number };
+const segHitsRect = (a: Pt, b: Pt, x0: number, y0: number, x1: number, y1: number) => {
+  // Liang–Barsky clip of segment ab against the rectangle
+  let t0 = 0,
+    t1 = 1;
+  const dx = b.x - a.x,
+    dy = b.y - a.y;
+  for (const [p, q] of [
+    [-dx, a.x - x0],
+    [dx, x1 - a.x],
+    [-dy, a.y - y0],
+    [dy, y1 - a.y],
+  ]) {
+    if (p === 0) {
+      if (q < 0) return false;
+    } else {
+      const t = q / p;
+      if (p < 0) t0 = Math.max(t0, t);
+      else t1 = Math.min(t1, t);
+      if (t0 > t1) return false;
+    }
+  }
+  return true;
+};
+/**
+ * Waypoints for the dirt path from a village plaza to a house door. The path walks around the
+ * house (walls and roof) and always arrives at the door from the front.
+ */
+export function houseRoute(v: Pt, h): Pt[] {
+  const P = { x: v.x, y: v.y + 10 },
+    dx = h.x + h.door * h.w * 0.22,
+    D = { x: dx, y: h.y - 4 },
+    F = { x: dx, y: h.y + 34 },
+    // house footprint including the roof, with a margin for the path width
+    x0 = h.x - h.w / 2 - 22,
+    x1 = h.x + h.w / 2 + 22,
+    y0 = h.y - 118,
+    y1 = h.y + 14,
+    corners = (s: number) => ({
+      top: { x: h.x + s * (h.w / 2 + 34), y: h.y - 128 },
+      bot: { x: h.x + s * (h.w / 2 + 34), y: h.y + 34 },
+    });
+  const routes: Pt[][] = [[P, F, D]];
+  for (const s of [h.door, -h.door]) {
+    const c = corners(s);
+    routes.push([P, c.bot, F, D], [P, c.top, c.bot, F, D]);
+  }
+  const len = (r: Pt[]) =>
+    r.slice(1).reduce((a, q, i) => a + Math.hypot(q.x - r[i].x, q.y - r[i].y), 0);
+  const ok = (r: Pt[]) =>
+    // the final F -> D step goes into the doorway by design
+    r.slice(1, -1).every((q, i) => !segHitsRect(r[i], q, x0, y0, x1, y1));
+  const valid = routes.filter(ok).sort((a, b) => len(a) - len(b));
+  return valid[0] || routes[routes.length - 1];
 }

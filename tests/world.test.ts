@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { strSeed } from '../src/core/math';
 import { game } from '../src/game/state';
-import { poiAt, poiCache } from '../src/world/poi';
+import { houseRoute, poiAt, poiCache } from '../src/world/poi';
 import { dangerAt, terr, walkT } from '../src/world/terrain';
 
 const SEEDS = ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel'];
@@ -74,5 +74,48 @@ describe('world/poi', () => {
     useSeed('delta');
     expect(pick()).toEqual(first);
     expect(first.some((s) => s !== '-' && !s.startsWith('village:Hearthfire'))).toBe(true);
+  });
+});
+
+describe('village paths', () => {
+  const villages = () => {
+    const out: any[] = [];
+    for (const s of SEEDS) {
+      useSeed(s);
+      for (let i = -2; i <= 2; i++)
+        for (let j = -2; j <= 2; j++) {
+          const p = poiAt(i, j);
+          if (p && p.kind === 'village') out.push(p);
+        }
+    }
+    return out;
+  };
+
+  it('paths go around each house and end at its door from the front', () => {
+    const vs = villages();
+    expect(vs.length).toBeGreaterThan(SEEDS.length);
+    for (const v of vs)
+      for (const h of v.houses) {
+        const r = houseRoute(v, h),
+          door = h.x + h.door * h.w * 0.22,
+          [f, d] = r.slice(-2);
+        expect([f.x, d.x]).toEqual([door, door]);
+        expect(f.y).toBeGreaterThan(h.y);
+        expect(d.y).toBeLessThanOrEqual(h.y);
+        // sample every leg except the final step into the doorway
+        for (let i = 1; i < r.length - 1; i++)
+          for (let t = 0; t <= 1; t += 0.02) {
+            const x = r[i - 1].x + (r[i].x - r[i - 1].x) * t,
+              y = r[i - 1].y + (r[i].y - r[i - 1].y) * t;
+            const inside =
+              x > h.x - h.w / 2 - 12 && x < h.x + h.w / 2 + 12 && y > h.y - 110 && y < h.y + 12;
+            expect(inside).toBe(false);
+          }
+      }
+  });
+
+  it('no house blocks the main road south of the plaza', () => {
+    for (const v of villages())
+      for (const h of v.houses) expect(h.y > v.y && Math.abs(h.x - v.x) < h.w / 2 + 11).toBe(false);
   });
 });
