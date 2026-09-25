@@ -107,9 +107,9 @@ function drawPortrait(cv: HTMLCanvasElement) {
   const x = cv.getContext('2d'),
     w = game.P.eq.weapon;
   x.clearRect(0, 0, cv.width, cv.height);
-  // centre the whole figure (helmet top ≈ -48, feet and weapon tip ≈ +20, weapon to the right)
+  // centre the whole figure (helmet top ≈ -48, feet ≈ +4, weapon slightly to the right)
   const k = 2 * 2.9;
-  x.setTransform(k, 0, 0, k, cv.width / 2 - 4 * k, cv.height / 2 + 14 * k);
+  x.setTransform(k, 0, 0, k, cv.width / 2 - 2 * k, cv.height / 2 + 22 * k);
   const hp = handPos(0, 1, false, 0, 0, game.P.race),
     ang = restAng(hp, game.P.cls),
     wd = () =>
@@ -121,7 +121,7 @@ function drawPortrait(cv: HTMLCanvasElement) {
         game.P.cls,
         0,
         w ? MATS[w.mat][1] : null,
-        w && w.r >= 2 ? RAR[w.r].c : null,
+        null, // no rarity glow on held weapons
         w ? w.style : 0,
       );
   drawHumanoid(x, 0, 0, { look: game.P.look, dx: 0, dy: 1, moving: false, walk: 0, time: 0 });

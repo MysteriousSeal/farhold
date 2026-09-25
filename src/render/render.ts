@@ -32,7 +32,7 @@ import { drawHumanoid, drawWeapon, handPos, restAng, weaponBehind } from '../art
 import { drawDrop, drawProj } from '../art/items';
 import { DPR, H, W, g, mkCanvas, shadow } from '../core/dom';
 import { OUT, TAU, clamp, lerp, rand } from '../core/math';
-import { MATS, RAR } from '../data/classes';
+import { MATS } from '../data/classes';
 import { addLight } from '../game/fx';
 import { drawNpc } from '../game/npcs';
 import { offers } from '../game/quests';
@@ -120,7 +120,7 @@ function drawHero(c, t) {
   const L = game.P.look,
     w = game.P.eq.weapon,
     wcol = w ? MATS[w.mat][1] : null,
-    glow = w && w.r >= 2 ? RAR[w.r].c : null,
+    glow = null, // held weapons show no rarity glow (ground loot keeps its glow)
     rolling = hero.roll > 0,
     leap = hero.leap;
   let z = 0;

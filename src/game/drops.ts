@@ -1,3 +1,4 @@
+import { solidAt } from '../world/chunks';
 import { SFX } from '../audio/sfx';
 import { $ } from '../core/dom';
 import { RAR } from '../data/classes';
@@ -15,10 +16,25 @@ export function updateDrops(dt) {
         d.z = 0;
         d.vz = d.vz < -60 ? -d.vz * 0.4 : 0;
       }
-      d.x += d.vx * dt;
-      d.y += d.vy * dt;
+      // bounce off walls, water, mountains and other solids
+      const nx = d.x + d.vx * dt,
+        ny = d.y + d.vy * dt;
+      if (!solidAt(nx, d.y, 6)) d.x = nx;
+      else d.vx = -d.vx * 0.6;
+      if (!solidAt(d.x, ny, 6)) d.y = ny;
+      else d.vy = -d.vy * 0.6;
       d.vx *= 0.97;
       d.vy *= 0.97;
+    } else if (!d.placed) {
+      // safety net: once landed, slide a drop off unreachable ground
+      d.placed = true;
+      if (solidAt(d.x, d.y, 4)) {
+        const spot = nearestOpen(d.x, d.y);
+        if (spot) {
+          d.x = spot.x;
+          d.y = spot.y;
+        }
+      }
     }
     const dx = game.P.x - d.x,
       dy = game.P.y - 6 - d.y,
@@ -51,4 +67,16 @@ export function updateDrops(dt) {
     }
   }
   game.drops = game.drops.filter((d) => !d.gone && d.t < 300);
+}
+
+/** Closest walkable point around (x, y), searching outward in rings. */
+function nearestOpen(x: number, y: number) {
+  for (let r = 8; r <= 160; r += 8)
+    for (let k = 0; k < 16; k++) {
+      const a = (k / 16) * Math.PI * 2,
+        px = x + Math.cos(a) * r,
+        py = y + Math.sin(a) * r;
+      if (!solidAt(px, py, 6)) return { x: px, y: py };
+    }
+  return null;
 }

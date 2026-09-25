@@ -647,7 +647,9 @@ export function drawWeapon(c, x, y, ang, kind, sw, col?, glow?, style = 0, scale
   c.lineCap = 'round';
   if (kind === 'warrior' || kind === 'sword' || kind === 'axe' || kind === 'club') {
     c.rotate(ang + sw);
-    c.scale(0.78, 0.78);
+    // swords and axes at ~70% of their old size (blade ≈ 2/3 of the hero); clubs unchanged
+    const ws = kind === 'club' ? 0.78 : 0.78 * 0.7;
+    c.scale(ws, ws);
     c.translate(-4, 0);
     const bl = col || '#dfe6ee';
     if (kind === 'club') {
