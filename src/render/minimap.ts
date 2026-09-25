@@ -69,6 +69,7 @@ export function drawMini(dt) {
     ic(game.DG.exit.x, game.DG.exit.y, '#bfe6ff');
     if (!game.DG.chest.open && !game.DG.chest.hidden)
       ic(game.DG.chest.x, game.DG.chest.y, '#ffd27a', 6);
+    remainingEnemies(M, sc);
   } else {
     miniT -= dt;
     const R = MINI_R;
@@ -197,4 +198,71 @@ function star(c, x, y, r, col) {
   c.closePath();
   c.fill();
   c.stroke();
+}
+
+/** From 65% cleared on, mark the cave's remaining enemies: dots in range, arrows on the rim. */
+export const HINT_AT = 0.65;
+function remainingEnemies(M: number, sc: number) {
+  const D = game.DG;
+  if (!D || !D.total || D.bonus || D.killed / D.total < HINT_AT) return;
+  const pulse = 0.75 + Math.sin(game.time * 5) * 0.25,
+    rim = M / 2 - 16;
+  mc.lineJoin = 'round';
+  for (const e of game.enemies) {
+    if (!e.dg || e.dead || e.dying > 0) continue;
+    const dx = (e.x - game.P.x) * sc,
+      dy = (e.y - game.P.y) * sc,
+      d = Math.hypot(dx, dy) || 1,
+      guard = e.dgi === -1;
+    mc.strokeStyle = OUT;
+    mc.lineWidth = 2.5;
+    if (d < rim - 6) {
+      const x = M / 2 + dx,
+        y = M / 2 + dy;
+      if (guard) skull(x, y, 9 * (0.9 + pulse * 0.15));
+      else {
+        mc.fillStyle = 'rgba(255,80,70,' + pulse.toFixed(3) + ')';
+        mc.beginPath();
+        mc.arc(x, y, 5.5, 0, TAU);
+        mc.fill();
+        mc.stroke();
+      }
+    } else {
+      // arrow on the rim pointing toward the enemy
+      const a = Math.atan2(dy, dx),
+        x = M / 2 + Math.cos(a) * rim,
+        y = M / 2 + Math.sin(a) * rim,
+        s = (guard ? 13 : 10) * (0.9 + pulse * 0.15);
+      mc.save();
+      mc.translate(x, y);
+      mc.rotate(a);
+      mc.beginPath();
+      mc.moveTo(s, 0);
+      mc.lineTo(-s * 0.7, -s * 0.75);
+      mc.lineTo(-s * 0.35, 0);
+      mc.lineTo(-s * 0.7, s * 0.75);
+      mc.closePath();
+      mc.fillStyle = guard ? '#f5e6c8' : 'rgba(255,80,70,' + pulse.toFixed(3) + ')';
+      mc.fill();
+      mc.stroke();
+      mc.restore();
+    }
+  }
+}
+/** Guardian marker: a small skull. */
+function skull(x: number, y: number, r: number) {
+  mc.fillStyle = '#f5e6c8';
+  mc.beginPath();
+  mc.arc(x, y - r * 0.15, r, 0, TAU);
+  mc.fill();
+  mc.stroke();
+  mc.beginPath();
+  mc.rect(x - r * 0.55, y + r * 0.55, r * 1.1, r * 0.55);
+  mc.fill();
+  mc.stroke();
+  mc.fillStyle = OUT;
+  mc.beginPath();
+  mc.arc(x - r * 0.38, y - r * 0.15, r * 0.27, 0, TAU);
+  mc.arc(x + r * 0.38, y - r * 0.15, r * 0.27, 0, TAU);
+  mc.fill();
 }
