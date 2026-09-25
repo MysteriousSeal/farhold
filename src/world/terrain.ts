@@ -15,7 +15,7 @@ export const BIOMES = [
 export const corr = (d) => clamp((d - 5200) / 7000, 0, 1);
 export function hField(x, y, d) {
   let h = fbm(x * 0.0011, y * 0.0011, 4, 1) + Math.max(0, 1 - d / 520) * 0.3;
-  const k = clamp(1 - (d - 250) / 450, 0, 1);
+  const k = clamp(1 - (d - 640) / 420, 0, 1); // Hearthfire stands on flat land
   if (k > 0) h = lerp(h, clamp(h, 0.47, 0.64), k);
   return h;
 }

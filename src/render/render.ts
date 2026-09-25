@@ -1,10 +1,20 @@
 import {
+  drawCityGround,
+  drawFountain,
+  drawGateArch,
+  drawTower,
+  drawWallSeg,
+  drawWell,
+  wallSegKey,
+} from '../art/city';
+import { wallPt } from '../world/city';
+import { drawHouse } from '../art/houses';
+import {
   drawBoard,
   drawCave,
   drawChest,
   drawDPillar,
   drawForge,
-  drawHouse,
   drawLamp,
   drawPillar,
   drawProp,
@@ -279,6 +289,29 @@ export function render() {
       : poisNear(cx, cy, 700)) {
       if (!vis(p.x, p.y, p.r + 200)) continue;
       if (p.kind === 'village') {
+        if (p.city) {
+          // Hearthfire: crisp paving, then depth-sorted walls, towers, gate, fountain, well, shops
+          drawCityGround(g, p, x0 - 20, y0 - 20, x1 + 20, y1 + 60);
+          for (const [a0, a1] of p.wall.segs) {
+            const m = wallPt((a0 + a1) / 2);
+            if (vis(m.x, m.y, 120))
+              list.push({ y: wallSegKey(a0, a1), f: (c) => drawWallSeg(c, a0, a1) });
+          }
+          for (const tw of p.wall.towers)
+            if (vis(tw.x, tw.y, 160))
+              list.push({ y: tw.y + 11, f: (c) => drawTower(c, tw, game.time, '#c8423a') });
+          const sg = p.wall.towers
+            .filter((tw) => tw.gate && Math.abs(tw.a - Math.PI / 2) < 0.4)
+            .sort((a, b) => a.x - b.x);
+          if (sg.length === 2 && vis(0, sg[0].y, 200))
+            list.push({ y: sg[0].y + 14, f: (c) => drawGateArch(c, sg[0], sg[1]) });
+          list.push(
+            { y: p.fountain.y, f: (c) => drawFountain(c, p.fountain, game.time) },
+            { y: p.well.y, f: (c) => drawWell(c, p.well) },
+          );
+          for (const s of p.shops)
+            list.push({ y: s.y, f: (c) => drawStall(c, p, game.time, s, s.awning, s.goods) });
+        }
         for (const h of p.houses)
           if (vis(h.x, h.y)) list.push({ y: h.y, f: (c) => drawHouse(c, h, game.time, game.dark) });
         list.push(

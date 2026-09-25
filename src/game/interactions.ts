@@ -5,7 +5,7 @@ import { makeBoss } from './enemies';
 import { banner, burst } from './fx';
 import { save } from './save';
 import { game } from './state';
-import { openBoard, openShop, openSmith, openTravel } from '../ui/village';
+import { openBoard, openPotions, openShop, openSmith, openTravel } from '../ui/village';
 /* ================= INTERACTIONS ================= */
 export function findInteract() {
   let best = null,
@@ -29,6 +29,10 @@ export function findInteract() {
       cand(p.forge.x, p.forge.y + 22, 70, 'Blacksmith', () => openSmith(p));
       cand(p.board.x, p.board.y + 18, 62, 'Bounties', () => openBoard(p));
       cand(p.way.x, p.way.y + 16, 60, 'Waystone', () => openTravel(p));
+      for (const s of p.shops || [])
+        cand(s.x, s.y + 22, 66, s.label, () =>
+          s.kind === 'potion' ? openPotions(p) : openShop(p, true),
+        );
     } else if (p.kind === 'cave') cand(p.x, p.y + 12, 62, 'Enter cave', () => enterDungeon(p));
     else if (p.kind === 'lair') {
       const ch = game.P.chests && game.P.chests[p.key];

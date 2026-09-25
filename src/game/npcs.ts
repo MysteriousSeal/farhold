@@ -18,7 +18,7 @@ export function updateNpcs(dt) {
             n.tx = null;
           } else {
             const a = Math.random() * TAU,
-              r = rand(20, 120);
+              r = rand(20, n.range || 120);
             n.tx = p.x + Math.cos(a) * r;
             n.ty = p.y + 30 + Math.sin(a) * r * 0.7;
           }
@@ -74,6 +74,33 @@ export function drawNpc(c, n, t) {
     walk: n.walk,
     time: t,
   });
+  if (n.role === 'guard') {
+    // spear held upright
+    const sx = n.x + 12,
+      sy = n.y - 8;
+    c.save();
+    c.lineCap = 'round';
+    c.strokeStyle = OUT;
+    c.lineWidth = 4.5;
+    c.beginPath();
+    c.moveTo(sx, sy);
+    c.lineTo(sx, sy - 58);
+    c.stroke();
+    c.strokeStyle = '#8a5a36';
+    c.lineWidth = 2.4;
+    c.stroke();
+    c.lineWidth = 2;
+    c.strokeStyle = OUT;
+    c.beginPath();
+    c.moveTo(sx - 4, sy - 58);
+    c.lineTo(sx, sy - 72);
+    c.lineTo(sx + 4, sy - 58);
+    c.closePath();
+    c.fillStyle = '#cbd5e0';
+    c.fill();
+    c.stroke();
+    c.restore();
+  }
   if (n.role === 'smith') {
     const k = n.ham || 0,
       a = k < 0.25 ? -1.6 + k * 6 : k < 0.35 ? -0.1 : -0.1 - Math.min(1.5, (k - 0.35) * 2);

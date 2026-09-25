@@ -13,27 +13,72 @@ import { closeAll } from './screens';
 import { poisNear } from '../world/poi';
 /* shop */
 export const shopStock = new Map();
-export function openShop(v) {
-  let s = shopStock.get(v.key);
+/** Open a village market; `fine` is Hearthfire's fine-goods shop (Rare+ stock, pricier). */
+export function openShop(v, fine = false) {
+  shopKey = v.key + (fine ? ':fine' : '');
+  shopFine = fine;
+  let s = shopStock.get(shopKey);
   if (!s || game.time - s.t > 300) {
+    const lvl = Math.max(1, Math.max(v.lvl, game.P.lvl - 1));
     s = {
       t: game.time,
-      items: Array.from({ length: 5 }, () =>
-        genItem(Math.max(1, Math.max(v.lvl, game.P.lvl - 1)), 0.08),
-      ),
+      items: fine
+        ? Array.from({ length: 4 }, () => genItem(lvl + 1, 0.3, null, 2))
+        : Array.from({ length: 5 }, () => genItem(lvl, 0.08)),
     };
-    shopStock.set(v.key, s);
+    shopStock.set(shopKey, s);
   }
   shopTab = 'buy';
   renderShop(v);
 }
+/** Hearthfire's alchemist: potions, cheaper by the bundle. */
+export function openPotions(v) {
+  const pp = 12 + v.lvl * 5,
+    offers = [
+      [1, Math.round(pp * 0.8)],
+      [5, Math.round(pp * 3.5)],
+    ];
+  openModal(hdr(v.name + ' alchemist', '🪙 ' + game.P.gold + ' gold') + '<div id="potbody"></div>');
+  wireClose();
+  const body = $('#potbody');
+  for (const [n, price] of offers) {
+    const row = document.createElement('div');
+    row.className = 'row2';
+    row.innerHTML =
+      '<div class="potic">🧪</div><div style="flex:1"><div class="nm">' +
+      (n > 1 ? n + ' health potions' : 'Health potion') +
+      '</div><div class="desc">Each restores 45% of your health. You carry ' +
+      game.P.pot +
+      '.</div></div>';
+    row.appendChild(
+      btn(
+        'Buy for ' + price,
+        () => {
+          if (game.P.gold < price) {
+            toast('Not enough gold');
+            return;
+          }
+          game.P.gold -= price;
+          game.P.pot += n;
+          SFX.buy();
+          openPotions(v);
+        },
+        '',
+        game.P.gold < price,
+      ),
+    );
+    body.appendChild(row);
+  }
+}
 let shopTab = 'buy',
-  shopSel = null;
+  shopSel = null,
+  shopKey = '',
+  shopFine = false;
 function renderShop(v) {
-  const s = shopStock.get(v.key),
+  const s = shopStock.get(shopKey),
     pp = 12 + v.lvl * 5;
   openModal(
-    hdr(v.name + ' market', '🪙 ' + game.P.gold + ' gold') +
+    hdr(v.name + (shopFine ? ' fine goods' : ' market'), '🪙 ' + game.P.gold + ' gold') +
       '<div class="tabs"><button class="chip' +
       (shopTab === 'buy' ? ' on' : '') +
       '" id="tb1">Buy</button><button class="chip' +
@@ -77,7 +122,7 @@ function renderShop(v) {
     );
     body.appendChild(row);
     for (const it of s.items) {
-      const price = it.val * 4,
+      const price = it.val * (shopFine ? 6 : 4),
         cur = game.P.eq[it.slot],
         r2 = document.createElement('div');
       r2.className = 'row2';

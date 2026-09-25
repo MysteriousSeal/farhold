@@ -123,9 +123,9 @@ describe('village paths', () => {
 
 describe('mountain cliffs', () => {
   it('traces the impassable rim of peaks as line segments', () => {
-    useSeed('alpha');
-    // a spot at the foot of a peak (walkable) with the mountain just north of it
-    const segs = traceCliffs(-600, 200, 256);
+    useSeed('smoketest');
+    // around the foot of a peak (walkable) with the mountain just north of it
+    const segs = traceCliffs(100, 1750, 256);
     expect(segs.length).toBeGreaterThan(10);
     for (const s of segs.slice(0, 20)) {
       const h = hField(s.ax, s.ay, Math.hypot(s.ax, s.ay));

@@ -430,8 +430,41 @@ const DECOR_R = {
   palm: 7,
   log: 10,
 };
+/** Dirt road from (sx, sy) heading along (dx, dy): solid for `full`, then a fading trail. */
+function paintRoad(x, key, sx, sy, dx, dy, full, fade, dirt) {
+  x.fillStyle = dirt;
+  x.strokeStyle = dirt;
+  x.lineCap = 'round';
+  x.lineWidth = 24;
+  x.beginPath();
+  x.moveTo(sx, sy);
+  x.lineTo(sx + dx * full, sy + dy * full);
+  x.stroke();
+  const tr = mulberry(strSeed(key));
+  let off = 0;
+  for (let d = full; d < full + fade; d += 8) {
+    const k = (d - full) / fade;
+    off += (tr() - 0.5) * 3;
+    const skip = tr() < k * 0.75,
+      rw = 12 * (1 - k * 0.7) * (0.8 + tr() * 0.4),
+      j = off + (tr() - 0.5) * 8 * k;
+    if (skip) continue;
+    x.beginPath();
+    x.ellipse(sx + dx * d - dy * j, sy + dy * d + dx * j, dy ? rw : 6, dy ? 6 : rw, 0, 0, TAU);
+    x.fill();
+  }
+}
 function paintPoiGround(x, p) {
   x.save();
+  if (p.kind === 'village' && p.city) {
+    // Hearthfire's paving is drawn crisply by art/city.ts; only the country roads are baked
+    const dirt = p.b === 4 ? '#c9c2b8' : p.b === 3 ? '#d9b884' : '#c9a26e';
+    paintRoad(x, p.key + 'rs', 0, 500, 0, 1, 170, 200, dirt);
+    paintRoad(x, p.key + 'rw', -600, 20, -1, 0, 170, 200, dirt);
+    paintRoad(x, p.key + 're', 600, 20, 1, 0, 170, 200, dirt);
+    x.restore();
+    return;
+  }
   if (p.kind === 'village') {
     const dirt = p.b === 4 ? '#c9c2b8' : p.b === 3 ? '#d9b884' : '#c9a26e';
     x.fillStyle = dirt;

@@ -1,8 +1,9 @@
 import type { Poi } from '../game/types';
-import { TAU, angDiff, hs, mulberry, rand, strSeed } from '../core/math';
+import { TAU, angDiff, hs, mulberry, strSeed } from '../core/math';
 import { BOSS } from '../data/bosses';
 import { game } from '../game/state';
 import { dangerAt, terr, walkT } from './terrain';
+import { cityLaneStart, makeCity } from './city';
 /* ---------- Points of interest ---------- */
 export const PC = 1700,
   poiCache = new Map();
@@ -58,7 +59,7 @@ function checkVillage(v) {
     v.board,
     v.way,
     { x: v.x, y: v.y + 40 },
-    ...v.houses.map((h) => ({ x: h.x + h.door * h.w * 0.22, y: h.y })),
+    ...v.houses.map((h) => ({ x: h.x + h.door * h.w * DOOR_F, y: h.y })),
   ]) {
     for (const dy of [0, 30]) {
       const T = terr(pt.x, pt.y + dy);
@@ -92,7 +93,7 @@ export function poiAt(i, j) {
   const k = i + ',' + j;
   if (poiCache.has(k)) return poiCache.get(k);
   let p = null;
-  if (i === 0 && j === 0) p = makeVillage(0, 0, 'v0,0', true);
+  if (i === 0 && j === 0) p = makeCity('v0,0');
   else {
     const r = hs(i, j, 101),
       x = (i + 0.22 + hs(i, j, 102) * 0.56) * PC,
@@ -134,6 +135,84 @@ const ROOFS = [
   ['#b9853f', '#7d5a2a'],
   ['#8a5a9c', '#5e3b6c'],
 ];
+/* ---------- Houses ---------- */
+/** Door offset from the house centre, as a share of its width (models and paths agree). */
+export const DOOR_F = 0.22;
+/** Drawn height of each house model above the ground (paths keep clear of it). */
+export const HOUSE_HEIGHT = {
+  cottage: 104,
+  townhouse: 150,
+  stone: 86,
+  hut: 90,
+  tower: 196,
+  hall: 172,
+};
+export const HOUSE_PROPS = ['barrel', 'crate', 'wood', 'pot', 'bench', 'fence'];
+// model weights per biome: cottage, townhouse, stone, hut, tower
+const HOUSE_MIX = [
+  [4, 2, 1, 2, 0.6], // meadow
+  [3, 1, 2, 3, 0.5], // forest
+  [3, 3, 1, 1, 0.6], // autumn wood
+  [2, 1, 4, 0, 0.8], // desert
+  [2, 1, 4, 0, 0.8], // tundra
+  [2, 0, 0.5, 5, 0], // swamp
+  [0, 1, 4, 0, 1.2], // blightlands
+];
+const KINDS = ['cottage', 'townhouse', 'stone', 'hut', 'tower'],
+  WIDTH = {
+    cottage: [78, 26],
+    townhouse: [72, 18],
+    stone: [76, 22],
+    hut: [64, 16],
+    tower: [54, 8],
+  },
+  STONE = ['#a9a49a', '#a39e92', '#aea292', '#d6b27a', '#b8c0c8', '#8f9486', '#7a6a8a'],
+  SLATE = ['#5f6a7c', '#5a6674', '#6a6070', '#a8785a', '#5a6272', '#55604e', '#4e4460'],
+  DOORS = ['#6b4423', '#7a3b2a', '#3f5a7a', '#4f6b3a'],
+  SHUTTERS = ['#3f6fa0', '#4f8a4a', '#a0443a', '#6b4a32'];
+/** A village house: its model depends on the biome; colours and details are seeded. */
+export function makeHouse(
+  b: number,
+  x: number,
+  y: number,
+  rnd: () => number,
+  towerOk: boolean,
+  weights: number[] = HOUSE_MIX[b],
+) {
+  const mix = weights.map((wgt, i) => (KINDS[i] === 'tower' && !towerOk ? 0 : wgt)),
+    total = mix.reduce((a, q) => a + q, 0);
+  let r = rnd() * total,
+    ki = 0;
+  while (r > mix[ki]) r -= mix[ki++];
+  const kind = KINDS[ki],
+    [w0, wr] = WIDTH[kind],
+    props: string[] = [];
+  for (let i = (rnd() * 3) | 0; i > 0; i--)
+    props.push(HOUSE_PROPS[(rnd() * HOUSE_PROPS.length) | 0]);
+  return {
+    kind,
+    x,
+    y,
+    w: (w0 + rnd() * wr) | 0,
+    d: 44,
+    roof: ROOFS[(rnd() * ROOFS.length) | 0],
+    wall: b === 3 ? '#e8cfa0' : b === 4 ? '#e6e0d6' : '#f1e2c6',
+    stone: STONE[b],
+    slate: SLATE[b],
+    thatch: b === 5 ? '#a89a52' : '#c9a55a',
+    daub: b === 5 ? '#b8a880' : '#d8c49a',
+    doorCol: DOORS[(rnd() * DOORS.length) | 0],
+    shut: rnd() < 0.5 ? SHUTTERS[(rnd() * SHUTTERS.length) | 0] : null,
+    box: rnd() < 0.5,
+    sign: rnd() < 0.3,
+    banner: rnd() < 0.5 ? '#c8423a' : '#3f6fa0',
+    snow: b === 4,
+    door: rnd() < 0.5 ? -1 : 1,
+    chim: kind !== 'tower' && rnd() < 0.7,
+    seed: rnd(),
+    props,
+  };
+}
 function makeVillage(x, y, key, home?) {
   const rnd = mulberry(strSeed(key) ^ game.SEED),
     T = terr(x, y);
@@ -162,36 +241,25 @@ function makeVillage(x, y, key, home?) {
     { x0: v.forge.x - 36, x1: v.forge.x + 30, y0: v.forge.y - 30, y1: v.forge.y + 2 },
     { x0: v.board.x - 24, x1: v.board.x + 24, y0: v.board.y - 8, y1: v.board.y + 2 },
   );
-  const n = home ? 4 : 3 + ((rnd() * 3) | 0),
+  const n = home ? 5 : 4 + ((rnd() * 3) | 0),
     base = rnd() * TAU;
+  let tower = false;
   for (let k = 0; k < n; k++) {
-    const a = base + (k / n) * TAU + rand(-0.2, 0.2) * 0,
-      rad = 205 + rnd() * 25,
+    const a = base + (k / n) * TAU,
+      rad = 212 + rnd() * 40,
       hx = x + Math.cos(a) * rad,
-      hy = y + Math.sin(a) * rad * 0.8 + 30,
-      w = (78 + rnd() * 26) | 0;
+      hy = y + Math.sin(a) * rad * 0.8 + 30;
     if (Math.abs(hx - v.board.x) < 70 && hy < y - 60) continue;
-    const roof = ROOFS[(rnd() * ROOFS.length) | 0],
-      h = {
-        x: hx,
-        y: hy,
-        w,
-        d: 44,
-        roof,
-        wall: v.b === 3 ? '#e8cfa0' : v.b === 4 ? '#e6e0d6' : '#f1e2c6',
-        snow: v.b === 4,
-        door: rnd() < 0.5 ? -1 : 1,
-        chim: rnd() < 0.7,
-        seed: rnd(),
-      };
+    const h = makeHouse(v.b, hx, hy, rnd, !tower);
     if (
       v.houses.some((o) => Math.abs(o.x - h.x) < (o.w + h.w) / 2 + 14 && Math.abs(o.y - h.y) < 70)
     )
       continue;
     // keep the main road running south from the plaza clear of houses
-    if (h.y > y && Math.abs(h.x - x) < w / 2 + 30) continue;
+    if (h.y > y && Math.abs(h.x - x) < h.w / 2 + 30) continue;
+    if (h.kind === 'tower') tower = true;
     v.houses.push(h);
-    v.solids.push({ x0: hx - w / 2, x1: hx + w / 2, y0: hy - 40, y1: hy });
+    v.solids.push({ x0: hx - h.w / 2, x1: hx + h.w / 2, y0: hy - 40, y1: hy });
   }
   for (let k = 0; k < 4; k++) {
     const a = (k / 4) * TAU + 0.785;
@@ -333,15 +401,16 @@ const segHitsRect = (a: Pt, b: Pt, x0: number, y0: number, x1: number, y1: numbe
  * Waypoints for the dirt path from a village plaza to a house door. The path walks around the
  * house (walls and roof) and always arrives at the door from the front.
  */
-export function houseRoute(v: Pt, h): Pt[] {
-  const P = { x: v.x, y: v.y + 10 },
-    dx = h.x + h.door * h.w * 0.22,
+export function houseRoute(v: Pt & { city?: boolean }, h): Pt[] {
+  // in the city, lanes branch off the nearest street; in villages they start at the plaza
+  const P = v.city ? cityLaneStart(h) : { x: v.x, y: v.y + 10 },
+    dx = h.x + h.door * h.w * DOOR_F,
     D = { x: dx, y: h.y - 4 },
     F = { x: dx, y: h.y + 34 },
     // house footprint including the roof, with a margin for the path width
     x0 = h.x - h.w / 2 - 22,
     x1 = h.x + h.w / 2 + 22,
-    y0 = h.y - 118,
+    y0 = h.y - (HOUSE_HEIGHT[h.kind] || 104) - 14,
     y1 = h.y + 14,
     corners = (s: number) => ({
       top: { x: h.x + s * (h.w / 2 + 34), y: h.y - 128 },

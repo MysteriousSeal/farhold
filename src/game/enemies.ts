@@ -132,7 +132,7 @@ export function spawnEnemies() {
       d = rand(440, 660),
       x = game.P.x + Math.cos(a) * d,
       y = game.P.y + Math.sin(a) * d;
-    if (Math.hypot(x, y) < 380) continue;
+    if (Math.hypot(x, y) < 700) continue; // Hearthfire and its walls
     const T = terr(x, y);
     if (!walkT(T)) continue;
     if (poisNear(x, y, 120).length) continue;

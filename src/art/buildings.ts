@@ -1,163 +1,12 @@
-import { SPR, makeSpr } from './decor';
+import { SPR } from './decor';
 import { circ, ell, rr, shadow } from '../core/dom';
-import { OUT, TAU, clamp, rand, sh } from '../core/math';
+import { OUT, TAU, rand, sh } from '../core/math';
 import { addLight } from '../game/fx';
 import { game } from '../game/state';
 /* ================= ART: buildings & props ================= */
-function houseSprite(h) {
-  const W2 = h.w + 34,
-    S = makeSpr(W2, 128, W2 / 2, 120, (x) => {
-      const w = h.w,
-        wall = h.wall,
-        top = -44;
-      shadow(x, 0, 4, w / 2 + 14, 12, 0.28);
-      rr(x, -w / 2, top, w, 44, 2, wall);
-      x.fillStyle = 'rgba(0,0,0,.08)';
-      x.fillRect(-w / 2, top + 30, w, 14);
-      x.strokeStyle = '#6b4a32';
-      x.lineWidth = 3.5;
-      x.beginPath();
-      x.moveTo(-w / 2 + 2, top + 16);
-      x.lineTo(w / 2 - 2, top + 16);
-      for (const k of [-0.5, -0.17, 0.17, 0.5]) {
-        x.moveTo(k * w, top + 2);
-        x.lineTo(k * w, 0);
-      }
-      x.moveTo(-w / 2 + 4, top + 2);
-      x.lineTo((-w / 2) * 0.66, top + 16);
-      x.moveTo(w / 2 - 4, top + 2);
-      x.lineTo((w / 2) * 0.66, top + 16);
-      x.stroke();
-      x.lineWidth = 2.2;
-      x.strokeStyle = OUT;
-      x.strokeRect(-w / 2, top, w, 44);
-      const dx = h.door * w * 0.22;
-      rr(x, dx - 8, -24, 16, 24, [8, 8, 0, 0], '#6b4423');
-      x.fillStyle = '#f5c451';
-      x.beginPath();
-      x.arc(dx + 4, -12, 1.5, 0, TAU);
-      x.fill();
-      x.strokeStyle = 'rgba(0,0,0,.3)';
-      x.lineWidth = 1.2;
-      x.beginPath();
-      x.moveTo(dx, -22);
-      x.lineTo(dx, 0);
-      x.stroke();
-      x.lineWidth = 2.2;
-      x.strokeStyle = OUT;
-      const wx = -h.door * w * 0.24;
-      rr(x, wx - 9, -34, 18, 14, 2, '#39405e');
-      x.strokeStyle = '#6b4a32';
-      x.lineWidth = 2;
-      x.beginPath();
-      x.moveTo(wx, -34);
-      x.lineTo(wx, -20);
-      x.moveTo(wx - 9, -27);
-      x.lineTo(wx + 9, -27);
-      x.stroke();
-      x.strokeStyle = OUT;
-      x.lineWidth = 2.2;
-      x.strokeRect(wx - 9, -34, 18, 14);
-      rr(x, wx - 11, -21, 22, 4, 1, '#8a5a36');
-      x.fillStyle = '#62b24a';
-      x.beginPath();
-      x.arc(wx - 6, -21, 3, Math.PI, 0);
-      x.arc(wx, -22, 3, Math.PI, 0);
-      x.arc(wx + 6, -21, 3, Math.PI, 0);
-      x.fill();
-      if (h.chim) {
-        rr(x, w * 0.22, top - 50, 12, 26, 1, '#9a8a7a');
-        rr(x, w * 0.22 - 2, top - 52, 16, 5, 1, '#7a6a5a');
-      }
-      const rH = 46;
-      x.beginPath();
-      x.moveTo(-w / 2 - 10, top + 4);
-      x.lineTo(-w / 2 + 8, top - rH);
-      x.lineTo(w / 2 - 8, top - rH);
-      x.lineTo(w / 2 + 10, top + 4);
-      x.closePath();
-      x.fillStyle = h.roof[0];
-      x.fill();
-      x.stroke();
-      x.save();
-      x.clip();
-      x.strokeStyle = h.roof[1];
-      x.lineWidth = 2;
-      for (let r = 0; r < 5; r++) {
-        const yy = top + 4 - r * 10;
-        x.beginPath();
-        x.moveTo(-w, yy);
-        x.lineTo(w, yy);
-        x.stroke();
-        for (let k = -w; k < w; k += 12) {
-          x.beginPath();
-          x.moveTo(k + (r % 2) * 6, yy);
-          x.lineTo(k + (r % 2) * 6, yy - 10);
-          x.stroke();
-        }
-      }
-      x.fillStyle = 'rgba(255,255,255,.14)';
-      x.fillRect(-w, top - rH, w * 2, 8);
-      if (h.snow) {
-        x.fillStyle = '#f4f8ff';
-        x.beginPath();
-        x.moveTo(-w / 2 + 8, top - rH);
-        x.lineTo(w / 2 - 8, top - rH);
-        x.lineTo(w / 2 - 2, top - rH + 16);
-        for (let k = w / 2 - 2; k > -w / 2; k -= 10)
-          x.quadraticCurveTo(k - 5, top - rH + 22, k - 10, top - rH + 14);
-        x.closePath();
-        x.fill();
-      }
-      x.restore();
-      x.strokeStyle = OUT;
-      x.lineWidth = 2.2;
-      x.beginPath();
-      x.moveTo(-w / 2 + 8, top - rH);
-      x.lineTo(w / 2 - 8, top - rH);
-      x.stroke();
-      x.lineWidth = 3;
-      x.strokeStyle = sh(h.roof[1], -0.2);
-      x.beginPath();
-      x.moveTo(-w / 2 - 10, top + 4);
-      x.lineTo(w / 2 + 10, top + 4);
-      x.stroke();
-    });
-  return S;
-}
-export function drawHouse(c, h, t, dark) {
-  if (!h.spr) h.spr = houseSprite(h);
-  const s = h.spr;
-  c.drawImage(s.c, h.x - s.ax, h.y - s.ay, s.w, s.h);
-  const wx = h.x - h.door * h.w * 0.24;
-  if (dark > 0.15) {
-    c.save();
-    c.globalAlpha = clamp(dark * 1.4, 0, 1) * (0.85 + Math.sin(t * 3 + h.seed * 9) * 0.08);
-    c.fillStyle = '#ffc25a';
-    c.fillRect(wx - 8, h.y - 33, 7, 5);
-    c.fillRect(wx + 1, h.y - 33, 7, 5);
-    c.fillRect(wx - 8, h.y - 26, 7, 5);
-    c.fillRect(wx + 1, h.y - 26, 7, 5);
-    c.restore();
-    addLight(wx, h.y - 24, 90, 0.6 * dark, '#ffb050');
-  }
-  if (h.chim && Math.random() < 0.06)
-    game.parts.push({
-      x: h.x + h.w * 0.22 + 6,
-      y: h.y - 98,
-      vx: rand(4, 12),
-      vy: rand(-22, -14),
-      life: 2.2,
-      max: 2.2,
-      col: 'rgba(230,230,235,.5)',
-      sz: rand(6, 10),
-      g: 0,
-      smoke: 1,
-    });
-}
-export function drawStall(c, v, t) {
-  const x0 = v.stall.x,
-    y0 = v.stall.y;
+export function drawStall(c, v, t, pos = v.stall, awning = '#3f7fbf', goods = 'fruit') {
+  const x0 = pos.x,
+    y0 = pos.y;
   c.save();
   c.translate(x0, y0);
   c.lineWidth = 2.2;
@@ -169,19 +18,58 @@ export function drawStall(c, v, t) {
   rr(c, -36, -22, 72, 22, 3, '#9a6a3e');
   c.fillStyle = 'rgba(0,0,0,.15)';
   c.fillRect(-36, -10, 72, 10);
-  const goods = [
-    ['#e0483e', -26],
-    ['#f5c451', -14],
-    ['#62b24a', -2],
-    ['#e0483e', 10],
-    ['#c872ff', 22],
-  ] as [string, number][];
-  for (const [col, gx] of goods) {
-    circ(c, gx, -26, 4.5, col);
-    c.fillStyle = 'rgba(255,255,255,.5)';
-    c.beginPath();
-    c.arc(gx - 1.5, -27.5, 1.3, 0, TAU);
-    c.fill();
+  if (goods === 'potion') {
+    // flasks of coloured potions
+    for (const [col, gx] of [
+      ['#e0483e', -24],
+      ['#4f8fe0', -12],
+      ['#62b24a', 0],
+      ['#c872ff', 12],
+      ['#e0483e', 24],
+    ] as [string, number][]) {
+      rr(c, gx - 1.8, -36, 3.6, 6, 1, '#d8e8f0');
+      circ(c, gx, -26, 5, col);
+      c.fillStyle = 'rgba(255,255,255,.55)';
+      c.beginPath();
+      c.arc(gx - 1.8, -27.8, 1.4, 0, TAU);
+      c.fill();
+    }
+  } else if (goods === 'fine') {
+    // gems and gold
+    for (const [col, gx] of [
+      ['#4fa6ff', -24],
+      ['#c872ff', -8],
+      ['#62d86a', 8],
+      ['#ffa63a', 24],
+    ] as [string, number][]) {
+      c.beginPath();
+      c.moveTo(gx, -34);
+      c.lineTo(gx + 5, -28);
+      c.lineTo(gx, -22);
+      c.lineTo(gx - 5, -28);
+      c.closePath();
+      c.fillStyle = col;
+      c.fill();
+      c.stroke();
+      c.fillStyle = 'rgba(255,255,255,.6)';
+      c.fillRect(gx - 2, -31, 2, 2);
+    }
+    circ(c, 0, -25, 3, '#f5c451');
+  } else {
+    const fruit = [
+      ['#e0483e', -26],
+      ['#f5c451', -14],
+      ['#62b24a', -2],
+      ['#e0483e', 10],
+      ['#c872ff', 22],
+    ] as [string, number][];
+    for (const [col, gx] of fruit) {
+      circ(c, gx, -26, 4.5, col);
+      c.fillStyle = 'rgba(255,255,255,.5)';
+      c.beginPath();
+      c.arc(gx - 1.5, -27.5, 1.3, 0, TAU);
+      c.fill();
+    }
   }
   c.beginPath();
   c.moveTo(-40, -44);
@@ -195,7 +83,7 @@ export function drawStall(c, v, t) {
   c.save();
   c.clip();
   for (let i = -40; i < 40; i += 16) {
-    c.fillStyle = '#3f7fbf';
+    c.fillStyle = awning;
     c.fillRect(i, -60, 8, 18);
   }
   c.restore();
@@ -203,7 +91,7 @@ export function drawStall(c, v, t) {
     c.beginPath();
     c.moveTo(i, -44);
     c.quadraticCurveTo(i + 4, -38, i + 8, -44);
-    c.fillStyle = (i / 8) % 2 ? '#fff6e0' : '#3f7fbf';
+    c.fillStyle = (i / 8) % 2 ? '#fff6e0' : awning;
     c.fill();
     c.stroke();
   }

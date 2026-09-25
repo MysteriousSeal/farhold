@@ -1,3 +1,4 @@
+import { resetCityGround } from '../art/city';
 import { drawHumanoid, drawWeapon, handPos, restAng, weaponBehind } from '../art/humanoid';
 import { backfillBossChests } from '../game/bossChest';
 import { audioInit } from '../audio/sfx';
@@ -196,6 +197,7 @@ function startGame(p, fresh?) {
   WCH.clear();
   game.bgGen = null;
   poiCache.clear();
+  resetCityGround();
   backfillBossChests();
   offers.clear();
   shopStock.clear();
