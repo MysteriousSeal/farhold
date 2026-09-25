@@ -53,17 +53,28 @@ canvas#c {
   display: flex;
 }
 .title {
-  font-family: 'Grenze Gotisch', Georgia, serif;
-  font-weight: 800;
-  font-size: clamp(70px, 18vw, 160px);
+  font-family: var(--f);
+  font-weight: 700;
+  font-size: clamp(56px, 14vw, 130px);
+  letter-spacing: 1px;
   line-height: 0.9;
   color: var(--gold);
   margin: 0;
+  /* outline built from shadows: -webkit-text-stroke draws Fredoka's overlapping glyph contours
+     (a stray ring inside the "d") */
   text-shadow:
-    0 5px 0 #7a4a14,
-    0 12px 30px rgba(0, 0, 0, 0.6);
-  -webkit-text-stroke: 2px #3a220c;
-  letter-spacing: 1px;
+    3px 0 0 #3a220c,
+    -3px 0 0 #3a220c,
+    0 3px 0 #3a220c,
+    0 -3px 0 #3a220c,
+    2px 2px 0 #3a220c,
+    -2px 2px 0 #3a220c,
+    2px -2px 0 #3a220c,
+    -2px -2px 0 #3a220c,
+    0 8px 0 #7a4a14,
+    3px 8px 0 #7a4a14,
+    -3px 8px 0 #7a4a14,
+    0 14px 30px rgba(0, 0, 0, 0.6);
 }
 .sub {
   font-size: 17px;
@@ -124,10 +135,10 @@ canvas#c {
     inset 0 0 0 2px rgba(255, 255, 255, 0.05);
 }
 h2 {
-  font-family: 'Grenze Gotisch', serif;
-  font-weight: 800;
+  font-family: var(--f);
+  font-weight: 700;
   color: var(--gold);
-  font-size: 32px;
+  font-size: 28px;
   margin: 0 0 4px;
   line-height: 1;
 }
@@ -699,8 +710,9 @@ input.txt {
   left: 0;
   right: 0;
   text-align: center;
-  font-family: 'Grenze Gotisch', serif;
-  font-size: 34px;
+  font-family: var(--f);
+  font-size: 32px;
+  font-weight: 700;
   color: var(--ivory);
   text-shadow:
     0 3px 10px #000,
@@ -855,8 +867,9 @@ input.txt {
   pointer-events: none;
 }
 #bossn {
-  font-family: 'Grenze Gotisch', serif;
-  font-size: 20px;
+  font-family: var(--f);
+  font-size: 18px;
+  font-weight: 700;
   text-align: center;
   color: #ffd0c0;
   text-shadow: 0 2px 4px #000;
@@ -1404,8 +1417,9 @@ input.txt {
   color: #e7d7b0;
 }
 .gs b {
-  font-family: 'Grenze Gotisch', serif;
-  font-size: 26px;
+  font-family: var(--f);
+  font-size: 24px;
+  font-weight: 700;
   color: var(--gold);
   margin-left: 6px;
   text-shadow: 0 2px 0 #7a4a14;
