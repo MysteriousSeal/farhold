@@ -28,7 +28,14 @@ import {
 } from '../art/buildings';
 import { drawEnemy } from '../art/creatures';
 import { SPR, TREESET } from '../art/decor';
-import { drawHumanoid, drawWeapon, handPos, restAng, weaponBehind } from '../art/humanoid';
+import {
+  drawHumanoid,
+  drawWeapon,
+  handOver,
+  handPos,
+  restAng,
+  weaponBehind,
+} from '../art/humanoid';
 import { drawDrop, drawProj } from '../art/items';
 import { DPR, H, W, g, mkCanvas, shadow } from '../core/dom';
 import { OUT, TAU, clamp, lerp, rand } from '../core/math';
@@ -181,7 +188,10 @@ function drawHero(c, t) {
     noShadow: !!z,
   });
   c.restore();
-  if (!behind || hero.whirl > 0) wd();
+  if (!behind || hero.whirl > 0) {
+    wd();
+    if (!rolling && hero.whirl <= 0) handOver(c, wx, wy, L); // grip inside the fist
+  }
   if (hero.warp) {
     // channel cast bar above the hero
     const k = Math.min(1, hero.warp.t / WARP_TIME),

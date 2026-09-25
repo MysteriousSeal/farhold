@@ -1,4 +1,4 @@
-import { drawHumanoid, drawWeapon, handPos, restAng } from '../art/humanoid';
+import { drawHumanoid, drawWeapon, handOver, handPos, restAng } from '../art/humanoid';
 import { compareItem, fmtPct } from '../game/power';
 import { SFX } from '../audio/sfx';
 import { $ } from '../core/dom';
@@ -126,6 +126,7 @@ function drawPortrait(cv: HTMLCanvasElement) {
       );
   drawHumanoid(x, 0, 0, { look: game.P.look, dx: 0, dy: 1, moving: false, walk: 0, time: 0 });
   wd();
+  handOver(x, hp.x, hp.y, game.P.look);
   x.setTransform(1, 0, 0, 1, 0, 0);
 }
 const SLOT_ICON = {

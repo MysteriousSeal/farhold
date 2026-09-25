@@ -1,5 +1,12 @@
 import { resetCityGround } from '../art/city';
-import { drawHumanoid, drawWeapon, handPos, restAng, weaponBehind } from '../art/humanoid';
+import {
+  drawHumanoid,
+  drawWeapon,
+  handOver,
+  handPos,
+  restAng,
+  weaponBehind,
+} from '../art/humanoid';
 import { backfillBossChests, refreshQuestTargets } from '../game/bossChest';
 import { audioInit } from '../audio/sfx';
 import { $ } from '../core/dom';
@@ -126,7 +133,10 @@ export function drawPreview(t) {
   const behind = weaponBehind(hp, C.cls);
   if (behind) wd();
   drawHumanoid(pc, 0, 0, { look: L, dx: di[0], dy: di[1], moving: true, walk, time: t });
-  if (!behind) wd();
+  if (!behind) {
+    wd();
+    handOver(pc, hp.x, hp.y, L);
+  }
   pc.setTransform(1, 0, 0, 1, 0, 0);
 }
 $('#cDice').onclick = () => {

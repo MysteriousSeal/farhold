@@ -600,9 +600,13 @@ export function handPos(dx, dy, moving, walk, t, race, scale = 1) {
     return { x: 10 * dw * scale, y: (armY + 11 - sw * 2) * scale, f, flip, behind: false };
   return { x: -10 * dw * scale, y: (armY + 11 + sw * 2) * scale, f, flip, behind: true };
 }
-/** Whether a held weapon is drawn behind the body. A bow at rest stays visible in the hand. */
+const MELEE = ['warrior', 'sword', 'axe', 'club'];
+/**
+ * Whether a held weapon is drawn behind the body. Bows and melee weapons at rest stay visible in
+ * the hand (a resting blade hangs beside the body); while attacking they follow the facing.
+ */
 export function weaponBehind(h, kind, aiming = false) {
-  return h.behind && (aiming || (kind !== 'ranger' && kind !== 'bow'));
+  return h.behind && (aiming || (kind !== 'ranger' && kind !== 'bow' && !MELEE.includes(kind)));
 }
 export function restAng(h, cls) {
   // Bows are carried upright at the side, belly facing away from the body.
@@ -611,7 +615,8 @@ export function restAng(h, cls) {
   if (cls === 'mage' || cls === 'staff')
     return h.f === 'side' ? (h.flip ? -0.25 : 0.25) : h.f === 'down' ? 0.15 : -0.15;
   if (h.f === 'side') return h.flip ? Math.PI - 0.5 : 0.5;
-  return h.f === 'down' ? Math.PI / 2 - 0.6 : -Math.PI / 2 - 0.6;
+  // relaxed grip: blade hangs down beside the leg, tip tilted slightly outward
+  return h.f === 'down' ? Math.PI / 2 - 0.18 : Math.PI / 2 + 0.18;
 }
 /**
  * Axe head on a haft lying along +x, with its top end at `x`. The cutting edge faces -y:
@@ -771,5 +776,13 @@ export function drawWeapon(c, x, y, ang, kind, sw, col?, glow?, style = 0, scale
     c.globalAlpha = 0.3 + Math.sin(performance.now() / 200) * 0.12;
     circ(c, 0, -15, 12, glow || oc, false);
   }
+  c.restore();
+}
+/** Redraw the hand over a held weapon's grip so the hilt sits inside the fist. */
+export function handOver(c, x: number, y: number, look, s = 1) {
+  c.save();
+  c.lineWidth = 2.2 / Math.sqrt(s);
+  c.strokeStyle = OUT;
+  circ(c, x, y, 3 * s, look.gloves || look.skin);
   c.restore();
 }
