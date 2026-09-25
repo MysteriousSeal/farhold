@@ -3,7 +3,7 @@ import { OUT, TAU, clamp, fbm, hs, lerp, mulberry, pick, rand, strSeed, vn } fro
 import { game } from '../game/state';
 import { genDungeonChunk } from './dungeon';
 import { houseRoute, poiSolid, poisNear } from './poi';
-import { CH, classify, corr, groundF, hField, terr, walkT } from './terrain';
+import { CH, PEAK_H, classify, corr, groundF, hField, peakF, terr, walkT } from './terrain';
 /* ---------- World chunks ---------- */
 export const WCH = new Map();
 export function chunkRng(cx, cy) {
@@ -15,9 +15,7 @@ const GS = 8,
   FN = CH / FR,
   NF = 10,
   AE = 0.0014,
-  HT = [
-    0.352, 0.36, 0.384, 0.3915, 0.3965, 0.4, 0.4032, 0.407, 0.425, 0.431, 0.675, 0.68, 0.745, 0.752,
-  ];
+  HT = [0.352, 0.36, 0.384, 0.3915, 0.3965, 0.4, 0.4032, 0.407, 0.425, 0.431, 0.675, 0.68];
 function startGen(cx, cy) {
   return {
     cx,
@@ -93,6 +91,18 @@ function stepGen(G, steps) {
             col = groundF(t, b, h, c, v[5], v[6], v[7], v[8], v[9], v[4]),
             p = j * FN + i,
             o = p * 4;
+          if (h > PEAK_H - 0.012) {
+            const e = 3,
+              hx =
+                (hField(wx + e, wy, Math.hypot(wx + e, wy)) -
+                  hField(wx - e, wy, Math.hypot(wx - e, wy))) /
+                (2 * e),
+              hy =
+                (hField(wx, wy + e, Math.hypot(wx, wy + e)) -
+                  hField(wx, wy - e, Math.hypot(wx, wy - e))) /
+                (2 * e);
+            peakF(col, t, b, h, hx, hy, wx);
+          }
           let r = col[0],
             gg = col[1],
             bb = col[2];
@@ -269,6 +279,29 @@ function finishGen(G) {
       x.moveTo(lx, ly);
       x.lineTo(lx + rand(-7, 7), ly + rand(-4, 4));
       x.stroke();
+    } else if (t === 5 && q < 0.3) {
+      // rugged mountain top: branching cracks and loose stones
+      if (q < 0.18) {
+        const a = rnd() * TAU,
+          l = 6 + rnd() * 8;
+        x.strokeStyle = 'rgba(28,22,34,.45)';
+        x.lineWidth = 1.6;
+        x.beginPath();
+        x.moveTo(lx, ly);
+        x.lineTo(lx + Math.cos(a) * l, ly + Math.sin(a) * l * 0.6);
+        x.lineTo(lx + Math.cos(a + 0.6) * l * 1.6, ly + Math.sin(a + 0.6) * l);
+        x.moveTo(lx + Math.cos(a) * l, ly + Math.sin(a) * l * 0.6);
+        x.lineTo(lx + Math.cos(a - 0.7) * l * 1.5, ly + Math.sin(a - 0.7) * l * 0.9);
+        x.stroke();
+      } else {
+        x.fillStyle = 'rgba(255,255,255,.18)';
+        x.strokeStyle = 'rgba(28,22,34,.4)';
+        x.lineWidth = 1.2;
+        x.beginPath();
+        x.ellipse(lx, ly, 3 + q * 6, 2 + q * 3, q * 9, 0, TAU);
+        x.fill();
+        x.stroke();
+      }
     } else if (t === 1) {
       if (b === 5 && q < 0.08) {
         x.lineWidth = 1.6;
@@ -353,6 +386,11 @@ function finishGen(G) {
     } else if (t === 4) {
       if (q < 0.3) d = b === 4 ? 'icerock' : b === 3 ? 'sandrock' : b === 6 ? 'blightrock' : 'rock';
       else if (q < 0.4) d = b === 4 ? 'snowpine' : 'pine';
+    } else if (t === 5) {
+      // boulders and a few hardy pines on the (impassable) mountain tops
+      if (q < 0.22)
+        d = b === 4 ? 'icerock' : b === 3 ? 'sandrock' : b === 6 ? 'blightrock' : 'rock';
+      else if (q < 0.3 && b !== 3 && b !== 6) d = b === 4 ? 'snowpine' : 'pine';
     } else if (t === 2 && q < 0.05) d = b === 3 ? 'palm' : 'rock';
     if (d) decor.push({ k: d, x: wx, y: wy, r: DECOR_R[d] || 0, ph: rnd() * TAU });
   }

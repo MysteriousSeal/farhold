@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { strSeed } from '../src/core/math';
 import { game } from '../src/game/state';
 import { houseRoute, poiAt, poiCache } from '../src/world/poi';
-import { dangerAt, terr, walkT } from '../src/world/terrain';
+import { PEAK_H, dangerAt, peakF, terr, walkT } from '../src/world/terrain';
 
 const SEEDS = ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel'];
 const useSeed = (s: string) => {
@@ -117,5 +117,32 @@ describe('village paths', () => {
   it('no house blocks the main road south of the plaza', () => {
     for (const v of villages())
       for (const h of v.houses) expect(h.y > v.y && Math.abs(h.x - v.x) < h.w / 2 + 11).toBe(false);
+  });
+});
+
+describe('mountain peaks', () => {
+  const rock = () => [120, 110, 105];
+  const g = 0.001; // height gradient per world unit
+  const at = (dist: number) => PEAK_H + dist * g;
+  const lum = (c: number[]) => c[0] + c[1] + c[2];
+
+  it('draws a dark outline exactly at the impassable rim', () => {
+    const c = peakF(rock(), 5, 0, at(0.5), 0, -g, 0);
+    expect(lum(c)).toBeLessThan(140);
+    // well outside the rim, walkable ground is untouched (no cliff above it to cast a shadow)
+    expect(peakF(rock(), 4, 0, at(-30), 0, -g, 0)).toEqual(rock());
+  });
+
+  it('shows a darker cliff face only on south-facing edges', () => {
+    const southFace = lum(peakF(rock(), 5, 0, at(12), 0, -g, 0)),
+      northFace = lum(peakF(rock(), 5, 0, at(12), 0, g, 0));
+    expect(southFace).toBeLessThan(northFace);
+  });
+
+  it('caps high summits with snow, except in deserts and the blightlands', () => {
+    const high = at(200);
+    expect(lum(peakF(rock(), 5, 0, high, g, 0, 0))).toBeGreaterThan(600);
+    expect(lum(peakF(rock(), 5, 3, high, g, 0, 0))).toBeLessThan(400);
+    expect(lum(peakF(rock(), 5, 6, high, g, 0, 0))).toBeLessThan(400);
   });
 });

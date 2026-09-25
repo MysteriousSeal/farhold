@@ -130,8 +130,7 @@ export function groundF(t, b, h, c, s1, s2, s3, s4, s5, sw) {
     s = (Math.floor(s2 * 3) / 3 - 0.4) * 18;
     if (h < 0.68) s -= 10;
   } else if (t === 5) {
-    s = Math.floor(h * 60) % 2 ? -8 : 6;
-    if (h < 0.752) s = -30;
+    s = 0; // peaks are styled by peakF
   } else if (t === 1) {
     if (b === 4) {
       s = (s5 - 0.5) * 14;
@@ -165,4 +164,65 @@ export function groundF(t, b, h, c, s1, s2, s3, s4, s5, sw) {
   _gc[1] = gg + s;
   _gc[2] = bb + s;
   return _gc;
+}
+
+/** Height at which impassable mountain peaks (terrain type 5) begin. */
+export const PEAK_H = 0.745;
+const OUTLINE = [42, 29, 44],
+  SNOW = [238, 242, 248];
+/**
+ * Restyle a ground colour on or around an impassable peak so it reads as a solid mountain:
+ * a dark outline at the rim, a rock cliff on south-facing edges, north-west light, snow caps,
+ * and a soft shadow on the walkable ground at the foot of the cliff.
+ * `gx`/`gy` is the height gradient per world unit; `wx` the world x (for rock streaks).
+ * Mutates and returns `col`.
+ */
+export function peakF(
+  col: number[],
+  t: number,
+  b: number,
+  h: number,
+  gx: number,
+  gy: number,
+  wx: number,
+) {
+  const g = Math.hypot(gx, gy) || 1e-6,
+    dist = (h - PEAK_H) / g, // world units inside the rim (negative outside)
+    south = clamp(-gy / g, 0, 1), // 1 where the edge faces the camera (south)
+    mix = (c: number[], f: number) => {
+      for (let i = 0; i < 3; i++) col[i] = lerp(col[i], c[i], f);
+    };
+  if (t !== 5) {
+    // shadow cast on walkable ground at the foot of a cliff
+    if (t >= 2 && t <= 4 && dist > -14 && south > 0) {
+      const k = (1 + dist / 14) * south * 0.28;
+      for (let i = 0; i < 3; i++) col[i] *= 1 - k;
+    }
+    // antialiased outer edge of the outline
+    if (dist > -1.6) mix(OUTLINE, 1 + dist / 1.6);
+    return col;
+  }
+  const wall = 26 * south;
+  if (dist < wall) {
+    // cliff face: darker rock with vertical streaks, lighter lip at the top
+    const streak = (vn(wx * 0.35, 0.5, 91) - 0.5) * 26,
+      depth = 0.62 + (dist / wall) * 0.18;
+    for (let i = 0; i < 3; i++) col[i] = col[i] * depth + streak;
+    if (dist > wall - 3) for (let i = 0; i < 3; i++) col[i] += 34;
+  } else {
+    // plateau / slopes: north-west light, faint strata, crisp snow caps on high summits
+    const light = clamp((gx + gy) * 1300, -1, 1) * 26,
+      strata = Math.floor(h * 110) % 2 ? -5 : 5;
+    for (let i = 0; i < 3; i++) col[i] += light + strata - 10;
+    if (b !== 3 && b !== 6) {
+      const sd = (h - 0.815) / g; // distance inside the snow line
+      if (sd > -1.5) {
+        mix(SNOW, clamp(1 + sd / 1.5, 0, 1) * 0.9);
+        if (sd < 3) mix([150, 170, 200], 0.35 * clamp(1 - Math.abs(sd - 1) / 2, 0, 1));
+      }
+    }
+  }
+  // outline at the rim, antialiased on the inside
+  if (dist < 3.2) mix(OUTLINE, clamp((3.2 - dist) / 1.4, 0, 1));
+  return col;
 }
