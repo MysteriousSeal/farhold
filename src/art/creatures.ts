@@ -2,6 +2,7 @@ import { drawHumanoid, drawWeapon, handPos, restAng, weaponBehind } from './huma
 import { circ, ell, rr, shadow } from '../core/dom';
 import { OUT, TAU, clamp, mixCol, sh } from '../core/math';
 import { ET } from '../data/enemies';
+import { game } from '../game/state';
 /* ================= ART: creatures ================= */
 function fcol(e, col) {
   return e.flash > 0 ? '#ffffff' : e.frozen > 0 ? mixCol(col, '#9fe0ff', 0.55) : col;
@@ -514,22 +515,68 @@ export function drawEnemy(c, e, t) {
     }
     c.restore();
   }
-  if (!e.boss && (e.hp < e.max || e.elite)) {
-    const w = 34 * Math.min(e.sc, 1.4),
-      y = e.y - (e.hbY || 40) * e.sc;
-    c.fillStyle = 'rgba(20,15,30,.85)';
-    c.fillRect(e.x - w / 2 - 1, y - 1, w + 2, 6);
-    c.fillStyle = '#ffd0a0';
-    c.fillRect(e.x - w / 2, y, w * clamp(e.hpShow / e.max, 0, 1), 4);
-    c.fillStyle = e.elite ? '#ffb13a' : '#ff5a4a';
-    c.fillRect(e.x - w / 2, y, w * clamp(e.hp / e.max, 0, 1), 4);
-    c.font = '600 9px Fredoka,sans-serif';
-    c.textAlign = 'center';
-    c.lineWidth = 2.5;
-    c.strokeStyle = 'rgba(0,0,0,.85)';
-    const tx = (e.elite ? e.elite + ' ' : '') + 'Lv ' + e.lvl;
-    c.strokeText(tx, e.x, y - 3);
-    c.fillStyle = e.elite ? '#ffd27a' : '#fff';
-    c.fillText(tx, e.x, y - 3);
-  }
+  enemyPlate(c, e);
+}
+
+/** Level colour by difficulty relative to the player (WoW-style). */
+export function levelColor(diff: number) {
+  return diff <= -6
+    ? '#a0a0a0'
+    : diff <= -3
+      ? '#62d86a'
+      : diff <= 2
+        ? '#ffe14a'
+        : diff <= 5
+          ? '#ffa63a'
+          : '#ff5a4a';
+}
+/** Overhead health bar with "level name" label, always shown for living enemies. */
+function enemyPlate(c, e) {
+  const boss = !!e.boss,
+    w = boss ? 70 : Math.round(38 * Math.min(e.sc, 1.4)),
+    h = boss ? 8 : 6,
+    y = e.y - (e.hbY || 40) * e.sc - (boss ? 6 : 2),
+    x0 = e.x - w / 2,
+    k = clamp(e.hp / e.max, 0, 1),
+    ks = clamp(e.hpShow / e.max, 0, 1);
+  c.save();
+  c.lineJoin = 'round';
+  // bar: dark back, trailing damage flash, health fill with a highlight, outline
+  c.beginPath();
+  if (c.roundRect) c.roundRect(x0, y, w, h, h / 2);
+  else c.rect(x0, y, w, h);
+  c.fillStyle = 'rgba(20,15,30,.9)';
+  c.fill();
+  c.save();
+  c.clip();
+  c.fillStyle = '#ffe0b0';
+  c.fillRect(x0, y, w * ks, h);
+  c.fillStyle = boss ? '#c8304a' : e.elite ? '#ff9a2a' : '#e8453a';
+  c.fillRect(x0, y, w * k, h);
+  c.fillStyle = 'rgba(255,255,255,.28)';
+  c.fillRect(x0, y, w * k, h * 0.4);
+  c.restore();
+  c.strokeStyle = OUT;
+  c.lineWidth = 1.6;
+  c.stroke();
+  // label: coloured level (skull when far above you) + name
+  const diff = e.lvl - (game.P ? game.P.lvl : e.lvl),
+    lvl = diff >= 10 ? '☠' : String(e.lvl),
+    name = ' ' + (e.elite ? e.elite + ' ' : '') + (e.name || ET[e.type].n);
+  c.font = (boss ? '700 12px' : '600 10px') + ' Fredoka,sans-serif';
+  c.textBaseline = 'alphabetic';
+  const lw = c.measureText(lvl).width,
+    nw = c.measureText(name).width,
+    tx = e.x - (lw + nw) / 2,
+    ty = y - 3;
+  c.lineWidth = 3;
+  c.strokeStyle = 'rgba(0,0,0,.85)';
+  c.textAlign = 'left';
+  c.strokeText(lvl, tx, ty);
+  c.strokeText(name, tx + lw, ty);
+  c.fillStyle = levelColor(diff);
+  c.fillText(lvl, tx, ty);
+  c.fillStyle = boss ? '#ffd0c0' : e.elite ? '#ffd27a' : '#ffffff';
+  c.fillText(name, tx + lw, ty);
+  c.restore();
 }
