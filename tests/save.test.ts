@@ -89,6 +89,12 @@ describe('game/save', () => {
     expect(migrate(p).sp).toEqual({ a0: 2 });
   });
 
+  it('heroes from before gender choice are clean-shaven men', () => {
+    const p = migrate({ inv: [] });
+    expect([p.gender, p.beard]).toEqual(['m', 0]);
+    expect(migrate({ inv: [], gender: 'f' }).gender).toBe('f');
+  });
+
   it('skips a corrupt save', () => {
     store.set('farhold_slot:bad', '{nope');
     expect(loadSave()).toBeNull();

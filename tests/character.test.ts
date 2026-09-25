@@ -132,6 +132,21 @@ describe('player look', () => {
     }
   });
 
+  it('gender shapes the look: a linen top for women, facial hair only for men', () => {
+    const f = lookOfPlayer(hero({ gender: 'f', hair: 5, beard: 2 }));
+    expect(f.fem).toBe(true);
+    expect(f.top).toBe(UNDERWEAR);
+    expect(f.beard).toBe(false);
+    expect(f.hair).toBe(5);
+    const m = lookOfPlayer(hero({ gender: 'm', beard: 1 }));
+    expect(m.fem).toBe(false);
+    expect(m.top).toBeUndefined();
+    expect(m.stubble).toBe(true);
+    const armored = hero({ gender: 'f' });
+    armored.eq.armor = { slot: 'armor', name: 'Iron Tunic', r: 0, mat: 1, plus: 0, st: {} };
+    expect(lookOfPlayer(armored).top).toBeUndefined();
+  });
+
   it('each gear slot dresses its own body part', () => {
     const p = hero();
     p.eq.boots = gear('boots', 'Iron Boots');

@@ -69,6 +69,9 @@ export function lookOfPlayer(p) {
       skin: p.skin,
       hair: p.hair,
       hairC: p.hairC,
+      fem: p.gender === 'f',
+      beard: p.gender !== 'f' && p.beard === 2,
+      stubble: p.gender !== 'f' && p.beard === 1,
       race: p.race,
       cloth: bare ? p.skin : C2.cloth,
       cloth2: bare ? sh(p.skin, -0.2) : C2.cloth2,
@@ -82,6 +85,7 @@ export function lookOfPlayer(p) {
     L.shorts = UNDERWEAR;
     L.pants = p.skin;
   }
+  if (bare && p.gender === 'f') L.top = UNDERWEAR; // a linen top with the shorts
   if (e.gloves) L.gloves = sh(MATS[e.gloves.mat][1], -0.12);
   if (e.armor) {
     const n = e.armor.name;

@@ -4,7 +4,7 @@ import { backfillBossChests, refreshQuestTargets } from '../game/bossChest';
 import { audioInit } from '../audio/sfx';
 import { $ } from '../core/dom';
 import { pick, strSeed } from '../core/math';
-import { HAIRC, HAIRS, MATS, SKINS } from '../data/classes';
+import { BEARDS, HAIRC, HAIRS, MATS, SKINS } from '../data/classes';
 import { respawn } from '../game/combat';
 import { unstick } from '../game/enemies';
 import { banner } from '../game/fx';
@@ -34,7 +34,7 @@ export function closeAll() {
   setHud(true);
   save();
 }
-const C = { race: 'human', skin: 0, hair: 0, hairC: 1 };
+const C = { race: 'human', gender: 'm', skin: 0, hair: 0, hairC: 1, beard: 0 };
 const randSeed = () =>
   pick(['Oak', 'Ember', 'Raven', 'Frost', 'Stone', 'Wyrm', 'Thorn', 'Gale']) +
   '-' +
@@ -64,10 +64,30 @@ function refreshCreate() {
     true,
   );
   chips(
+    $('#cGender'),
+    [
+      ['m', 'Male'],
+      ['f', 'Female'],
+    ],
+    () => C.gender,
+    (v) => {
+      // each gender has its own hair styles: switch to that list's first style
+      if (v !== C.gender) C.hair = HAIRS[v][0][0];
+      C.gender = v;
+    },
+  );
+  chips(
     $('#cHair'),
-    HAIRS.map((h, i) => [i, h]),
+    HAIRS[C.gender],
     () => C.hair,
     (v) => (C.hair = v),
+  );
+  $('#cBeardW').style.display = C.gender === 'm' ? '' : 'none';
+  chips(
+    $('#cBeard'),
+    BEARDS.map((b, i) => [i, b]),
+    () => C.beard,
+    (v) => (C.beard = v),
   );
   chips(
     $('#cHairC'),
@@ -81,6 +101,8 @@ function refreshCreate() {
 function previewPlayer() {
   return {
     race: 'human',
+    gender: C.gender,
+    beard: C.gender === 'm' ? C.beard : 0,
     skin: SKINS[C.skin],
     hair: C.hair,
     hairC: HAIRC[C.hairC],

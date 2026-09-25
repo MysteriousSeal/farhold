@@ -47,6 +47,9 @@ export function migrate(p) {
     if (k >= 0) p.skin = SKINS[k];
   }
   p.race = 'human';
+  // heroes from before gender choice are male, clean-shaven
+  p.gender = p.gender || 'm';
+  p.beard = p.beard || 0;
   // no more classes: weapons keep the family they were made as (their old owner's class when
   // unmarked), the style comes from the weapon held, and skill points are refunded once
   // into the shared tree

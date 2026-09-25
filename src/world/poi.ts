@@ -287,7 +287,14 @@ function makeVillage(x, y, key, home?) {
   v.npcs.push(merchant);
   merchant.look.cloth = '#3f7fbf';
   merchant.look.hat = '#c8523f';
-  Object.assign(smith.look, { cloth: '#5a4636', apron: true, hair: 3, beard: true });
+  Object.assign(smith.look, {
+    cloth: '#5a4636',
+    apron: true,
+    hair: 3,
+    beard: true,
+    fem: false,
+    stubble: false,
+  });
   v.smith = smith;
   for (let k = 0; k < (home ? 3 : 2 + ((rnd() * 3) | 0)); k++) {
     const a = rnd() * TAU;
@@ -317,19 +324,30 @@ export function makeSmithy(v, tx: number, ty: number) {
   best.sign = true;
   v.smithy = best;
 }
-/** A random villager's looks (skin, hair and clothes) from the seeded `rnd`. */
+/**
+ * A random villager's looks (gender, skin, hair and clothes) from the seeded `rnd`: about
+ * half are women; some men have a beard or stubble.
+ */
 export function villagerLook(rnd: () => number): Record<string, any> {
   const skins = ['#f7d4b2', '#e6b187', '#c4895c', '#8a5838'],
     hairs = ['#2b1d14', '#6b3e1f', '#c9803a', '#f0d27a', '#e4e4e4'],
-    cl = ['#8a6a4a', '#5a7a9a', '#9a5a5a', '#6a8a5a', '#a08050', '#7a6a9a'];
-  return {
-    skin: skins[(rnd() * 4) | 0],
-    hair: (rnd() * 4) | 0,
-    hairC: hairs[(rnd() * 5) | 0],
-    race: 'human',
-    cloth: cl[(rnd() * cl.length) | 0],
-    cape: null,
-  };
+    cl = ['#8a6a4a', '#5a7a9a', '#9a5a5a', '#6a8a5a', '#a08050', '#7a6a9a'],
+    fem = rnd() < 0.5,
+    L: Record<string, any> = {
+      skin: skins[(rnd() * 4) | 0],
+      hair: fem ? [4, 1, 2, 5, 6][(rnd() * 5) | 0] : (rnd() * 4) | 0,
+      hairC: hairs[(rnd() * 5) | 0],
+      race: 'human',
+      cloth: cl[(rnd() * cl.length) | 0],
+      cape: null,
+      fem,
+    };
+  if (!fem) {
+    const q = rnd();
+    if (q < 0.22) L.beard = true;
+    else if (q < 0.42) L.stubble = true;
+  }
+  return L;
 }
 function makeCave(x, y, key) {
   const rnd = mulberry(strSeed(key) ^ game.SEED);

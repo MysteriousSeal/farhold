@@ -1,7 +1,7 @@
 import type { Poi } from '../game/types';
 import { TAU, mulberry, strSeed } from '../core/math';
 import { game } from '../game/state';
-import { DOOR_F, houseRoute, makeHouse, makeSmithy, placeLamps } from './poi';
+import { DOOR_F, houseRoute, makeHouse, makeSmithy, placeLamps, villagerLook } from './poi';
 import { terr } from './terrain';
 /* ---------- Hearthfire: the walled starting town ---------- */
 // Layout (world units, y grows south): a paved square around the waystone, four cobbled
@@ -190,9 +190,6 @@ export function makeCity(key: string) {
   );
 
   // townsfolk, shopkeepers and gate guards
-  const skins = ['#f7d4b2', '#e6b187', '#c4895c', '#8a5838'],
-    hairs = ['#2b1d14', '#6b3e1f', '#c9803a', '#f0d27a', '#e4e4e4'],
-    cl = ['#8a6a4a', '#5a7a9a', '#9a5a5a', '#6a8a5a', '#a08050', '#7a6a9a'];
   const mk = (role: string, px: number, py2: number, extra = {}) => ({
     role,
     x: px,
@@ -204,14 +201,7 @@ export function makeCity(key: string) {
     walk: 0,
     moving: false,
     wt: rnd() * 3,
-    look: {
-      skin: skins[(rnd() * 4) | 0],
-      hair: (rnd() * 4) | 0,
-      hairC: hairs[(rnd() * 5) | 0],
-      race: 'human',
-      cloth: cl[(rnd() * cl.length) | 0],
-      cape: null,
-    },
+    look: villagerLook(rnd),
     ...extra,
   });
   const merchant = mk('merchant', v.stall.x, v.stall.y - 14),
@@ -219,7 +209,14 @@ export function makeCity(key: string) {
     alch = mk('merchant', v.shops[0].x, v.shops[0].y - 14),
     jewel = mk('merchant', v.shops[1].x, v.shops[1].y - 14);
   Object.assign(merchant.look, { cloth: '#3f7fbf', hat: '#c8523f' });
-  Object.assign(smith.look, { cloth: '#5a4636', apron: true, hair: 3, beard: true });
+  Object.assign(smith.look, {
+    cloth: '#5a4636',
+    apron: true,
+    hair: 3,
+    beard: true,
+    fem: false,
+    stubble: false,
+  });
   Object.assign(alch.look, { cloth: '#5a3f8a', robe: true, hat: '#3f2a66' });
   Object.assign(jewel.look, { cloth: '#8a2a3a', cape: '#5a1a28', hat: '#c9912c' });
   v.npcs.push(merchant, alch, jewel);

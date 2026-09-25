@@ -1,5 +1,15 @@
 import { circ, ell, rr, shadow } from '../core/dom';
 import { OUT, TAU, clamp, mixCol, sh } from '../core/math';
+import {
+  femArmor,
+  femTop,
+  femTorso,
+  hairBack,
+  hairFront,
+  hairLocks,
+  lashes,
+  stubble,
+} from './humanoidFem';
 /* ================= ART: humanoid ================= */
 /**
  * Facing in 8 directions: side (right/left), down, up, and the four diagonals, which are drawn
@@ -28,7 +38,8 @@ export function drawHumanoid(c, x, y, o) {
     side = f === 'side',
     up = f === 'up',
     fd = diag && !up, // front 3/4 view (turned toward +x)
-    E = fd ? 3 : 0; // how far facial features shift toward the facing side
+    E = fd ? 3 : 0, // how far facial features shift toward the facing side
+    V = { up, side, diag, fd };
   c.save();
   c.translate(x, y);
   if (!o.noShadow) {
@@ -178,6 +189,7 @@ export function drawHumanoid(c, x, y, o) {
     c.fill();
     c.stroke();
   }
+  if (L.hairC && L.hair >= 4) hairBack(c, L, hy, V, tint(L.hairC));
   if (L.cowl) {
     circ(c, 0, hy + 1, 12.5, tint(L.cowl));
   }
@@ -202,7 +214,8 @@ export function drawHumanoid(c, x, y, o) {
   c.save();
   c.translate(ts, 0);
   c.scale(dw * (diag ? 0.74 : 1), 1);
-  rr(c, -9, by, 18, 16, 6, cloth);
+  if (L.fem) femTorso(c, by, cloth);
+  else rr(c, -9, by, 18, 16, 6, cloth);
   if (L.bones) {
     c.strokeStyle = '#8a8272';
     c.lineWidth = 1.4;
@@ -230,6 +243,8 @@ export function drawHumanoid(c, x, y, o) {
     }
   } else {
     if (A) armorBody(c, A, by, up, side, tint, lw);
+    if (L.fem && A) femArmor(c, by, V);
+    if (L.fem && L.top && !A) femTop(c, by, tint(L.top), V);
     if (!L.shorts) {
       c.fillStyle = A && A.trim ? tint(A.trim) : cloth2;
       c.fillRect(-8.5, by + 10, 17, 3);
@@ -360,6 +375,7 @@ export function drawHumanoid(c, x, y, o) {
       }
     }
   }
+  if (L.hairC) hairFront(c, L, hy, V, tint(L.hairC), lw);
   // head turns slightly toward the facing side in 3/4 views
   c.save();
   if (diag) c.translate(fd ? 1.5 : 1, 0);
@@ -466,6 +482,7 @@ export function drawHumanoid(c, x, y, o) {
         c.quadraticCurveTo(-HR + 2, hy - 4, -HR, hy + (fd ? 5 : 2));
       }
       c.fill();
+      hairLocks(c, L, hy, V, HR);
       if (up && diag) {
         // back 3/4: a sliver of cheek shows on the near side
         c.fillStyle = skin;
@@ -511,6 +528,14 @@ export function drawHumanoid(c, x, y, o) {
       c.lineWidth = lw;
       c.strokeStyle = OUT;
     }
+    if (L.stubble && !up && L.hairC) {
+      c.save();
+      c.beginPath();
+      c.arc(0, hy, HR, 0, TAU);
+      c.clip();
+      stubble(c, hy, tint(L.hairC), side, E);
+      c.restore();
+    }
     c.beginPath();
     c.arc(0, hy, HR, 0, TAU);
     c.stroke();
@@ -519,17 +544,20 @@ export function drawHumanoid(c, x, y, o) {
       c.fillStyle = ec;
       if (side) {
         c.beginPath();
-        c.ellipse(5.5, hy + 1.5, 1.5, 2.1, 0, 0, TAU);
+        c.ellipse(5.5, hy + 1.5, 1.5, L.fem ? 2.4 : 2.1, 0, 0, TAU);
         c.fill();
+        if (L.fem && !L.eyes) lashes(c, hy, 0, 0, true);
       } else {
         // 3/4: the far eye moves in and narrows, the near eye moves toward the edge
         const ex1 = fd ? -1 : -3.6,
           ex2 = fd ? 5.6 : 3.6,
           er1 = fd ? 1.1 : 1.5;
+        const ery = L.fem ? 2.4 : 2.1;
         c.beginPath();
-        c.ellipse(ex1, hy + 1.5, er1, 2.1, 0, 0, TAU);
-        c.ellipse(ex2, hy + 1.5, 1.5, 2.1, 0, 0, TAU);
+        c.ellipse(ex1, hy + 1.5, er1, ery, 0, 0, TAU);
+        c.ellipse(ex2, hy + 1.5, 1.5, ery, 0, 0, TAU);
         c.fill();
+        if (L.fem && !L.eyes) lashes(c, hy, ex1, ex2, false);
         if (!L.eyes) {
           c.fillStyle = '#fff';
           c.beginPath();
