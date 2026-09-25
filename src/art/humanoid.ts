@@ -7,7 +7,9 @@ import {
   hairBack,
   hairFront,
   hairLocks,
+  hairTop,
   lashes,
+  shaved,
   stubble,
 } from './humanoidFem';
 /* ================= ART: humanoid ================= */
@@ -450,7 +452,8 @@ export function drawHumanoid(c, x, y, o) {
       c.beginPath();
       c.arc(0, hy, HR, 0, TAU);
       c.clip();
-      c.fillStyle = tint(L.hairC);
+      // buzz cut and mohawk: the shaved hair is a faint shadow over the skin
+      c.fillStyle = shaved(L) ? mixCol(tint(L.hairC), skin, 0.6) : tint(L.hairC);
       c.beginPath();
       if (up) c.rect(-HR, hy - HR, HR * 2, HR * 2);
       else if (side) {
@@ -539,6 +542,7 @@ export function drawHumanoid(c, x, y, o) {
     c.beginPath();
     c.arc(0, hy, HR, 0, TAU);
     c.stroke();
+    if (L.hairC) hairTop(c, L, hy, V, tint(L.hairC), lw);
     if (!up) {
       const ec = L.eyes || OUT;
       c.fillStyle = ec;

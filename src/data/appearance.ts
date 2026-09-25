@@ -51,15 +51,22 @@ export const HAIRC = [
 export const HAIRS = {
   m: [
     [0, 'Short'],
+    [7, 'Buzz cut'],
     [1, 'Long'],
     [2, 'Ponytail'],
+    [9, 'Curly'],
+    [10, 'Topknot'],
+    [8, 'Mohawk'],
     [3, 'Bald'],
   ],
   f: [
     [4, 'Bob'],
+    [12, 'Pixie'],
     [1, 'Long'],
     [2, 'Ponytail'],
     [5, 'Braid'],
+    [11, 'Pigtails'],
+    [9, 'Curly'],
     [6, 'Bun'],
   ],
 } as Record<string, [number, string][]>;
