@@ -1,4 +1,5 @@
 import { drawHumanoid, drawWeapon, handPos, restAng, weaponBehind } from '../art/humanoid';
+import { backfillBossChests } from '../game/bossChest';
 import { audioInit } from '../audio/sfx';
 import { $ } from '../core/dom';
 import { pick, strSeed } from '../core/math';
@@ -195,6 +196,7 @@ function startGame(p, fresh?) {
   WCH.clear();
   game.bgGen = null;
   poiCache.clear();
+  backfillBossChests();
   offers.clear();
   shopStock.clear();
   game.mode = 'world';

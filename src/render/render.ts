@@ -313,6 +313,8 @@ export function render() {
         }
         for (const pl of p.pillars) list.push({ y: pl.y, f: (c) => drawPillar(c, pl, game.time) });
         list.push({ y: p.y - 40, f: (c) => c.drawImage(SPR.bones.c, p.x - 30, p.y - 60, 60, 36) });
+        const chest = game.P && game.P.chests && game.P.chests[p.key];
+        if (chest) list.push({ y: chest.y, f: (c) => drawChest(c, chest, game.time) });
       } else if (p.kind === 'cave') list.push({ y: p.y, f: (c) => drawCave(c, p, game.time) });
     }
   } else {

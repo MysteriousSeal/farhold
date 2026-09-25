@@ -9,6 +9,7 @@ export function migrate(p) {
   p.home = p.home || 'v0,0';
   p.quests = p.quests || [];
   p.cleared = p.cleared || {};
+  p.chests = p.chests || {};
   p.tod = p.tod || 0.1;
   p.eq = p.eq || {};
   for (const k of SLOTS) if (!(k in p.eq)) p.eq[k] = null;

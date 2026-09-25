@@ -1,4 +1,5 @@
 import { SFX } from '../audio/sfx';
+import { openBossChest } from './bossChest';
 import { enterDungeon, leaveDungeon, openChest } from './dungeons';
 import { makeBoss } from './enemies';
 import { banner, burst } from './fx';
@@ -29,6 +30,10 @@ export function findInteract() {
       cand(p.board.x, p.board.y + 18, 62, 'Bounties', () => openBoard(p));
       cand(p.way.x, p.way.y + 16, 60, 'Waystone', () => openTravel(p));
     } else if (p.kind === 'cave') cand(p.x, p.y + 12, 62, 'Enter cave', () => enterDungeon(p));
+    else if (p.kind === 'lair') {
+      const ch = game.P.chests && game.P.chests[p.key];
+      if (ch && !ch.open) cand(ch.x, ch.y + 14, 64, 'Open chest', () => openBossChest(p.key));
+    }
   }
   return best;
 }

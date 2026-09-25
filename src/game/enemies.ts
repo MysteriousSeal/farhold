@@ -1,4 +1,5 @@
 import type { Enemy, Rec } from './types';
+import { CHEST_GOLD_SHARE, spawnBossChest } from './bossChest';
 import { SFX } from '../audio/sfx';
 import { TAU, clamp, lerp, pick, rand } from '../core/math';
 import { settings } from '../core/settings';
@@ -175,17 +176,23 @@ export function killEnemy(e) {
   );
   gainXp(xp);
   ftext(e.x, e.y - (e.hbY || 40) * e.sc - 10, '+' + xp + ' xp', '#ffe38a');
-  const gold = Math.round(
+  const lairBoss = e.boss && e.src && !e.src.mini,
+    total = Math.round(
       (rand(2, 5) + e.lvl * rand(1.2, 2.4)) * (e.elite ? 4 : 1) * (e.boss ? 14 : 1),
     ),
+    // a lair boss keeps most of its gold (and all its items) in the chest it leaves behind
+    gold = lairBoss ? Math.round(total * (1 - CHEST_GOLD_SHARE)) : total,
     coins = Math.min(e.boss ? 16 : 8, 2 + ((gold / 6) | 0));
   for (let i = 0; i < coins; i++)
     dropAt(e.x, e.y, { kind: 'gold', amt: Math.max(1, Math.round(gold / coins)) });
+  if (lairBoss) spawnBossChest(e.src, e.lvl, total - gold);
   if (e.boss) {
-    for (let i = 0; i < 2; i++)
-      dropAt(e.x, e.y, { kind: 'item', item: genItem(e.lvl, 0.25, null, 2) });
-    dropAt(e.x, e.y, { kind: 'item', item: genItem(e.lvl, 0.35, null, 1) });
-    dropAt(e.x, e.y, { kind: 'pot' });
+    if (!lairBoss) {
+      for (let i = 0; i < 2; i++)
+        dropAt(e.x, e.y, { kind: 'item', item: genItem(e.lvl, 0.25, null, 2) });
+      dropAt(e.x, e.y, { kind: 'item', item: genItem(e.lvl, 0.35, null, 1) });
+      dropAt(e.x, e.y, { kind: 'pot' });
+    }
     SFX.lvl();
     banner(e.name + ' defeated', 'Victory');
     game.shake = 12;
