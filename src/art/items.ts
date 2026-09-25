@@ -218,27 +218,47 @@ export function drawIcon(c, it, S) {
     c.fill();
     c.stroke();
   }
-  if (it.plus) {
-    // upgrade badge, top-left: bronze +1–2, silver +3–4, gold +5 and up
-    const txt = '+' + it.plus,
-      col = it.plus >= 5 ? '#f5c451' : it.plus >= 3 ? '#dfe5ee' : '#d8935a';
-    c.font = '800 10px Fredoka,sans-serif';
-    const bw = c.measureText(txt).width + 7;
-    c.lineWidth = 1.8;
-    c.strokeStyle = OUT;
-    c.beginPath();
-    if (c.roundRect) c.roundRect(-19, -19, bw, 12, 6);
-    else c.rect(-19, -19, bw, 12);
-    c.fillStyle = col;
-    c.fill();
-    c.stroke();
-    c.fillStyle = 'rgba(255,255,255,.35)';
-    c.fillRect(-16, -17.5, bw - 6, 2);
-    c.fillStyle = '#241a2e';
-    c.textAlign = 'center';
-    c.textBaseline = 'middle';
-    c.fillText(txt, -19 + bw / 2, -12.6);
+  c.restore();
+  if (it.plus) upgradeBadge(c, it.plus, S);
+}
+/**
+ * Upgrade level badge in the icon's top-right corner, drawn upright over everything: bronze
+ * +1 to +3, silver +4 to +6, gold with a soft glow from +7.
+ */
+function upgradeBadge(c, plus: number, S: number) {
+  const k = S / 40,
+    txt = '+' + plus,
+    tier = plus >= 7 ? 2 : plus >= 4 ? 1 : 0,
+    fill = ['#d8935a', '#e4e9f2', '#f5c451'][tier],
+    shade = ['#a8683a', '#a9b2c2', '#c9912c'][tier];
+  c.save();
+  c.scale(k, k);
+  c.font = '800 11px Fredoka,sans-serif';
+  const w = Math.max(17, c.measureText(txt).width + 8),
+    h = 14,
+    x = 39 - w,
+    y = 1;
+  if (tier === 2) {
+    c.shadowColor = 'rgba(255,210,90,.9)';
+    c.shadowBlur = 5;
   }
+  c.beginPath();
+  c.roundRect(x, y, w, h, 7);
+  const g = c.createLinearGradient(0, y, 0, y + h);
+  g.addColorStop(0, fill);
+  g.addColorStop(1, shade);
+  c.fillStyle = g;
+  c.fill();
+  c.shadowBlur = 0;
+  c.lineWidth = 1.8;
+  c.strokeStyle = OUT;
+  c.stroke();
+  c.fillStyle = 'rgba(255,255,255,.4)';
+  c.fillRect(x + 4, y + 2, w - 8, 2);
+  c.fillStyle = '#241a2e';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText(txt, x + w / 2, y + h / 2 + 0.6);
   c.restore();
 }
 export function drawDrop(c, d, t) {
