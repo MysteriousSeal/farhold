@@ -1,5 +1,5 @@
 import { circ, ell, mkCanvas, rr, shadow } from '../core/dom';
-import { OUT, TAU } from '../core/math';
+import { OUT, TAU, mulberry } from '../core/math';
 /* ================= ART: decor sprites ================= */
 export type Sprite = ReturnType<typeof makeSpr>;
 export const SPR: Record<string, Sprite> = {};
@@ -404,38 +404,95 @@ export function buildSprites() {
     cr(9, 22, 5, 0.35);
     cr(0, 40, 7, 0);
   });
-  SPR.skull = makeSpr(30, 20, 15, 16, (x) => {
-    circ(x, 0, -6, 6, '#efe8d6');
-    rr(x, -4, -2, 8, 5, 2, '#efe8d6');
+  // bones & skull: each part is one silhouette with a single outline (outline pass, then fill)
+  const BONE = '#ece4d0',
+    BSH = '#cfc4aa',
+    OW = 1.7;
+  const bone = (x, cx: number, cy: number, len: number, rot: number, w = 3.4) => {
+    x.save();
+    x.translate(cx, cy);
+    x.rotate(rot);
+    const shape = (g: number) => {
+      x.beginPath();
+      for (const sx of [-1, 1])
+        for (const sy of [-1, 1]) {
+          x.moveTo((sx * len) / 2 + w * 0.78 + g, sy * w * 0.5);
+          x.arc((sx * len) / 2, sy * w * 0.5, w * 0.78 + g, 0, TAU);
+        }
+      x.rect(-len / 2, -w / 2 - g, len, w + g * 2);
+      x.fill();
+    };
+    x.fillStyle = OUT;
+    shape(OW);
+    x.fillStyle = BONE;
+    shape(0);
+    x.fillStyle = BSH;
+    x.fillRect(-len / 2 + w * 0.4, w * 0.08, len - w * 0.8, w * 0.36);
+    x.fillStyle = 'rgba(255,255,255,.65)';
+    x.fillRect(-len / 2 + w * 0.5, -w / 2 + 0.6, len - w, 0.9);
+    x.restore();
+  };
+  const skull = (x, cx: number, cy: number, s: number, rot: number) => {
+    x.save();
+    x.translate(cx, cy);
+    x.rotate(rot);
+    x.scale(s, s);
+    const head = (g: number) => {
+      x.beginPath();
+      x.ellipse(0, -3, 7 + g, 6.4 + g, 0, 0, TAU);
+      x.rect(-5 - g, -1.5 - g, 10 + g * 2, 5 + g * 2);
+      x.fill();
+    };
+    // jaw with teeth
     x.fillStyle = OUT;
     x.beginPath();
-    x.arc(-2.3, -6, 1.6, 0, TAU);
-    x.arc(2.3, -6, 1.6, 0, TAU);
+    x.rect(-4.4 - OW, 2.6 - OW, 8.8 + OW * 2, 3.6 + OW * 2);
     x.fill();
-  });
-  SPR.bones = makeSpr(40, 24, 20, 18, (x) => {
-    x.lineWidth = 2;
-    for (const [a, b, r] of [
-      [-8, -2, 0.3],
-      [6, -4, -0.5],
-      [0, -1, 1.2],
-    ]) {
-      x.save();
-      x.translate(a, b);
-      x.rotate(r);
-      rr(x, -8, -1.5, 16, 3, 1.5, '#e8e0cc');
-      circ(x, -8, -1.5, 2.2, '#e8e0cc');
-      circ(x, -8, 1.5, 2.2, '#e8e0cc');
-      circ(x, 8, -1.5, 2.2, '#e8e0cc');
-      circ(x, 8, 1.5, 2.2, '#e8e0cc');
-      x.restore();
+    x.fillStyle = BSH;
+    x.fillRect(-4.4, 2.6, 8.8, 3.6);
+    x.fillStyle = 'rgba(42,29,44,.75)';
+    for (const k of [-2.2, 0, 2.2]) x.fillRect(k - 0.35, 2.8, 0.7, 3.2);
+    // cranium
+    x.fillStyle = OUT;
+    head(OW);
+    x.fillStyle = BONE;
+    head(0);
+    x.save();
+    x.beginPath();
+    x.ellipse(0, -3, 7, 6.4, 0, 0, TAU);
+    x.rect(-5, -1.5, 10, 5);
+    x.clip();
+    x.fillStyle = BSH;
+    x.fillRect(-8, 0.4, 16, 5);
+    x.fillStyle = 'rgba(255,255,255,.55)';
+    x.beginPath();
+    x.ellipse(-3, -6.4, 2.4, 1.2, -0.5, 0, TAU);
+    x.fill();
+    x.restore();
+    // eye sockets and nose
+    x.fillStyle = '#2a1d2c';
+    for (const sx of [-1, 1]) {
+      x.beginPath();
+      x.ellipse(sx * 3, -2.6, 1.7, 2, sx * -0.15, 0, TAU);
+      x.fill();
     }
-    circ(x, 10, -8, 5, '#e8e0cc');
-    x.fillStyle = OUT;
     x.beginPath();
-    x.arc(8.5, -8, 1.3, 0, TAU);
-    x.arc(11.5, -8, 1.3, 0, TAU);
+    x.moveTo(0, -0.3);
+    x.lineTo(0.9, 1.4);
+    x.lineTo(-0.9, 1.4);
+    x.closePath();
     x.fill();
+    x.restore();
+  };
+  SPR.skull = makeSpr(30, 22, 15, 17, (x) => {
+    shadow(x, 0, 0, 9, 3, 0.25);
+    skull(x, 0, -6, 1.1, 0.12);
+  });
+  SPR.bones = makeSpr(56, 34, 28, 27, (x) => {
+    shadow(x, 0, 0, 21, 6, 0.28);
+    bone(x, -6, -3, 22, 0.28);
+    bone(x, -2, -5, 18, -0.55);
+    skull(x, 12, -8, 1.3, -0.15);
   });
   SPR.log = makeSpr(56, 26, 28, 22, (x) => {
     shadow(x, 0, 0, 22, 5, 0.22);
@@ -486,3 +543,78 @@ export const TREESET = new Set([
   'blighttree',
   'deadtree',
 ]);
+
+/** Moss patch on a cave floor: soft clumps with highlights, sprouts and sometimes glowing caps. */
+export function drawMoss(c, m, blight: boolean, t: number) {
+  const rnd = mulberry(m.s),
+    base = blight ? '#6a4a86' : '#4f7a3c',
+    light = blight ? '#9170b4' : '#78a854',
+    dark = blight ? '#3a2850' : '#2c4424';
+  c.save();
+  c.translate(m.x, m.y);
+  c.fillStyle = 'rgba(15,20,12,.28)';
+  c.beginPath();
+  c.ellipse(0, 3, 18, 8, 0, 0, TAU);
+  c.fill();
+  const n = 5 + ((rnd() * 3) | 0),
+    pts: number[][] = [];
+  for (let k = 0; k < n; k++) pts.push([(rnd() - 0.5) * 24, (rnd() - 0.5) * 9, 4.2 + rnd() * 3.6]);
+  pts.sort((a, b) => a[1] - b[1]);
+  for (const [fill, grow] of [
+    [dark, 1.7],
+    [base, 0],
+  ] as [string, number][]) {
+    c.fillStyle = fill;
+    c.beginPath();
+    for (const [x, y, r] of pts) {
+      c.moveTo(x + r + grow, y);
+      c.ellipse(x, y, r + grow, (r + grow) * 0.66, 0, 0, TAU);
+    }
+    c.fill();
+  }
+  c.fillStyle = light;
+  c.beginPath();
+  for (const [x, y, r] of pts) {
+    c.moveTo(x - r * 0.3 + r * 0.45, y - r * 0.3);
+    c.ellipse(x - r * 0.3, y - r * 0.3, r * 0.45, r * 0.3, 0, 0, TAU);
+  }
+  c.fill();
+  // tiny sprouts
+  c.strokeStyle = light;
+  c.lineWidth = 1.2;
+  c.lineCap = 'round';
+  for (let k = 0; k < 3; k++) {
+    const sx = (rnd() - 0.5) * 20,
+      sy = (rnd() - 0.5) * 6 - 2;
+    c.beginPath();
+    c.moveTo(sx, sy);
+    c.lineTo(sx - 1.6, sy - 4);
+    c.moveTo(sx, sy);
+    c.lineTo(sx + 1.6, sy - 4.4);
+    c.stroke();
+  }
+  // glowing cave mushrooms
+  if (rnd() < 0.4) {
+    const mx = (rnd() - 0.5) * 16,
+      glow = blight ? '255,150,240' : '150,240,255';
+    c.fillStyle = 'rgba(' + glow + ',' + (0.18 + Math.sin(t * 2 + m.s) * 0.06).toFixed(3) + ')';
+    c.beginPath();
+    c.arc(mx, -5, 9, 0, TAU);
+    c.fill();
+    for (const [dx, s] of [
+      [0, 1],
+      [4.5, 0.7],
+    ]) {
+      c.strokeStyle = OUT;
+      c.lineWidth = 1.3;
+      rr(c, mx + dx - 1 * s, -5 * s, 2 * s, 5 * s, 0.8, '#e8e0d0');
+      c.beginPath();
+      c.arc(mx + dx, -5 * s, 3.4 * s, Math.PI, 0);
+      c.closePath();
+      c.fillStyle = 'rgb(' + glow + ')';
+      c.fill();
+      c.stroke();
+    }
+  }
+  c.restore();
+}

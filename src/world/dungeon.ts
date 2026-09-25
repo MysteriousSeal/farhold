@@ -1,6 +1,6 @@
 import type { Dungeon } from '../game/types';
 import { mkCanvas } from '../core/dom';
-import { TAU, hs, mulberry, pick, sh, strSeed } from '../core/math';
+import { hs, mulberry, pick, sh, strSeed } from '../core/math';
 import { game } from '../game/state';
 import { CH } from './terrain';
 /* ---------- Dungeons ---------- */
@@ -154,6 +154,7 @@ export function genDungeonChunk(D, cx, cy) {
         : D.b === 6
           ? ['#3a2c48', '#443454', '#6a5480', '#9a82b0']
           : ['#3d3648', '#463f52', '#6a6078', '#9a90a8'];
+  const moss: { x: number; y: number; s: number }[] = [];
   x.fillStyle = '#120e1a';
   x.fillRect(0, 0, CH, CH);
   x.save();
@@ -187,12 +188,9 @@ export function genDungeonChunk(D, cx, cy) {
           x.lineTo(X + 15, Y + 28);
           x.stroke();
         }
-        if (v < 0.08) {
-          x.fillStyle = D.b === 6 ? 'rgba(160,80,200,.25)' : 'rgba(90,140,70,.35)';
-          x.beginPath();
-          x.ellipse(X + 20, Y + 20, 12, 8, 0, 0, TAU);
-          x.fill();
-        }
+        // moss patches are drawn crisply every frame (art/decor.ts drawMoss)
+        if (v < 0.08 && X >= ox && X < ox + CH && Y >= oy && Y < oy + CH)
+          moss.push({ x: X + 20, y: Y + 22, s: (hs(i, j, 77) * 1e9) | 0 });
         if (!isF(i, j - 1)) {
           const gr = x.createLinearGradient(0, Y, 0, Y + 20);
           gr.addColorStop(0, 'rgba(0,0,0,.5)');
@@ -235,5 +233,5 @@ export function genDungeonChunk(D, cx, cy) {
       }
     }
   x.restore();
-  return { cvs, decor: [], waves: [], last: 0 };
+  return { cvs, decor: [], waves: [], moss, last: 0 };
 }
