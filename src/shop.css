@@ -32,49 +32,54 @@
 }
 .sellgrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
   gap: 8px 6px;
   align-content: start;
-  max-height: 330px;
+  max-height: 410px;
   overflow-y: auto;
   padding: 2px 2px 10px;
 }
 .scell canvas {
-  width: 78%;
-  height: 78%;
-  margin-bottom: 8px;
+  width: 66%;
+  height: 66%;
+  margin-bottom: 10px;
 }
 .scell.sel {
   box-shadow: 0 0 0 2px var(--gold);
 }
 .scell .foot {
   position: absolute;
-  bottom: 2px;
+  bottom: 4px;
   left: 4px;
   right: 4px;
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  text-shadow: 0 1px 2px #000;
+  align-items: center;
+}
+/* every tag sits on a solid dark pill so it reads over any icon or rarity glow */
+.scell .price,
+.scell .lv,
+.scell .pct {
+  background: rgba(8, 11, 30, 0.9);
+  border-radius: 7px;
+  font-style: normal;
 }
 .scell .price {
-  font: 600 11px var(--f);
+  padding: 1px 6px;
+  font: 700 14px/18px var(--f);
   color: var(--gold);
 }
 .scell .lv {
-  font: 500 10px var(--f);
-  font-style: normal;
-  color: #aab2dc;
+  padding: 1px 5px;
+  font: 600 12px/16px var(--f);
+  color: #c8cff0;
 }
 .scell .pct {
   position: absolute;
-  top: 2px;
-  left: 3px;
-  padding: 0 4px;
-  border-radius: 6px;
-  background: rgba(10, 14, 36, 0.8);
-  font: 600 10px/14px var(--f);
-  font-style: normal;
+  top: 4px;
+  left: 4px;
+  padding: 1px 5px;
+  font: 700 12px/16px var(--f);
 }
 .scell .pct.up {
   color: #62d86a;
@@ -122,14 +127,14 @@
 }
 .scell .tick {
   position: absolute;
-  top: 2px;
-  right: 3px;
-  width: 15px;
-  height: 15px;
+  top: 4px;
+  right: 4px;
+  width: 19px;
+  height: 19px;
   border-radius: 4px;
   border: 1.5px solid #8a93c8;
   background: #0d1128;
-  font: 700 11px/13px var(--f);
+  font: 700 14px/16px var(--f);
   font-style: normal;
   text-align: center;
   color: #141934;
