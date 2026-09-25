@@ -1,6 +1,6 @@
 import { resetCityGround } from '../art/city';
 import { drawHumanoid, drawWeapon, handPos, restAng, weaponBehind } from '../art/humanoid';
-import { backfillBossChests } from '../game/bossChest';
+import { backfillBossChests, refreshQuestTargets } from '../game/bossChest';
 import { audioInit } from '../audio/sfx';
 import { $ } from '../core/dom';
 import { pick, strSeed } from '../core/math';
@@ -199,6 +199,7 @@ function startGame(p, fresh?) {
   poiCache.clear();
   resetCityGround();
   backfillBossChests();
+  refreshQuestTargets();
   offers.clear();
   shopStock.clear();
   game.mode = 'world';

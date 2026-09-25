@@ -531,8 +531,12 @@ function stoneCottage(x: Ctx, h, rnd: () => number, B: Built) {
   eaveShadow(x, w, top, 6);
   const dx = h.door * w * DOOR_F;
   door(x, dx, 17, 27, h.doorCol, true);
-  windowAt(x, B.wins, -h.door * w * 0.26, -22, 12, 13, { arch: true, frame: '#5a5048' });
-  if (w > 84) windowAt(x, B.wins, h.door * w * 0.36, -22, 10, 12, { arch: true, frame: '#5a5048' });
+  // windows stay on the side away from the door so they never overlap it
+  const win = { arch: true, frame: '#5a5048' };
+  if (w > 84) {
+    windowAt(x, B.wins, -h.door * w * 0.1, -22, 11, 13, win);
+    windowAt(x, B.wins, -h.door * w * 0.34, -22, 11, 13, win);
+  } else windowAt(x, B.wins, -h.door * w * 0.26, -22, 12, 13, win);
   if (h.chim) B.smoke = chimney(x, -h.door * w * 0.3, top - 24, 24);
   slateRoof(
     x,

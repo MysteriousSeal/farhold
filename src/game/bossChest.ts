@@ -69,3 +69,27 @@ export function backfillBossChests() {
     );
   return n;
 }
+
+/**
+ * Re-point accepted bounties at their lair/cave's current position (worlds can change between
+ * versions); bounties whose target no longer exists are dropped. Runs on load.
+ */
+export function refreshQuestTargets() {
+  let dropped = 0;
+  game.P.quests = game.P.quests.filter((q) => {
+    if (!q.key || q.done) return true;
+    const [i, j] = q.key.slice(1).split(',').map(Number),
+      p = poiAt(i, j);
+    if (!p || p.key !== q.key) {
+      dropped++;
+      return false;
+    }
+    q.x = p.x;
+    q.y = p.y;
+    return true;
+  });
+  if (dropped)
+    toast(
+      dropped + (dropped > 1 ? ' bounties were' : ' bounty was') + ' withdrawn: the place is gone',
+    );
+}
