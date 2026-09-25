@@ -15,6 +15,7 @@ export function setHud(on) {
   mini.style.display = on ? 'block' : 'none';
   $('#touch').classList.toggle('on', on && isTouch);
   $('#topbtns').style.display = on ? 'flex' : 'none';
+  $('#topbtns').classList.toggle('touch', isTouch);
   $('#skillbar').style.display = on && !isTouch ? 'flex' : 'none';
   $('#quests').style.display = on ? 'block' : 'none';
   if (!on) {
