@@ -75,8 +75,9 @@ export function updHud() {
       '% · ' +
       (D.bonus
         ? (D.bonusXp ? '+' + D.bonusXp + ' xp earned · ' : '') +
-          'resets in ' +
-          fmtClock(resetLeft(D.poiKey))
+          (resetLeft(D.poiKey)
+            ? 'resets in ' + fmtClock(resetLeft(D.poiKey))
+            : 'resets 5:00 after you leave')
         : 'Reward ' + clearBonusXp(D.lvl, first) + ' xp' + (first ? '' : ' (repeat)'));
     $('#dgf').style.width = pct + '%';
   } else db.style.display = 'none';

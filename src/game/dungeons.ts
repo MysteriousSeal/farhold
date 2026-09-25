@@ -99,6 +99,9 @@ export function enterDungeon(p) {
 }
 export function leaveDungeon(instant?) {
   const go = () => {
+    // leaving a fully cleared cave starts its reset timer
+    const st = game.DG && game.DG.cave;
+    if (st && st.done && !st.resetAt) st.resetAt = Date.now() + RESET_MS;
     game.mode = 'world';
     const r = game.P.ret || { x: 0, y: 60 };
     game.DG = null;
@@ -165,7 +168,7 @@ export function dungeonKill(e) {
   D.killed++;
   if (D.killed < D.total) return save();
   D.bonus = true;
-  st.resetAt = Date.now() + RESET_MS;
+  st.done = true; // the reset timer starts when the hero leaves the cave
   const first = !game.P.dgClear[D.poiKey];
   game.P.dgClear[D.poiKey] = 1;
   const xp = clearBonusXp(D.lvl, first);
@@ -183,9 +186,24 @@ export const RESET_MS = 5 * 60 * 1000;
 export function caveState(key: string) {
   const all = game.P.caves;
   let s = all[key];
-  if (!s) s = all[key] = { gen: 0, dead: [], guardDead: false, chestOpen: false, resetAt: 0 };
+  if (!s)
+    s = all[key] = {
+      gen: 0,
+      dead: [],
+      guardDead: false,
+      chestOpen: false,
+      done: false,
+      resetAt: 0,
+    };
   if (s.resetAt && Date.now() >= s.resetAt) {
-    all[key] = s = { gen: s.gen + 1, dead: [], guardDead: false, chestOpen: false, resetAt: 0 };
+    all[key] = s = {
+      gen: s.gen + 1,
+      dead: [],
+      guardDead: false,
+      chestOpen: false,
+      done: false,
+      resetAt: 0,
+    };
     delete game.P.cleared[key];
   }
   return s;
