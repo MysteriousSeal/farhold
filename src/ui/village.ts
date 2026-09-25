@@ -154,9 +154,7 @@ function renderBuy(v, body, s, pp) {
       'cell scell' + (buySel === it ? ' sel' : '') + (game.P.gold < price ? ' poor' : '');
     d.style.borderColor = RAR[it.r].c;
     d.appendChild(iconCanvas(it));
-    if (isUpgrade(it))
-      d.insertAdjacentHTML('beforeend', '<i class="up" title="Better than what you wear">▲</i>');
-    d.insertAdjacentHTML('beforeend', '<b class="price">' + fmt(price) + '</b>');
+    d.insertAdjacentHTML('beforeend', cardTags(it, price));
     d.onclick = () => {
       buySel = it;
       renderShop(v);
@@ -241,6 +239,24 @@ const sellPick = new Set<object>();
 const junkR = [true, true, false]; // bulk sale: common, uncommon, rare
 /** Would equipping `it` make the hero stronger? (never sold in bulk; marked with ▲) */
 const isUpgrade = (it) => compareItem(it).overall > 0.005;
+/** Card overlays shared by both tabs: power change vs worn (top-left), level and price (bottom). */
+function cardTags(it, price: number) {
+  const pc = Math.round(compareItem(it).overall * 100),
+    tag =
+      pc > 0
+        ? '<i class="pct up" title="Better than what you wear">▲' + pc + '%</i>'
+        : pc < 0
+          ? '<i class="pct down" title="Weaker than what you wear">▼' + -pc + '%</i>'
+          : '';
+  return (
+    tag +
+    '<span class="foot"><i class="lv">Lv' +
+    it.lvl +
+    '</i><b class="price">' +
+    price.toLocaleString('en-US') +
+    '</b></span>'
+  );
+}
 function renderSell(v, body) {
   const f = SELL_FILTERS.find((x) => x[0] === sellFilter)[2],
     items = game.P.inv.filter(f).sort(SELL_SORTS.find((x) => x[0] === sellSort)[2]);
@@ -279,12 +295,7 @@ function renderSell(v, body) {
     d.className = 'cell scell' + (on ? ' sel' : '') + (sellMulti ? ' multi' : '');
     d.style.borderColor = RAR[it.r].c;
     d.appendChild(iconCanvas(it));
-    if (isUpgrade(it))
-      d.insertAdjacentHTML('beforeend', '<i class="up" title="Better than what you wear">▲</i>');
-    d.insertAdjacentHTML(
-      'beforeend',
-      '<b class="price">' + it.val.toLocaleString('en-US') + '</b>',
-    );
+    d.insertAdjacentHTML('beforeend', cardTags(it, it.val));
     if (sellMulti) d.insertAdjacentHTML('beforeend', '<i class="tick">' + (on ? '✓' : '') + '</i>');
     d.onclick = (e: MouseEvent) => {
       if (!sellMulti && (e.ctrlKey || e.metaKey || e.shiftKey)) {
