@@ -1,14 +1,15 @@
-import { makeSpr } from './decor';
-import { DOOR_F, HOUSE_HEIGHT } from '../world/poi';
+import { DOOR_F } from '../world/poi';
 import { circ, ell, rr, shadow } from '../core/dom';
 import { OUT, TAU, clamp, mulberry, rand, sh } from '../core/math';
 import { addLight } from '../game/fx';
 import { game } from '../game/state';
 /* ================= ART: houses ================= */
 // Village houses come in five models (h.kind): the half-timbered cottage, a two-storey
-// townhouse, a stone cottage, a thatched hut and a stone tower. Each is drawn once into a
-// sprite whose origin is the middle of the house front at ground level (y grows downward).
-// While drawing, a model records its windows (lit at night) and chimney top (smoke).
+// townhouse, a stone cottage, a thatched hut and a stone tower (plus Hearthfire's hall). They
+// are drawn as vectors every frame (crisp at any zoom), with the origin at the middle of the
+// house front at ground level (y grows downward). While drawing, a model records its windows
+// (lit at night) and chimney top (smoke). Seeded extras (ivy, lanterns, curtains, moss, a
+// garden patch, a cat) come from the house's seed, so a house always looks the same.
 
 type Ctx = CanvasRenderingContext2D;
 type Win = [number, number, number, number];
@@ -16,6 +17,19 @@ const LW = 2.2,
   WOOD = '#6b4a32',
   GLASS = '#3a4466',
   STONE_FOUND = '#9a948a';
+
+/** Seeded value 0..1 for extra `k` of house `h` (no effect on world generation). */
+const extra = (h, k: number) => {
+  const v = Math.sin((h.seed || 0.5) * 9973 + k * 77.7) * 43758.5453;
+  return v - Math.floor(v);
+};
+/** The house being drawn (building blocks read its seeded extras). */
+let CUR = null;
+/** Cheap position hash for plaster speckle and grain. */
+const hash2 = (a: number, b: number) => {
+  const v = Math.sin(a * 127.1 + b * 311.7) * 43758.5453;
+  return v - Math.floor(v);
+};
 
 /* ---------- building blocks ---------- */
 function ink(x: Ctx, w = LW) {
@@ -59,6 +73,23 @@ function door(x: Ctx, cx: number, w: number, ht: number, col: string, arch = fal
   circ(x, cx + w * 0.28, -ht * 0.45, 1.7, '#f5c451');
   ink(x);
   rr(x, cx - w / 2 - 5, -2.5, w + 10, 5, 2, STONE_FOUND);
+  if (CUR && !CUR.lanternAt && extra(CUR, 70) < 0.45) {
+    // wall lantern on an iron bracket beside the door
+    const s = extra(CUR, 71) < 0.5 ? -1 : 1,
+      lx = cx + s * (w / 2 + 7),
+      ly = -ht + 2;
+    ink(x, 1.6);
+    x.beginPath();
+    x.moveTo(cx + s * (w / 2 + 3), ly);
+    x.lineTo(lx, ly);
+    x.lineTo(lx, ly + 3);
+    x.stroke();
+    ink(x, 1.4);
+    rr(x, lx - 3.5, ly + 3, 7, 9, 1.5, '#ffd27a');
+    rr(x, lx - 4.5, ly + 1.5, 9, 2.5, 1, '#3a3440');
+    rr(x, lx - 2.5, ly + 12, 5, 2, 1, '#3a3440');
+    CUR.lanternAt = { x: lx, y: ly + 7 };
+  }
 }
 /** Framed window with glass glint and mullions; optional shutters, flower box, arch. */
 function windowAt(
@@ -92,6 +123,21 @@ function windowAt(
     ai = o.arch ? [w / 2, w / 2, 0, 0] : 1;
   rr(x, cx - w / 2 - 2.5, cy - ht / 2 - 2.5, w + 5, ht + 5, ar as any, frame);
   rr(x, cx - w / 2, cy - ht / 2, w, ht, ai as any, GLASS);
+  if (CUR && extra(CUR, 60 + wins.length) < 0.5) {
+    // curtains drawn back to the top corners
+    x.save();
+    x.fillStyle = ['#e8d8f0', '#f0e0c8', '#c8e0f0', '#f0c8c8'][Math.floor(extra(CUR, 61) * 4)];
+    x.globalAlpha = 0.9;
+    for (const s of [-1, 1]) {
+      x.beginPath();
+      x.moveTo(cx + s * (w / 2), cy - ht / 2);
+      x.lineTo(cx + s * (w / 2 - w * 0.34), cy - ht / 2);
+      x.quadraticCurveTo(cx + s * (w / 2 - w * 0.12), cy, cx + s * (w / 2), cy + ht * 0.28);
+      x.closePath();
+      x.fill();
+    }
+    x.restore();
+  }
   x.save();
   x.fillStyle = 'rgba(255,255,255,.32)';
   x.beginPath();
@@ -182,6 +228,43 @@ function timberWall(
   x.save();
   x.fillStyle = 'rgba(0,0,0,.06)';
   x.fillRect(x0 - jetty, y0 + ht * 0.65, w + jetty * 2, ht * 0.35);
+  // plaster speckle and a hairline crack
+  for (let k = 0; k < (w * ht) / 60; k++) {
+    const px = x0 + hash2(k, w) * w,
+      py = y0 + hash2(w, k) * ht;
+    x.fillStyle = hash2(k, 3) < 0.5 ? 'rgba(120,90,60,.13)' : 'rgba(255,255,255,.25)';
+    x.fillRect(px, py, 1.4, 1.4);
+  }
+  x.strokeStyle = 'rgba(110,85,60,.28)';
+  x.lineWidth = 0.8;
+  x.beginPath();
+  x.moveTo(x0 + w * 0.55, y0 + ht * 0.5);
+  x.lineTo(x0 + w * 0.58, y0 + ht * 0.62);
+  x.lineTo(x0 + w * 0.56, y0 + ht * 0.72);
+  x.stroke();
+  // beams: outlined, with grain
+  const beams = new Path2D();
+  beams.moveTo(x0 - jetty + 2, y0 + ht * 0.36);
+  beams.lineTo(x0 + w + jetty - 2, y0 + ht * 0.36);
+  for (const k of [0, 0.33, 0.67, 1]) {
+    beams.moveTo(x0 + k * w, y0 + 2);
+    beams.lineTo(x0 + k * w, y0 + ht - 1);
+  }
+  beams.moveTo(x0 + 3, y0 + 2);
+  beams.lineTo(x0 + w * 0.2, y0 + ht * 0.36);
+  beams.moveTo(x0 + w - 3, y0 + 2);
+  beams.lineTo(x0 + w * 0.8, y0 + ht * 0.36);
+  x.strokeStyle = OUT;
+  x.lineWidth = 5.2;
+  x.stroke(beams);
+  x.strokeStyle = WOOD;
+  x.lineWidth = 3.4;
+  x.stroke(beams);
+  x.strokeStyle = 'rgba(30,18,10,.35)';
+  x.lineWidth = 0.7;
+  x.setLineDash([5, 3, 2, 4]);
+  x.stroke(beams);
+  x.setLineDash([]);
   x.strokeStyle = WOOD;
   x.lineWidth = 3.4;
   x.beginPath();
@@ -238,6 +321,7 @@ function tileRoof(
   top: number,
   bottom: number,
   snow: boolean,
+  h?,
 ) {
   const path = () => {
     x.beginPath();
@@ -272,11 +356,13 @@ function tileRoof(
   g.addColorStop(1, 'rgba(0,0,0,.18)');
   x.fillStyle = g;
   x.fillRect(-150, top - 20, 300, bottom - top + 30);
+  if (h && mossy(h)) moss(x, h, top, bottom);
   if (snow) snowCap(x, top, bottom);
   x.restore();
   ink(x);
   path();
   x.stroke();
+  if (poly.length === 4) roofTrim(x, poly, col[0]);
 }
 /** Slate roof: overlapping grey-blue rectangles. */
 function slateRoof(
@@ -287,6 +373,7 @@ function slateRoof(
   bottom: number,
   snow: boolean,
   rnd: () => number,
+  h?,
 ) {
   const path = () => {
     x.beginPath();
@@ -317,12 +404,64 @@ function slateRoof(
   g.addColorStop(1, 'rgba(0,0,0,.2)');
   x.fillStyle = g;
   x.fillRect(-150, top - 20, 300, bottom - top + 30);
+  if (h && mossy(h)) moss(x, h, top, bottom);
   if (snow) snowCap(x, top, bottom);
   x.restore();
   ink(x);
   path();
   x.stroke();
+  roofTrim(x, poly, col);
 }
+/** Ridge cap along the roof's top edge and an eave board along its bottom edge. */
+function roofTrim(x: Ctx, poly: number[][], col: string) {
+  const [bl, tl, tr, br] = poly;
+  ink(x);
+  x.strokeStyle = OUT;
+  x.lineWidth = 7;
+  x.beginPath();
+  x.moveTo(tl[0], tl[1]);
+  x.lineTo(tr[0], tr[1]);
+  x.stroke();
+  x.strokeStyle = sh(col, -0.2);
+  x.lineWidth = 4.4;
+  x.stroke();
+  x.strokeStyle = 'rgba(255,255,255,.35)';
+  x.lineWidth = 1.2;
+  x.beginPath();
+  x.moveTo(tl[0] + 2, tl[1] - 1);
+  x.lineTo(tr[0] - 2, tr[1] - 1);
+  x.stroke();
+  // eave board
+  x.strokeStyle = OUT;
+  x.lineWidth = 6;
+  x.beginPath();
+  x.moveTo(bl[0], bl[1]);
+  x.lineTo(br[0], br[1]);
+  x.stroke();
+  x.strokeStyle = WOOD;
+  x.lineWidth = 3.6;
+  x.stroke();
+  ink(x);
+}
+/** Moss patches on a roof (inside the current clip). */
+function moss(x: Ctx, h, top: number, bottom: number) {
+  for (let k = 0; k < 4; k++) {
+    if (extra(h, 20 + k) > 0.6) continue;
+    const mx = (extra(h, 30 + k) - 0.5) * h.w * 0.9,
+      my = top + (bottom - top) * (0.35 + extra(h, 40 + k) * 0.55),
+      r = 5 + extra(h, 50 + k) * 6;
+    x.fillStyle = 'rgba(78,120,52,.85)';
+    x.beginPath();
+    x.ellipse(mx, my, r, r * 0.55, 0, 0, TAU);
+    x.ellipse(mx + r * 0.7, my + 1, r * 0.6, r * 0.4, 0, 0, TAU);
+    x.fill();
+    x.fillStyle = 'rgba(140,190,90,.7)';
+    x.beginPath();
+    x.ellipse(mx - r * 0.2, my - r * 0.15, r * 0.5, r * 0.25, 0, 0, TAU);
+    x.fill();
+  }
+}
+const mossy = (h) => (h.b === 1 || h.b === 5 || h.b === 0) && !h.snow && extra(h, 1) < 0.55;
 function snowCap(x: Ctx, top: number, bottom: number) {
   const d = Math.min(18, (bottom - top) * 0.45);
   x.fillStyle = '#f4f8ff';
@@ -479,6 +618,7 @@ function cottage(x: Ctx, h, rnd: () => number, B: Built) {
     top - 46,
     top + 5,
     h.snow,
+    h,
   );
 }
 function townhouse(x: Ctx, h, rnd: () => number, B: Built) {
@@ -509,6 +649,7 @@ function townhouse(x: Ctx, h, rnd: () => number, B: Built) {
     peak,
     top + 5,
     h.snow,
+    h,
   );
   // dormer window in the roof
   ink(x);
@@ -551,6 +692,7 @@ function stoneCottage(x: Ctx, h, rnd: () => number, B: Built) {
     top + 4,
     h.snow,
     rnd,
+    h,
   );
   if (h.sign) sign(x, -h.door * (w / 2 + 2), -34, -h.door, (h.seed * 10) | 0);
 }
@@ -750,6 +892,7 @@ function hall(x: Ctx, h, rnd: () => number, B: Built) {
     top - 44,
     top + 6,
     !!h.snow,
+    h,
   );
   ink(x);
   x.beginPath();
@@ -788,30 +931,139 @@ function hall(x: Ctx, h, rnd: () => number, B: Built) {
   circ(x, 0, top - 84, 3.5, '#d9a83a');
 }
 const MODELS = { cottage, townhouse, stone: stoneCottage, hut, tower, hall };
-function houseSprite(h) {
+const WALL_TOP = { cottage: -46, townhouse: -76, stone: -40, hut: -32, tower: -98, hall: -70 };
+
+/** Ivy climbing a house corner: a wavy stem with leaf pairs. */
+function ivy(x: Ctx, h) {
+  const side = -(h.door || 1),
+    bx = side * (h.w / 2 - 5),
+    top = WALL_TOP[h.kind] * (0.65 + extra(h, 81) * 0.3),
+    stem = new Path2D();
+  stem.moveTo(bx, 0);
+  for (let y = 0, k = 0; y > top; y -= 6, k++) stem.lineTo(bx + Math.sin(k * 1.3) * 3, y - 6);
+  ink(x, 3);
+  x.stroke(stem);
+  x.strokeStyle = '#5a7a34';
+  x.lineWidth = 1.6;
+  x.stroke(stem);
+  for (let y = -4, k = 0; y > top; y -= 5, k++)
+    for (const s of [-1, 1]) {
+      if (hash2(k, s + h.seed) < 0.3) continue;
+      const lx = bx + Math.sin(k * 1.3) * 3 + s * 4,
+        ly = y + s;
+      x.fillStyle = hash2(s, k) < 0.5 ? '#4e8a3a' : '#62a44a';
+      x.strokeStyle = '#2e5a2a';
+      x.lineWidth = 0.9;
+      x.beginPath();
+      x.ellipse(lx, ly, 3.2, 2.2, s * 0.5, 0, TAU);
+      x.fill();
+      x.stroke();
+    }
+}
+/** Small vegetable patch with a picket fence under the window side. */
+function garden(x: Ctx, h) {
+  const cx = -(h.door || 1) * h.w * 0.26;
+  ink(x, 1.6);
+  rr(x, cx - 17, 2, 34, 10, 4, '#7a5a3a');
+  for (let k = 0; k < 3; k++) {
+    const gx = cx - 10 + k * 10;
+    x.fillStyle = k === 1 ? '#8aba4a' : '#62a44a';
+    x.strokeStyle = '#2e5a2a';
+    x.lineWidth = 1;
+    x.beginPath();
+    x.arc(gx, 6, 3.4, 0, TAU);
+    x.fill();
+    x.stroke();
+    x.fillStyle = 'rgba(255,255,255,.35)';
+    x.beginPath();
+    x.arc(gx - 1, 5, 1.2, 0, TAU);
+    x.fill();
+  }
+  // picket fence along the front
+  ink(x, 1.2);
+  for (let k = -16; k <= 16; k += 5.3)
+    rr(x, cx + k - 1.3, 5, 2.6, 9, [1.3, 1.3, 0, 0] as any, '#e8dcc0');
+  rr(x, cx - 17, 9, 34, 2, 1, '#d8ccb0');
+}
+/** A cat sitting by the door. */
+function cat(x: Ctx, h) {
+  const cx = h.door * h.w * DOOR_F + (h.door || 1) * 16,
+    col = ['#3a3440', '#e08a3a', '#f0ece4', '#8a8078'][Math.floor(extra(h, 96) * 4)],
+    sway = 0;
+  ink(x, 1.4);
+  x.fillStyle = col;
+  x.beginPath();
+  x.ellipse(cx, -5, 5, 5.5, 0, 0, TAU);
+  x.fill();
+  x.stroke();
+  x.beginPath();
+  x.moveTo(cx + 4, -1);
+  x.quadraticCurveTo(cx + 11, -2 + sway, cx + 9, -9);
+  x.lineWidth = 2.6;
+  x.stroke();
+  x.strokeStyle = col;
+  x.lineWidth = 1.4;
+  x.stroke();
+  ink(x, 1.4);
+  x.fillStyle = col;
+  for (const s of [-1, 1]) {
+    x.beginPath();
+    x.moveTo(cx + s * 1.5, -14);
+    x.lineTo(cx + s * 4, -18.5);
+    x.lineTo(cx + s * 4.5, -13);
+    x.closePath();
+    x.fill();
+    x.stroke();
+  }
+  x.beginPath();
+  x.arc(cx, -12.5, 4.2, 0, TAU);
+  x.fill();
+  x.stroke();
+  x.fillStyle = col === '#3a3440' ? '#ffd24a' : OUT;
+  x.fillRect(cx - 2.3, -13.5, 1.3, 1.6);
+  x.fillRect(cx + 1, -13.5, 1.3, 1.6);
+}
+/** Draw one house (and its seeded extras and props) at its place, live. */
+function paintHouse(c: Ctx, h) {
   const kind = h.kind || 'cottage',
-    H = HOUSE_HEIGHT[kind] + 24,
-    W2 = h.w + 110,
     B: Built = { wins: [], smoke: null },
     rnd = mulberry(((h.seed || 0.5) * 1e9) | 0);
-  const S = makeSpr(W2, H, W2 / 2, H - 8, (x) => {
-    shadow(x, 0, 3, h.w / 2 + 16, 11, 0.3);
-    MODELS[kind](x, h, rnd, B);
-    // props on the ground beside the house
-    (h.props || []).forEach((pk, i) => {
-      const side = i === 0 ? -h.door : h.door,
-        px = side * (h.w / 2 + (i === 0 ? 16 : 22));
-      prop(x, pk, px, rnd);
-    });
+  CUR = h;
+  h.lanternAt = null;
+  c.save();
+  c.translate(h.x, h.y);
+  c.lineJoin = 'round';
+  c.lineCap = 'round';
+  shadow(c, 0, 3, h.w / 2 + 16, 11, 0.3);
+  MODELS[kind](c, h, rnd, B);
+  if (kind !== 'hall' && kind !== 'hut' && extra(h, 80) < 0.3) ivy(c, h);
+  if (kind !== 'hall' && kind !== 'tower' && extra(h, 90) < 0.3) garden(c, h);
+  (h.props || []).forEach((pk, i) => {
+    const side = i === 0 ? -h.door : h.door,
+      px = side * (h.w / 2 + (i === 0 ? 16 : 22));
+    prop(c, pk, px, rnd);
   });
+  if (kind !== 'hall' && extra(h, 95) < 0.2) cat(c, h);
+  c.restore();
+  CUR = null;
   h.wins = B.wins;
   h.smokeAt = B.smoke;
-  return S;
 }
 export function drawHouse(c, h, t, dark) {
-  if (!h.spr) h.spr = houseSprite(h);
-  const s = h.spr;
-  c.drawImage(s.c, h.x - s.ax, h.y - s.ay, s.w, s.h);
+  paintHouse(c, h);
+  if (dark > 0.15 && h.lanternAt) {
+    const lx = h.x + h.lanternAt.x,
+      ly = h.y + h.lanternAt.y;
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    const g = c.createRadialGradient(lx, ly, 1, lx, ly, 26);
+    g.addColorStop(0, 'rgba(255,200,110,' + (0.5 * dark).toFixed(3) + ')');
+    g.addColorStop(1, 'rgba(255,180,90,0)');
+    c.fillStyle = g;
+    c.fillRect(lx - 26, ly - 26, 52, 52);
+    c.restore();
+    addLight(lx, ly, 70, 0.6 * dark, '#ffc060');
+  }
   if (dark > 0.15 && h.wins) {
     c.save();
     c.globalAlpha = clamp(dark * 1.4, 0, 1) * (0.85 + Math.sin(t * 3 + h.seed * 9) * 0.08);

@@ -211,6 +211,7 @@ export function makeHouse(
     chim: kind !== 'tower' && rnd() < 0.7,
     seed: rnd(),
     props,
+    b, // biome (moss on roofs, ivy...); no extra random draw, so layouts stay the same
   };
 }
 function makeVillage(x, y, key, home?) {
