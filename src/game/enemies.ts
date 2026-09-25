@@ -12,7 +12,7 @@ import { bossAI } from './bossAI';
 import { gainXp, hurtHero } from './combat';
 import { banner, burst, ftext, ring } from './fx';
 import { genItem } from './items';
-import { questEvent } from './quests';
+import { questEvent, wantedTypes } from './quests';
 import { save } from './save';
 import { game } from './state';
 import { solidAt } from '../world/chunks';
@@ -148,7 +148,13 @@ export function spawnEnemies() {
       list = list.concat(
         T.b === 4 ? ['wraith'] : ['bat', 'wraith'].filter((k) => lv >= (k === 'wraith' ? 5 : 2)),
       );
-    const type = pick(list),
+    // about half the spawns are a monster an open quest wants, where it lives: this biome, and
+    // up to one danger level early (bounty boards pick their targets one level up, too)
+    const wanted = wantedTypes(),
+      want = list
+        .concat(typesFor(TABLE[T.b], lv + 1))
+        .filter((t, i, a) => wanted.has(t) && a.indexOf(t) === i),
+      type = want.length && Math.random() < 0.5 ? pick(want) : pick(list),
       elite = Math.random() < 0.07 && lv > 1 ? pick(ELITES) : null;
     const group =
       ['wolf', 'icewolf', 'slime', 'goblin', 'bat', 'spider', 'bandit'].includes(type) &&

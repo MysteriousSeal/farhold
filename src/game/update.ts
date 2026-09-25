@@ -12,6 +12,7 @@ import { updateDrops } from './drops';
 import { DENS, inVillage, moveEnt, spawnEnemies, unstick, updateEnemies } from './enemies';
 import { banner, burst, ring, toast } from './fx';
 import { calcStats } from './stats';
+import { taskFindTick } from './tavernQuests';
 import { DRINKS } from '../data/tavern';
 import { findInteract, visitPois } from './interactions';
 import { houseCam, updateHouse } from './houses';
@@ -250,6 +251,7 @@ export function update(dt) {
         game.activePois = poisNear(game.P.x, game.P.y, 900);
       } else game.activePois = [];
       visitPois();
+      taskFindTick();
     }
     game.spawnT -= dt;
     if (game.spawnT <= 0) {

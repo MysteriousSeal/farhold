@@ -8,7 +8,7 @@ import { toast } from '../game/fx';
 import { QMAX, TRACK_MAX, abandonQuest, activeQuests, setTracked } from '../game/quests';
 import { game } from '../game/state';
 import { hdr, openModal, wireClose } from './modal';
-import { QICON, questProgress, questWhere } from './questUi';
+import { QICON, counted, questProgress, questWhere } from './questUi';
 /* ================= QUEST JOURNAL (L) ================= */
 // Two panes: on the left every accepted bounty (up to QMAX) grouped by type under collapsible
 // headers, plus the recently completed ones; on the right the selected bounty's details:
@@ -20,6 +20,7 @@ const GROUPS: [string, string][] = [
   ['kill', 'Hunts'],
   ['boss', 'Bosses'],
   ['cave', 'Caves'],
+  ['task', 'Tavern jobs'],
 ];
 const collapsed = new Set<string>(['done']);
 let selId: number | string | null = null,
@@ -37,18 +38,18 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
 /* ---------- flavour: a seeded line from whoever posted the bounty (data/flavour.ts) ---------- */
 const flavourOf = (q) => {
+  if (q.type === 'task' && q.say) return esc(q.say);
   const l = FLAVOUR[q.type] || FLAVOUR.kill;
   return l[Math.floor(mulberry(strSeed(String(q.id) + q.name))() * l.length)];
 };
 
 /* ---------- panes ---------- */
 function row(q, sel: boolean) {
-  const prog =
-    q.type === 'kill'
-      ? Math.min(q.have, q.need) + '/' + q.need
-      : q.x != null
-        ? '<span class="jdist">' + questWhere(q) + '</span>'
-        : '';
+  const prog = counted(q)
+    ? Math.min(q.have, q.need) + '/' + q.need
+    : q.x != null
+      ? '<span class="jdist">' + questWhere(q) + '</span>'
+      : '';
   return (
     '<div class="jrow' +
     (sel ? ' sel' : '') +
@@ -109,6 +110,35 @@ function listPane(act) {
   return h;
 }
 function target(q) {
+  if (q.type === 'task') {
+    const g = q.giver,
+      where = q.x != null ? questWhere(q) + ' away · ' : '';
+    if (q.ready)
+      return (
+        '<div class="jtg">' +
+        where +
+        'return to <b>' +
+        esc(g.name) +
+        '</b> at ' +
+        esc(g.tavern) +
+        ', ' +
+        esc(g.village) +
+        '</div>'
+      );
+    if (counted(q))
+      return (
+        '<div class="jtg"><b>' +
+        (q.task === 'collect' ? q.items : ET[q.target] ? ET[q.target].n : q.target) +
+        '</b> · ' +
+        Math.max(0, q.need - q.have) +
+        ' left · for ' +
+        esc(g.name) +
+        '</div>'
+      );
+    return (
+      '<div class="jtg">' + where + 'for <b>' + esc(g.name) + '</b> at ' + esc(g.tavern) + '</div>'
+    );
+  }
   if (q.type === 'kill') {
     const D = ET[q.target],
       left = Math.max(0, q.need - q.have);
@@ -136,6 +166,7 @@ function rewards(q) {
     '</span><span class="chip" title="Experience"><i class="rc xp"></i>' +
     fmt(q.xp) +
     ' xp</span>' +
+    (q.pot ? '<span class="chip" title="Potion">+1 potion</span>' : '') +
     (it
       ? '<span class="chip" title="Item reward"><i class="rc gem" style="background:' +
         it.c +

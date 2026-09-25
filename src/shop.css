@@ -342,3 +342,17 @@
   width: 18px;
   height: 18px;
 }
+/* a patron's job offer: the job, its rewards and the buttons, well apart */
+.tvjob {
+  margin-bottom: 16px;
+}
+.tvrwd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 2px 18px;
+}
+#tvJob {
+  display: flex;
+  gap: 10px;
+}

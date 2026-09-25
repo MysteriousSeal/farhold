@@ -5,9 +5,12 @@ import { toast } from '../game/fx';
 import { save } from '../game/save';
 import { game } from '../game/state';
 import { calcStats } from '../game/stats';
+import { acceptTask, declineTask, patronJob, taskDeliver } from '../game/tavernQuests';
 import type { Interior } from '../world/interior';
 import { poisNear } from '../world/poi';
 import { btn, goldPill, hdr, openModal, wireClose } from './modal';
+import { QICON } from './questUi';
+import { closeAll } from './screens';
 /* ================= UI: the tavern (talking to the barmaid) ================= */
 // Drinks give one buff at a time for DRINK_TIME seconds of play (see game/stats.ts), resting
 // by the fire restores all health, and rumours pin the nearest unexplored lair or cave on the
@@ -67,8 +70,55 @@ const dirOf = (dx: number, dy: number) =>
 
 let greet = '',
   rumourSay = '';
+/** A patron's job offer: what they ask, the rewards, and Accept / Decline. */
+export function openJob(I: Interior, idx: number) {
+  const job = patronJob(I, idx);
+  if (!job || job.mark !== '!') return;
+  const q = job.q,
+    n = I.npcs[idx];
+  openModal(
+    hdr(q.giver.name, 'A patron at ' + I.name) +
+      '<div class="tvquote">“' +
+      q.say +
+      '”</div><div class="tvrow tvjob">' +
+      QICON.task +
+      '<div class="tvinf"><b>' +
+      q.name +
+      '</b><span class="desc">' +
+      q.desc +
+      '</span></div></div><div class="jrwd tvrwd"><span class="chip"><i class="rc gold"></i>' +
+      q.gold +
+      '</span><span class="chip"><i class="rc xp"></i>' +
+      q.xp +
+      ' xp</span>' +
+      (q.pot ? '<span class="chip">+1 potion</span>' : '') +
+      '</div><div class="acts" id="tvJob"></div>',
+  );
+  wireClose();
+  const a = $('#tvJob');
+  a.appendChild(
+    btn('Accept', () => {
+      if (acceptTask(I, idx)) {
+        n.say = 'Much obliged!';
+        n.sayT = 2.5;
+        closeAll();
+      }
+    }),
+  );
+  a.appendChild(
+    btn(
+      'Decline',
+      () => {
+        declineTask(I, idx);
+        closeAll();
+      },
+      'alt',
+    ),
+  );
+}
 /** Open the barmaid's menu in tavern `I`. */
 export function openTavern(I: Interior) {
+  taskDeliver(I.key);
   greet = BARMAID_LINES[Math.floor(Math.random() * BARMAID_LINES.length)];
   rumourSay = '';
   renderTavern(I);

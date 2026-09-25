@@ -10,6 +10,7 @@ import { genItem } from './items';
 import { save } from './save';
 import { game } from './state';
 import { PC, poiAt } from '../world/poi';
+import { taskKill } from './tavernQuests';
 /* ================= QUESTS ================= */
 /** Most bounties the journal holds, and most tracked on screen (left side and minimap). */
 export const QMAX = 20,
@@ -131,7 +132,22 @@ export function genOffers(v) {
     });
   return out;
 }
+/**
+ * Monster types some open quest wants killed: board kill bounties, and tavern hunt and collect
+ * jobs. They spawn more often (enemies.ts) and show in gold on the minimap (tavern jobs).
+ */
+export function wantedTypes() {
+  const out = new Set<string>();
+  for (const q of game.P.quests)
+    if (
+      (q.type === 'kill' && !q.done && q.have < q.need) ||
+      (q.type === 'task' && !q.ready && (q.task === 'hunt' || q.task === 'collect'))
+    )
+      out.add(q.target);
+  return out;
+}
 export function questEvent(kind, val) {
+  if (kind === 'kill') taskKill(val); // tavern jobs (game/tavernQuests.ts)
   for (const q of game.P.quests) {
     if (q.done) continue;
     if (

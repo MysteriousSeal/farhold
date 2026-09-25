@@ -3,6 +3,7 @@ import { drawRoomBack, drawRoomFront, drawRoomLights, partitionPieces } from '..
 import { OUT } from '../core/math';
 import { drawNpc } from '../game/npcs';
 import { game } from '../game/state';
+import { patronJob } from '../game/tavernQuests';
 /* ================= RENDER: house interiors ================= */
 // render.ts calls these while game.mode === 'house': the room shell behind everything, the
 // furniture, partitions and residents into its depth-sorted list, then the front wall,
@@ -21,9 +22,60 @@ export function houseFront(c: Ctx, t: number) {
   const I = game.HS;
   drawRoomFront(c, I);
   drawRoomLights(c, I, t);
+  // job markers over patrons: ! an offer, ? ready to hand in, … still open
+  I.npcs.forEach((n, i) => {
+    if (n.role !== 'patron' || n.say) return;
+    const job = patronJob(I, i);
+    if (job) jobMark(c, n.x, n.y + (n.seated ? n.sink || 0 : 0) - 40, job.mark, t);
+  });
   for (const n of I.npcs) if (n.say) speech(c, n.x, n.y - 92, n.say, Math.min(1, n.sayT * 4));
 }
 
+/** A bobbing quest mark over a patron's head. */
+function jobMark(c: Ctx, x: number, y: number, mark: string, t: number) {
+  const by = y + Math.sin(t * 3 + x * 0.05) * 3,
+    open = mark === '…';
+  c.save();
+  c.font = (open ? '700 18px' : '700 26px') + ' Fredoka,sans-serif';
+  c.textAlign = 'center';
+  c.textBaseline = 'bottom';
+  c.lineJoin = 'round';
+  c.lineWidth = 5;
+  c.strokeStyle = OUT;
+  c.strokeText(mark, x, by);
+  c.fillStyle = open ? '#c8cde0' : '#ffd23a';
+  c.fillText(mark, x, by);
+  c.restore();
+}
+/** A lost keepsake on the ground: a small gold glint with twinkling rays. */
+export function drawGlint(c: Ctx, x: number, y: number, t: number) {
+  const k = 0.75 + Math.sin(t * 4 + x) * 0.25;
+  c.save();
+  c.fillStyle = 'rgba(0,0,0,.2)';
+  c.beginPath();
+  c.ellipse(x, y + 1, 7, 2.6, 0, 0, Math.PI * 2);
+  c.fill();
+  c.strokeStyle = OUT;
+  c.lineWidth = 1.6;
+  c.fillStyle = '#f5c451';
+  c.beginPath();
+  c.arc(x, y - 3, 3.6, 0, Math.PI * 2);
+  c.fill();
+  c.stroke();
+  c.globalCompositeOperation = 'lighter';
+  c.strokeStyle = 'rgba(255,240,170,' + (0.8 * k).toFixed(3) + ')';
+  c.lineWidth = 2;
+  c.lineCap = 'round';
+  c.beginPath();
+  for (let a = 0; a < 4; a++) {
+    const ang = (a * Math.PI) / 2 + t * 0.6,
+      r = 9 + 5 * k;
+    c.moveTo(x + Math.cos(ang) * 5, y - 3 + Math.sin(ang) * 5);
+    c.lineTo(x + Math.cos(ang) * r, y - 3 + Math.sin(ang) * r);
+  }
+  c.stroke();
+  c.restore();
+}
 /** Rounded speech bubble with a tail, wrapped to a few lines, above (x, y). */
 function speech(c: Ctx, x: number, y: number, text: string, a: number) {
   c.save();

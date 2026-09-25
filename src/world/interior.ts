@@ -1,6 +1,7 @@
 import { mulberry, sh, strSeed } from '../core/math';
 import { game } from '../game/state';
 import { BIOME_LINES, HALL_LINES, LINES } from '../data/dialogue';
+import { NAMES } from '../data/names';
 import { TAVERN_LINES } from '../data/tavern';
 import { villagerLook } from './poi';
 /* ================= HOUSE INTERIORS (generation) ================= */
@@ -657,7 +658,8 @@ function furnishTavern(I: Interior, rnd: () => number, big: boolean) {
     n = Math.min(seats.length, (big ? 5 : 3) + Math.floor(rnd() * 4));
   seats.sort(() => rnd() - 0.5);
   for (let k = 0; k < n; k++) {
-    const c = seats[k];
+    const c = seats[k],
+      look = villagerLook(rnd);
     I.npcs.push({
       role: 'patron',
       x: c.x,
@@ -669,7 +671,8 @@ function furnishTavern(I: Interior, rnd: () => number, big: boolean) {
       walk: 0,
       moving: false,
       wt: 8 + rnd() * 25,
-      look: villagerLook(rnd),
+      look,
+      name: NAMES[look.fem ? 'f' : 'm'][Math.floor(rnd() * 100)],
       line: 0,
       lines: pickLines(lines, 4, rnd),
       say: null,

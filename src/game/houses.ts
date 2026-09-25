@@ -4,12 +4,13 @@ import { H, W } from '../core/dom';
 import { clamp } from '../core/math';
 import { TAU, rand } from '../core/math';
 import { zoom } from '../render/render';
-import { BARMAID_LINES } from '../data/tavern';
+import { BARMAID_LINES, TASK_WAIT } from '../data/tavern';
+import { ensureOffers, handInTask, patronJob } from './tavernQuests';
 import { BAR_ROW, IT, genInterior, type Interior } from '../world/interior';
 import { DOOR_F } from '../world/poi';
 import { moveEnt, unstick } from './enemies';
 import { banner, burst, doFade } from './fx';
-import { openTavern } from '../ui/tavern';
+import { openJob, openTavern } from '../ui/tavern';
 import { openSmith } from '../ui/village';
 import { save } from './save';
 import { game, hero } from './state';
@@ -45,6 +46,7 @@ export function enterHouse(v, h, idx: number) {
     hero.aim = -Math.PI / 2;
     [game.camX, game.camY] = houseCam(game.P.x, game.P.y);
     game.zoneName = I.name;
+    ensureOffers(I);
     banner(I.name, I.sub);
     save();
   });
@@ -89,6 +91,14 @@ export function houseCam(x: number, y: number) {
       b - a <= h * 2 ? (a + b) / 2 : clamp(v, a + h, b - h);
   return [fit(x0, x1, x, vw), fit(y0, y1, y, vh)];
 }
+/** A patron whose job is still open reminds you of it. */
+function remind(n) {
+  const keep = n.lines;
+  n.lines = [TASK_WAIT[Math.floor(Math.random() * TASK_WAIT.length)]];
+  n.line = 0;
+  talkTo(n);
+  n.lines = keep;
+}
 /** Say the resident's next line in a speech bubble, turning to face the hero. */
 export function talkTo(n) {
   n.say = n.lines[n.line % n.lines.length];
@@ -101,10 +111,16 @@ export function talkTo(n) {
   n.wt = 5;
   SFX.pick();
 }
+let offerT = 0;
 /** Residents potter about their rooms; they stop to face the hero while talking. */
 export function updateHouse(dt: number) {
   const I = game.HS;
   if (!I) return;
+  offerT -= dt;
+  if (offerT <= 0) {
+    offerT = 2; // a tavern's free job slots refill once their wait is over
+    ensureOffers(I);
+  }
   for (const n of I.npcs) {
     if (n.role === 'smith') {
       smithWork(n, dt);
@@ -320,9 +336,16 @@ export function houseInteract(cand) {
   if (I.counter)
     cand(I.counter.x, I.counter.y, 64, 'Blacksmith', () => openSmith(I.village), I.counter.y - 118);
   if (I.bar) cand(I.bar.x, I.bar.y, 64, 'Barmaid', () => openTavern(I), I.bar.y - 150);
-  for (const n of I.npcs)
-    if (n.role !== 'smith' && n.role !== 'barmaid')
-      cand(n.x, n.y + 6, TALK_R, 'Talk', () => talkTo(n), n.y - 62);
+  I.npcs.forEach((n, i) => {
+    if (n.role === 'smith' || n.role === 'barmaid') return;
+    const job = n.role === 'patron' ? patronJob(I, i) : null;
+    if (job && job.mark === '!')
+      cand(n.x, n.y + 6, TALK_R, 'Job offer', () => openJob(I, i), n.y - 62);
+    else if (job && job.mark === '?')
+      cand(n.x, n.y + 6, TALK_R, 'Hand in', () => handInTask(job.q), n.y - 62);
+    else if (job) cand(n.x, n.y + 6, TALK_R, 'Talk', () => remind(n), n.y - 62);
+    else cand(n.x, n.y + 6, TALK_R, 'Talk', () => talkTo(n), n.y - 62);
+  });
   cand(I.door.x, I.door.y - 6, 50, 'Go outside', () => leaveHouse(), I.door.y - 60);
 }
 /** Door prompts for the houses of a village (outside). */

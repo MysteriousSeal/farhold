@@ -44,7 +44,7 @@ import { MATS } from '../data/classes';
 import { addLight } from '../game/fx';
 import { drawNpc } from '../game/npcs';
 import { offers } from '../game/quests';
-import { houseBack, houseFront, houseItems } from './interior';
+import { drawGlint, houseBack, houseFront, houseItems } from './interior';
 import { drawFlora } from '../art/flora';
 import { drawRoads } from '../art/roads';
 import { roadsOf } from '../world/roads';
@@ -454,6 +454,11 @@ export function render() {
   for (const zz of game.zones) drawZone(g, zz);
   for (const d of game.drops)
     if (vis(d.x, d.y)) list.push({ y: d.y, f: (c) => drawDrop(c, d, game.time) });
+  // a patron's lost keepsake glinting on the ground (tavern "find" jobs)
+  if (game.mode === 'world' && game.P)
+    for (const q of game.P.quests)
+      if (q.type === 'task' && q.task === 'find' && !q.ready && vis(q.x, q.y))
+        list.push({ y: q.y, f: (c) => drawGlint(c, q.x, q.y, game.time) });
   for (const e of game.enemies)
     if (vis(e.x, e.y, 200)) list.push({ y: e.y, f: (c) => drawEnemy(c, e, game.time) });
   for (const gh of game.ghosts)

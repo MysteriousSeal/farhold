@@ -1,5 +1,6 @@
 import { $, mkCanvas } from '../core/dom';
 import { OUT, TAU, clamp, lerp } from '../core/math';
+import { wantedTypes } from '../game/quests';
 import { game, hero } from '../game/state';
 import { CITY, STREETS } from '../world/city';
 import { isoShape } from '../world/contour';
@@ -402,14 +403,36 @@ export function drawMini(dt) {
     }
   }
   // enemies
-  const sc2 = M / (2 * R);
+  const sc2 = M / (2 * R),
+    // monsters an open quest wants (cull bounties, tavern hunts and drops) show in gold
+    wanted = wantedTypes();
   for (const e of game.enemies) {
     if (e.dying > 0 || e.dead) continue;
-    const x = C + (e.x - game.P.x) * sc2,
+    let x = C + (e.x - game.P.x) * sc2,
       y = C + (e.y - game.P.y) * sc2;
-    if (Math.hypot(x - C, y - C) > C) continue;
+    const want = wanted.has(e.type);
+    if (Math.hypot(x - C, y - C) > C - FRAME - 12) {
+      if (!want) continue;
+      [x, y] = clampRim(e.x, e.y, sc2, C - FRAME - 12); // out of view: pinned on the rim
+    }
     mc.strokeStyle = OUT;
     mc.lineWidth = 2;
+    if (want && !e.boss) {
+      const pulse = 0.5 + Math.sin(game.time * 5) * 0.5;
+      mc.strokeStyle = 'rgba(255,210,58,' + (0.6 + pulse * 0.4).toFixed(3) + ')';
+      mc.lineWidth = 2.5;
+      mc.beginPath();
+      mc.arc(x, y, 8 + pulse * 3, 0, TAU);
+      mc.stroke();
+      mc.strokeStyle = OUT;
+      mc.lineWidth = 2;
+      mc.fillStyle = '#ffd23a';
+      mc.beginPath();
+      mc.arc(x, y, 5.5, 0, TAU);
+      mc.fill();
+      mc.stroke();
+      continue;
+    }
     if (e.boss) {
       mc.fillStyle = '#ff2a4a';
       diamond(x, y, 7);

@@ -87,6 +87,36 @@ export const TAVERN_LINES = [
   'You smell of the road. It suits you.',
   'Heroes drink for free! Just kidding, they pay double.',
   "When the fire's warm and the mug's full, the world can wait.",
+  'I lost a bet to a goat once. Long story. Smelly goat.',
+  'The bard owes me three coppers and a verse.',
+  'Rain again tomorrow. My knee says so, and my knee is never wrong.',
+  "If you find my lucky dice out there, they're mine. Probably.",
+  'The road north is quiet. Too quiet. I blame the trolls.',
+  'I only drink on days that end in fire and mud.',
+  'Our smith can mend anything. Except my marriage.',
+  "They say a dragon slept under these hills. Now it's just me snoring.",
+  "Buy the stew. Trust me. Don't ask what's in it.",
+  "I've seen wolves hunt in packs of twelve. Or I counted twice.",
+  'My grandfather built this bar. My father broke it. I just sit at it.',
+  'Adventurers always come in thirsty and leave broke.',
+  "Don't sit in that corner. That's where old Pell sits. He's been dead a year.",
+  'You swing that blade like you mean it. Good.',
+  'The mead is strong enough to strip paint. The walls prove it.',
+  'I heard the caves sing at night. Nobody else believes me.',
+  "Here's to the fallen, and to the ones who got up again.",
+  'A copper for a song? No? A silver for silence, then.',
+  'Cards tonight. Bring coin and a thick skin.',
+  "The ale's cold, the fire's warm and nobody's trying to eat me. Perfect.",
+  'I was a guard once. Now I guard this stool.',
+  "You'd be surprised what people drop in the forest. I found a boot. With a foot.",
+  'Every tavern has a barmaid who knows too much. This one knows everything.',
+  'Once, I wrestled a bear. Well, a large dog. It was dark.',
+  "There's treasure in the old lairs, sure. There's also teeth.",
+  'I drink to forget. I forget what, though.',
+  "Try the pie. It's Tuesday's. Or last Tuesday's.",
+  "My horse ran off with a merchant's mule. True love, I suppose.",
+  'Heroes come and go. The regulars stay.',
+  "One more and I'll tell you where I buried my savings. Just kidding. Two more.",
 ];
 
 /** The barmaid's greetings, shown at the top of her menu. */
@@ -106,6 +136,21 @@ export const BARMAID_LINES = [
   'Careful with the mead. It has opinions.',
   'Stew keeps you standing, ale keeps you swinging.',
   "Rest a while. Nothing out there can't wait an hour.",
+  'Mind your elbows, the tables are new. Well, newer.',
+  'If they start singing, I charge double.',
+  'Nothing like a tired hero to brighten the room.',
+  'You break it, you buy it. You bleed on it, you clean it.',
+  'First drink of the day? I can tell by the face.',
+  'The kegs came in fresh this morning. Lucky you.',
+  'Keep your blade sheathed in here, love. House rules.',
+  'Everyone who passes through tells me something. Want to hear?',
+  "The stew's been bubbling since dawn. It's ready when it stops fighting back.",
+  "We don't have rooms, but the fireplace doesn't judge.",
+  "Smile, traveller. The road can't reach you in here.",
+  "Last hero who came in left with a lair's worth of gold. And a limp.",
+  "Pull up a stool, the regulars won't bite. Much.",
+  "I'd ask where you've been, but your boots already told me.",
+  "What'll it be? And don't say water, we're a respectable place.",
 ];
 
 /** Drinks the barmaid sells: one buff at a time, lasting DRINK_TIME seconds of play. */
@@ -114,4 +159,78 @@ export const DRINKS = [
   { k: 'ale', n: 'Ale', desc: '+10% attack', cost: 1 },
   { k: 'mead', n: 'Mead', desc: 'Regenerate health', cost: 1.3 },
   { k: 'stew', n: 'Hearty stew', desc: '+10% max health', cost: 1.6 },
+];
+
+/* ---------- patron jobs (game/tavernQuests.ts) ---------- */
+/** What a monster of each type drops for a patron's "collect" job (singular, plural). */
+export const COLLECT_ITEMS: Record<string, [string, string]> = {
+  slime: ['slime jelly', 'slime jellies'],
+  wolf: ['wolf pelt', 'wolf pelts'],
+  icewolf: ['frost pelt', 'frost pelts'],
+  boar: ['boar tusk', 'boar tusks'],
+  bat: ['bat wing', 'bat wings'],
+  spider: ['spool of spider silk', 'spools of spider silk'],
+  scorpion: ['scorpion stinger', 'scorpion stingers'],
+  golem: ['golem shard', 'golem shards'],
+  goblin: ['goblin trinket', 'goblin trinkets'],
+  bandit: ['stolen purse', 'stolen purses'],
+  archer: ['fletched arrow', 'fletched arrows'],
+  skeleton: ['old bone', 'old bones'],
+  skelarcher: ['bone arrowhead', 'bone arrowheads'],
+  orc: ['orc tooth', 'orc teeth'],
+  cultist: ['cult sigil', 'cult sigils'],
+  necro: ['grave candle', 'grave candles'],
+  mummy: ['linen wrap', 'linen wraps'],
+  yeti: ['yeti tuft', 'yeti tufts'],
+  wraith: ['wisp of ectoplasm', 'wisps of ectoplasm'],
+  demon: ['demon horn', 'demon horns'],
+};
+/** Keepsakes patrons lose out in the wilds ("find" jobs). */
+export const LOST_ITEMS = [
+  'silver ring',
+  'pair of lucky dice',
+  "grandmother's locket",
+  'old brass compass',
+  'pocket watch',
+  'wedding band',
+  'bone flute',
+  'carved pipe',
+  'family signet',
+  'little wooden horse',
+  'silver hairpin',
+  'lucky horseshoe',
+];
+/** What a patron says when offering each kind of job; {n}, {item}, {foe}, {place} filled in. */
+export const TASK_SAYS = {
+  collect: [
+    'I need {n} {item} for a little project. Ask the {foe} nicely. Or not.',
+    'My brother pays well for {item}. Bring me {n} and we split it.',
+    'The healer wants {n} {item}. My knees are too old for {foe}.',
+    'Get me {n} {item} and I will stop telling this story. Deal?',
+  ],
+  hunt: [
+    'The {foe} keep raiding my fields. Thin them out, {n} should do.',
+    'I lost a good dog to the {foe}. Put {n} of them down for me.',
+    "{n} {foe}. That's how many chased me here. Return the favour?",
+    'Nobody dares the road with those {foe} about. Deal with {n}?',
+  ],
+  deliver: [
+    'Take this parcel to the barmaid at {place}. Do not open it.',
+    'My sister runs errands at {place}. Get this letter to their barmaid?',
+    'This bottle is owed to {place}. Their barmaid will know.',
+    'A package for {place}, nothing dangerous. Mostly nothing.',
+  ],
+  find: [
+    'I dropped my {item} out in the wilds. It glints, you will see it.',
+    'Lost my {item} running from something big. It is marked, go look.',
+    'My {item}... I had it when I left the road. Find it for me?',
+    'Somewhere out there lies my {item}. I would pay to have it back.',
+  ],
+};
+/** What a patron says while their job is still open. */
+export const TASK_WAIT = [
+  'Any luck yet? No rush. Well, a little rush.',
+  'Still waiting, friend. My mug is not getting any fuller.',
+  'You remember our deal, right?',
+  'Come back when it is done. I am not going anywhere.',
 ];
