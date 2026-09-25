@@ -34,13 +34,27 @@
  <p>Red rings on the ground warn of heavy attacks. Roll out of them.</p><button class="btn" id="hBack">Back</button></div></div>
 <div class="screen" id="load"><div class="panel loadp"><div class="mh"><div><h2>Your heroes</h2><div class="desc" id="loadSub"></div></div><button class="btn sm" id="loadBack">Back</button></div><div id="loadList" class="slist"></div></div></div>
 <div class="screen" id="delc"><div class="panel help" style="text-align:center"><h2>Delete hero</h2><p id="delT"></p><div class="acts" style="justify-content:center"><button class="btn sm danger" id="delYes">Delete</button><button class="btn sm alt" id="delNo">Cancel</button></div></div></div>
-<div class="screen" id="create"><div class="panel">
- <div id="prevwrap"><canvas id="prev" width="420" height="460"></canvas><div class="desc" id="prevname" style="font-weight:600;font-size:18px;text-align:center"></div></div>
- <div><h2>Forge your hero</h2><h3>Name</h3><input class="txt" id="cName" maxlength="16" placeholder="Hero name">
-  
-  <h3>Gender</h3><div class="chips" id="cGender"></div><h3>Skin</h3><div class="chips" id="cSkin"></div><h3>Hair</h3><div class="chips" id="cHair"></div><div id="cBeardW"><h3>Facial hair</h3><div class="chips" id="cBeard"></div></div><h3>Hair color</h3><div class="chips" id="cHairC"></div>
-  <h3>World seed</h3><div style="display:flex;gap:8px"><input class="txt" id="cSeed"><button class="btn sm alt" id="cDice" aria-label="Random seed">🎲</button></div>
-  <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap"><button class="btn" id="cGo" style="flex:1">Begin journey</button><button class="btn alt sm" id="cBack">Back</button></div></div></div></div>
+<div class="screen" id="create"><div class="panel crp">
+ <div class="crh"><h2>Forge your hero</h2><div class="desc">Choose how your hero looks. Weapons and skills come from what you find on the road.</div></div>
+ <div id="prevwrap"><div class="prevbox"><canvas id="prev" width="420" height="460"></canvas><button class="rot l" id="cRotL" aria-label="Turn left"><svg viewBox="0 0 16 16"><path d="M10 3 L5 8 L10 13" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button class="rot r" id="cRotR" aria-label="Turn right"><svg viewBox="0 0 16 16"><path d="M6 3 L11 8 L6 13" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><div id="prevname"></div><button class="btn sm alt" id="cRand">🎲 Random look</button></div>
+ <div class="crbody">
+  <section class="crs"><h4>Identity</h4>
+   <label class="crl">Name<div class="crin"><input class="txt" id="cName" maxlength="16" placeholder="Hero name" autocomplete="off"><button class="btn sm alt" id="cNameR" aria-label="Random name">🎲</button></div></label>
+   <div class="crl">Gender<div class="seg" id="cGender"></div></div>
+  </section>
+  <section class="crs"><h4>Appearance</h4>
+   <div class="crrow"><span>Skin</span><div class="chips" id="cSkin"></div></div>
+   <div class="crrow"><span>Hair</span><div class="chips" id="cHair"></div></div>
+   <div class="crrow" id="cBeardW"><span>Facial hair</span><div class="chips" id="cBeard"></div></div>
+   <div class="crrow"><span>Hair colour</span><div class="chips" id="cHairC"></div></div>
+  </section>
+  <details class="crs crw"><summary><h4>World <small>optional</small></h4></summary>
+   <div class="desc">The same seed always makes the same world. Share it to play the same realm as a friend.</div>
+   <div class="crin" style="margin-top:8px"><input class="txt" id="cSeed" autocomplete="off"><button class="btn sm alt" id="cDice" aria-label="Random seed">🎲</button></div>
+  </details>
+ </div>
+ <div class="crf"><button class="btn alt sm" id="cBack">‹ Back</button><button class="btn" id="cGo">Begin journey</button></div>
+</div></div>
 <div class="screen" id="modal"><div class="panel" id="mp"></div></div>
 <div class="screen" id="dead"><h1 class="title" style="font-size:clamp(52px,13vw,110px);color:#ff8a7a">You fell</h1><div class="sub" id="deadt"></div><button class="btn" id="dGo">Wake at the waystone</button></div>
 <script type="module" src="/src/main.ts"></script>

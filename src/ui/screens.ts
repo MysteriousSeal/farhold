@@ -64,7 +64,7 @@ function refreshCreate() {
     true,
   );
   chips(
-    $('#cGender'),
+    $('#cGender'), // shown as a two-way toggle (.seg)
     [
       ['m', 'Male'],
       ['f', 'Female'],
@@ -115,7 +115,7 @@ export function drawPreview(t) {
   if (game.state !== 'create') return;
   pc.setTransform(1, 0, 0, 1, 0, 0);
   pc.clearRect(0, 0, 420, 460);
-  pc.setTransform(4.4, 0, 0, 4.4, 200, 330);
+  pc.setTransform(5.4, 0, 0, 5.4, 205, 355);
   const L = lookOfPlayer(previewPlayer()),
     dirs = [
       [0, 1],
@@ -123,7 +123,8 @@ export function drawPreview(t) {
       [0, -1],
       [-1, 0],
     ],
-    di = dirs[Math.floor(t / 1.6) % 4],
+    // faces the player; the arrows turn it
+    di = dirs[face],
     walk = t * 9;
   // the rusty sword held on guard, blade up, exactly as the hero carries it in game
   const g = carryPos(di[0], di[1], true, walk, t, C.race),
@@ -148,7 +149,30 @@ $('#cDice').onclick = () => {
   $('#cSeed').value = randSeed();
 };
 $('#cName').oninput = refreshCreate;
+const NAMES = {
+  m: ['Aldric', 'Brom', 'Kael', 'Rook', 'Garrick', 'Tobin', 'Edric', 'Corwin', 'Halden', 'Osric'],
+  f: ['Wren', 'Isolde', 'Maren', 'Tamsin', 'Elowen', 'Brynn', 'Sera', 'Liora', 'Hild', 'Ysolde'],
+};
+let face = 0; // preview facing, turned with the arrows (0: toward the player)
+$('#cRotL').onclick = () => (face = (face + 3) % 4);
+$('#cRotR').onclick = () => (face = (face + 1) % 4);
+$('#cNameR').onclick = () => {
+  $('#cName').value = pick(NAMES[C.gender]);
+  refreshCreate();
+};
+$('#cRand').onclick = () => {
+  // a random look (keeps the chosen gender and name)
+  C.skin = (Math.random() * SKINS.length) | 0;
+  C.hair = pick(HAIRS[C.gender])[0];
+  C.hairC = (Math.random() * HAIRC.length) | 0;
+  C.beard = C.gender === 'm' ? (Math.random() * 3) | 0 : 0;
+  refreshCreate();
+};
+$('#cName').onkeydown = (e) => {
+  if (e.key === 'Enter') $('#cGo').click();
+};
 function goCreate() {
+  face = 0;
   game.state = 'create';
   $('#cSeed').value = randSeed();
   $('#cName').value = '';
@@ -185,9 +209,7 @@ $('#mCont').onclick = () => {
 $('#cGo').onclick = () => {
   const p = previewPlayer();
   Object.assign(p, {
-    name:
-      $('#cName').value.trim() ||
-      pick(['Aldric', 'Wren', 'Brom', 'Isolde', 'Kael', 'Maren', 'Tamsin', 'Rook']),
+    name: $('#cName').value.trim() || pick(NAMES[C.gender]),
     lvl: 1,
     xp: 0,
     gold: 20,
