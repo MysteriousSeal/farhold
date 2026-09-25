@@ -408,7 +408,7 @@ input.txt {
 #quests {
   position: fixed;
   left: 12px;
-  top: calc(env(safe-area-inset-top) + 156px);
+  top: calc(env(safe-area-inset-top) + 172px);
   font: 700 17px/1.5 var(--f);
   color: #fff3d0;
   text-shadow:
