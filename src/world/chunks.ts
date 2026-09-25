@@ -4,6 +4,7 @@ import { game } from '../game/state';
 import { traceCliffs } from './cliffs';
 import { sampleHeights } from './contour';
 import { tracePools, traceShores } from './shores';
+import { IT } from './interior';
 import { genDungeonChunk } from './dungeon';
 import { houseRoute, poiSolid, poisNear } from './poi';
 import { CH, PEAK_H, classify, corr, groundF, hField, peakF, terr, walkT } from './terrain';
@@ -611,6 +612,7 @@ export function bgStep(cx, cy) {
   }
 }
 export function getChunk(i, j, gen) {
+  if (game.mode === 'house') return null; // interiors are drawn by render/interior.ts
   const map = game.mode === 'dungeon' ? game.DG.ch : WCH,
     k = i + ',' + j;
   let c = map.get(k);
@@ -635,6 +637,21 @@ export function getChunk(i, j, gen) {
   return c;
 }
 export function solidAt(x, y, r) {
+  if (game.mode === 'house') {
+    const I = game.HS;
+    for (const [ax, ay] of [
+      [0, 0],
+      [r, 0],
+      [-r, 0],
+      [0, r * 0.6],
+      [0, -r * 0.6],
+    ]) {
+      const i = Math.floor((x + ax) / IT),
+        j = Math.floor((y + ay) / IT);
+      if (i < 0 || j < 0 || i >= I.GW || j >= I.GH || !I.grid[j * I.GW + i]) return true;
+    }
+    return poiSolid(I, x, y, r);
+  }
   if (game.mode === 'dungeon') {
     const T = game.DG.T;
     for (const [ax, ay] of [
@@ -672,6 +689,7 @@ export function solidAt(x, y, r) {
 }
 export function regionName(x, y) {
   if (game.mode === 'dungeon') return game.DG.name;
+  if (game.mode === 'house') return game.HS.name;
   const v = poisNear(x, y, 0).find((p) => Math.hypot(x - p.x, y - p.y) < p.r);
   if (v) return v.name;
   const T = terr(x, y);

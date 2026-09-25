@@ -275,9 +275,6 @@ function makeVillage(x, y, key, home?) {
     v.houses.map((h) => ({ pts: houseRoute(v, h), w: 26 })),
     { x, y: y + 10, rx: 128, ry: 96 },
   );
-  const skins = ['#f7d4b2', '#e6b187', '#c4895c', '#8a5838'],
-    hairs = ['#2b1d14', '#6b3e1f', '#c9803a', '#f0d27a', '#e4e4e4'],
-    cl = ['#8a6a4a', '#5a7a9a', '#9a5a5a', '#6a8a5a', '#a08050', '#7a6a9a'];
   const mk = (role, px, py) => ({
     role,
     x: px,
@@ -289,14 +286,7 @@ function makeVillage(x, y, key, home?) {
     walk: 0,
     moving: false,
     wt: rnd() * 3,
-    look: {
-      skin: skins[(rnd() * 4) | 0],
-      hair: (rnd() * 4) | 0,
-      hairC: hairs[(rnd() * 5) | 0],
-      race: 'human',
-      cloth: cl[(rnd() * cl.length) | 0],
-      cape: null,
-    },
+    look: villagerLook(rnd),
   });
   v.npcs.push(
     Object.assign(mk('merchant', v.stall.x, v.stall.y - 14), {}),
@@ -313,6 +303,20 @@ function makeVillage(x, y, key, home?) {
     v.npcs.push(mk('villager', x + Math.cos(a) * 80, y + Math.sin(a) * 60 + 40));
   }
   return v;
+}
+/** A random villager's looks (skin, hair and clothes) from the seeded `rnd`. */
+export function villagerLook(rnd: () => number) {
+  const skins = ['#f7d4b2', '#e6b187', '#c4895c', '#8a5838'],
+    hairs = ['#2b1d14', '#6b3e1f', '#c9803a', '#f0d27a', '#e4e4e4'],
+    cl = ['#8a6a4a', '#5a7a9a', '#9a5a5a', '#6a8a5a', '#a08050', '#7a6a9a'];
+  return {
+    skin: skins[(rnd() * 4) | 0],
+    hair: (rnd() * 4) | 0,
+    hairC: hairs[(rnd() * 5) | 0],
+    race: 'human',
+    cloth: cl[(rnd() * cl.length) | 0],
+    cape: null,
+  };
 }
 function makeCave(x, y, key) {
   const rnd = mulberry(strSeed(key) ^ game.SEED);

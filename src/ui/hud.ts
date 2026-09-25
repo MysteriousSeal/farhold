@@ -9,7 +9,7 @@ import { xpNeed } from '../game/stats';
 import { isTouch } from '../input/input';
 import { mini } from '../render/minimap';
 import { QMAX, activeQuests, trackedQuests } from '../game/quests';
-import { QICON, questProgress } from './questUi';
+import { QICON, heroWorldPos, questProgress } from './questUi';
 import { dangerAt } from '../world/terrain';
 /* ================= HUD ================= */
 const fmt = (n: number) => n.toLocaleString('en-US');
@@ -69,9 +69,8 @@ export function updHud() {
   $('#gdt').textContent = fmt(game.P.gold);
   $('#ptt').textContent = game.P.pot;
   $('#ptt2').textContent = game.P.pot;
-  $('#dgt').textContent = String(
-    game.mode === 'dungeon' ? game.DG.lvl : dangerAt(game.P.x, game.P.y),
-  );
+  const wp = heroWorldPos();
+  $('#dgt').textContent = String(game.mode === 'dungeon' ? game.DG.lvl : dangerAt(wp.x, wp.y));
   drawPortrait();
   for (const n of [1, 2]) {
     const r = rank('s' + n),

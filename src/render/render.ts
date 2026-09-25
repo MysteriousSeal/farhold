@@ -44,6 +44,7 @@ import { MATS } from '../data/classes';
 import { addLight } from '../game/fx';
 import { drawNpc } from '../game/npcs';
 import { offers } from '../game/quests';
+import { houseBack, houseFront, houseItems } from './interior';
 import { game, hero, lights, weather } from '../game/state';
 import { joy } from '../input/input';
 import { bgStep, getChunk } from '../world/chunks';
@@ -275,7 +276,7 @@ export function render() {
   lights.length = 0;
   const z = zoom();
   g.setTransform(DPR, 0, 0, DPR, 0, 0);
-  g.fillStyle = game.mode === 'dungeon' ? '#120e1a' : '#3a76be';
+  g.fillStyle = game.mode === 'dungeon' ? '#120e1a' : game.mode === 'house' ? '#140e1a' : '#3a76be';
   g.fillRect(0, 0, W, H);
   const sx = (Math.random() - 0.5) * game.shake,
     sy = (Math.random() - 0.5) * game.shake,
@@ -324,10 +325,11 @@ export function render() {
   drawShores(g, shores, game.time);
   drawPools(g, pools, game.time);
   drawCliffs(g, cliffs);
+  if (game.mode === 'house') houseBack(g);
   if (game.mode === 'dungeon') for (const m of moss) drawMoss(g, m, game.DG.b === 6, game.time);
   if (game.genBudget > 0) {
     if (game.mode === 'world') bgStep(cx, cy);
-    else {
+    else if (game.mode === 'dungeon') {
       const ci = Math.floor(cx / CH),
         cj = Math.floor(cy / CH);
       outer: for (let r = 1; r <= 2; r++)
@@ -415,7 +417,8 @@ export function render() {
         if (chest) list.push({ y: chest.y, f: (c) => drawChest(c, chest, game.time) });
       } else if (p.kind === 'cave') list.push({ y: p.y, f: (c) => drawCave(c, p, game.time) });
     }
-  } else {
+  } else if (game.mode === 'house') houseItems(list);
+  else {
     for (const t of game.DG.torches)
       if (vis(t.x, t.y)) list.push({ y: t.y - 40, f: (c) => drawTorch(c, t, game.time) });
     for (const p of game.DG.props)
@@ -483,6 +486,7 @@ export function render() {
       g.globalAlpha = 1;
     } else it.f(g, game.time);
   }
+  if (game.mode === 'house') houseFront(g, game.time);
   for (const p of game.projs) drawProj(g, p);
   for (const p of game.parts) {
     const a = clamp(p.life / p.max, 0, 1);

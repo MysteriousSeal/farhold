@@ -10,9 +10,9 @@ export const QICON = {
   // an open treasure chest full of gold
   cave: `<svg viewBox="0 0 32 32"><path d="M6 13 L7.6 5.4 Q16 2.2 24.4 5.4 L26 13 Z" fill="#c07a3a" ${O}/><path d="M9.6 12.4 L10.6 4.6 M22.4 12.4 L21.4 4.6" stroke="#e3b24a" stroke-width="2"/><path d="M6.6 14.6 Q9.4 9.2 12.6 11.2 Q16 7.6 19.4 11.2 Q22.6 9.2 25.4 14.6 Z" fill="#f5c451" stroke="#241a2e" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12.4" cy="12.4" r="1.1" fill="#fff6c8"/><circle cx="18.6" cy="11.4" r="1" fill="#fff6c8"/><rect x="5" y="13.4" width="22" height="14" rx="3" fill="#9a5a2a" ${O}/><path d="M6.2 21.6 H25.8" stroke="#241a2e" stroke-opacity=".35" stroke-width="1.4"/><rect x="8.4" y="13.4" width="3" height="14" fill="#e3b24a" stroke="#241a2e" stroke-width="1.6"/><rect x="20.6" y="13.4" width="3" height="14" fill="#e3b24a" stroke="#241a2e" stroke-width="1.6"/><rect x="13.4" y="16" width="5.2" height="6.2" rx="1.3" fill="#f5c451" stroke="#241a2e" stroke-width="1.6"/><circle cx="16" cy="18.6" r="1" fill="#241a2e"/></svg>`,
 };
-/** Where the hero is on the overworld (in a cave: the cave's entrance). */
+/** Where the hero is on the overworld (in a cave or a house: outside its entrance). */
 export function heroWorldPos() {
-  return game.mode === 'dungeon' && game.P.ret ? game.P.ret : game.P;
+  return game.mode !== 'world' && game.P.ret ? game.P.ret : game.P;
 }
 /** Compass arrow and distance to a located bounty, e.g. "➤ 1.2k". */
 export function questWhere(q) {

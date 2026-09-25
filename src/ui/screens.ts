@@ -214,6 +214,7 @@ function startGame(p, fresh?) {
   shopStock.clear();
   game.mode = 'world';
   game.DG = null;
+  game.HS = null;
   game.enemies = [];
   game.projs = [];
   game.drops = [];

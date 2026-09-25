@@ -46,7 +46,7 @@ export function save() {
   if (!game.P) return;
   try {
     const s = Object.assign({}, game.P);
-    if (game.mode === 'dungeon' && game.P.ret) {
+    if ((game.mode === 'dungeon' || game.mode === 'house') && game.P.ret) {
       s.x = game.P.ret.x;
       s.y = game.P.ret.y;
     }

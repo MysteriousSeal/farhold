@@ -5,6 +5,7 @@ import { enterDungeon, leaveDungeon, openChest } from './dungeons';
 import { makeBoss } from './enemies';
 import { banner, burst } from './fx';
 import { save } from './save';
+import { houseDoors, houseInteract } from './houses';
 import { game, hero } from './state';
 import { openBoard, openPotions, openShop, openSmith, openTravel } from '../ui/village';
 /* ================= INTERACTIONS ================= */
@@ -32,8 +33,13 @@ export function findInteract() {
       cand(pt.x, pt.y + 8, 80, 'Warp portal: back to the entrance', startWarp, pt.y - 78);
     return best;
   }
+  if (game.mode === 'house') {
+    houseInteract(cand);
+    return best;
+  }
   for (const p of game.activePois) {
     if (p.kind === 'village') {
+      houseDoors(p, cand);
       cand(p.stall.x, p.stall.y + 22, 66, 'Trade', () => openShop(p), p.stall.y - 66);
       cand(p.forge.x, p.forge.y + 22, 70, 'Blacksmith', () => openSmith(p), p.forge.y - 66);
       cand(p.board.x, p.board.y + 18, 62, 'Bounties', () => openBoard(p), p.board.y - 76);

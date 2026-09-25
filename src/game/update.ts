@@ -11,6 +11,7 @@ import { updateDrops } from './drops';
 import { DENS, inVillage, moveEnt, spawnEnemies, unstick, updateEnemies } from './enemies';
 import { banner, burst, ring } from './fx';
 import { findInteract, visitPois } from './interactions';
+import { houseCam, updateHouse } from './houses';
 import { updateNpcs } from './npcs';
 import { updateProjs, updateTeles, updateZones } from './projectiles';
 import { save } from './save';
@@ -185,7 +186,7 @@ function updateHero(dt) {
   hero.regen += dt;
   if (hero.regen > 1) {
     hero.regen = 0;
-    const safe = game.mode === 'world' && inVillage(game.P.x, game.P.y);
+    const safe = game.mode === 'house' || (game.mode === 'world' && inVillage(game.P.x, game.P.y));
     if (game.P.hp < game.ST.hp)
       game.P.hp = Math.min(
         game.ST.hp,
@@ -243,6 +244,7 @@ export function update(dt) {
     updateTeles(wdt);
     updateDrops(dt);
     updateNpcs(dt);
+    updateHouse(dt);
     game.interact = findInteract();
     const zn = regionName(game.P.x, game.P.y);
     if (zn !== game.zoneName && game.mode === 'world') {
@@ -255,11 +257,13 @@ export function update(dt) {
       game.saveT = 0;
       save();
     }
-    const lead = hero.moving ? 40 : 0;
+    const lead = hero.moving && game.mode !== 'house' ? 40 : 0;
     game.camKX = lerp(game.camKX, Math.cos(hero.aim) * lead * 0.6, 1 - Math.pow(0.1, dt));
     game.camKY = lerp(game.camKY, Math.sin(hero.aim) * lead * 0.45, 1 - Math.pow(0.1, dt));
-    game.camX = lerp(game.camX, game.P.x, 1 - Math.pow(0.0008, dt));
-    game.camY = lerp(game.camY, game.P.y - 16, 1 - Math.pow(0.0008, dt));
+    const [ctx, cty] =
+      game.mode === 'house' ? houseCam(game.P.x, game.P.y - 16) : [game.P.x, game.P.y - 16];
+    game.camX = lerp(game.camX, ctx, 1 - Math.pow(0.0008, dt));
+    game.camY = lerp(game.camY, cty, 1 - Math.pow(0.0008, dt));
     game.kickX *= Math.pow(0.001, dt);
     game.kickY *= Math.pow(0.001, dt);
   } else if (game.state === 'menu' || game.state === 'create' || game.state === 'help') {

@@ -3,6 +3,7 @@ import { OUT, TAU, clamp, lerp } from '../core/math';
 import { game, hero } from '../game/state';
 import { CITY, STREETS } from '../world/city';
 import { isoShape } from '../world/contour';
+import { IT } from '../world/interior';
 import { poisNear } from '../world/poi';
 import { COL, terr } from '../world/terrain';
 /* ================= MINIMAP ================= */
@@ -212,7 +213,7 @@ function bakeCave(D, sc) {
   x.fillStyle = 'rgba(0,0,0,.55)';
   x.fill(fill);
   x.restore();
-  x.fillStyle = CAVE_PAL[D.b] || '#7a7088';
+  x.fillStyle = D.miniCol || CAVE_PAL[D.b] || '#7a7088';
   x.fill(fill);
   // faint flagstones
   x.save();
@@ -271,6 +272,32 @@ export function drawMini(dt) {
       chestIcon(cx, cy);
     }
     remainingEnemies(M, sc);
+  } else if (game.mode === 'house') {
+    // the house's floor plan, its door and the residents
+    const I = game.HS;
+    R = 320;
+    const sc = M / (2 * R);
+    if (!I.miniImg)
+      I.miniImg = bakeCave(
+        { GW: I.GW, GH: I.GH, T: IT, grid: I.grid, b: -1, miniCol: I.pal.floor },
+        sc,
+      );
+    mc.fillStyle = '#16111f';
+    mc.fillRect(0, 0, M, M);
+    mc.drawImage(I.miniImg, C - game.P.x * sc, C - game.P.y * sc);
+    const at = (px: number, py: number) => [C + (px - game.P.x) * sc, C + (py - game.P.y) * sc];
+    const [dx, dy] = at(I.door.x, I.door.y);
+    exitIcon(dx, dy);
+    for (const n of I.npcs) {
+      const [nx, ny] = at(n.x, n.y);
+      mc.fillStyle = '#8fe08a';
+      mc.strokeStyle = OUT;
+      mc.lineWidth = 2;
+      mc.beginPath();
+      mc.arc(nx, ny, 4.5, 0, TAU);
+      mc.fill();
+      mc.stroke();
+    }
   } else {
     R = MINI_R;
     if (seed !== game.SEED) {

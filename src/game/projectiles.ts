@@ -4,9 +4,11 @@ import { ET } from '../data/enemies';
 import { damageEnemy, hurtHero } from './combat';
 import { addLight, burst, ring } from './fx';
 import { game } from './state';
+import { solidAt } from '../world/chunks';
 import { terr } from '../world/terrain';
 /* ================= PROJECTILES / ZONES / TELEGRAPHS ================= */
 function projBlocked(p) {
+  if (game.mode === 'house') return solidAt(p.x, p.y + 14, 2);
   if (game.mode === 'dungeon')
     return !game.DG.isF(Math.floor(p.x / game.DG.T), Math.floor((p.y + 14) / game.DG.T));
   const T = terr(p.x, p.y + 14);

@@ -3,8 +3,9 @@ import { game, weather } from './state';
 import { terr } from '../world/terrain';
 /* ================= WORLD TICK ================= */
 export function updateDay(dt) {
-  if (game.mode === 'dungeon') {
-    // caves are fully lit (no fog of war); the day/night cycle only applies outside
+  if (game.mode !== 'world') {
+    // caves and houses are fully lit (no fog of war); the day/night cycle only applies outside
+    game.P.tod = (game.P.tod + dt / 480) % 1; // time still passes (house windows show it)
     game.dark = 0;
     game.dusk = 0;
     return;
@@ -26,7 +27,7 @@ export function updateDay(dt) {
   game.dusk = u;
 }
 export function updateWeather(dt) {
-  if (game.mode === 'dungeon') {
+  if (game.mode !== 'world') {
     weather.k = lerp(weather.k, 0, dt * 2);
     return;
   }

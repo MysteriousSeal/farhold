@@ -9,6 +9,7 @@ import { leaveDungeon } from './dungeons';
 import { killEnemy, unstick } from './enemies';
 import { banner, burst, ftext, ring, toast } from './fx';
 import { save } from './save';
+import { leaveHouse } from './houses';
 import { game, hero } from './state';
 import { calcStats, xpNeed } from './stats';
 import { setHud } from '../ui/hud';
@@ -343,6 +344,7 @@ function heroDie() {
 export function respawn() {
   const w = game.P.wpInfo[game.P.home] || { x: 0, y: 0 };
   if (game.mode === 'dungeon') leaveDungeon(true);
+  if (game.mode === 'house') leaveHouse(true);
   game.P.x = w.x;
   game.P.y = w.y + 70;
   unstick(game.P);
