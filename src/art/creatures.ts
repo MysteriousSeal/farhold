@@ -10,6 +10,8 @@ import {
 import { circ, ell, rr, shadow } from '../core/dom';
 import { OUT, TAU, clamp, mixCol, sh } from '../core/math';
 import { ET } from '../data/enemies';
+import { drawBoar } from './boar';
+import { drawScorpion } from './scorpion';
 import { drawWolf } from './wolf';
 import { game } from '../game/state';
 /* ================= ART: creatures ================= */
@@ -73,66 +75,8 @@ function drawSlime(c, e, t) {
   c.restore();
 }
 function drawQuad(c, e, t, v) {
-  if (v !== 'boar') return drawWolf(c, e, t, v, fcol(e, e.col));
-  const flip = e.dx < 0,
-    sw = Math.sin(e.walk) * (e.moving ? 1 : 0),
-    s = e.sc;
-  c.save();
-  c.translate(e.x, e.y);
-  shadow(c, 0, 0, 17 * s, 5 * s);
-  c.scale(s * (flip ? -1 : 1), s);
-  c.lineWidth = 2.2 / Math.sqrt(s);
-  c.strokeStyle = OUT;
-  const col = fcol(e, e.col),
-    lean = e.wind > 0 ? -3 : 0;
-  c.translate(lean, 0);
-  for (const [lx, k] of [
-    [-9, 1],
-    [7, -1],
-    [-5, -1],
-    [11, 1],
-  ])
-    rr(c, lx + sw * 3 * k, -10, 5, 10, 2, sh(col, -0.2));
-  if (v === 'boar') {
-    c.beginPath();
-    c.moveTo(-16, -15);
-    c.quadraticCurveTo(-22, -18, -20, -11);
-    c.stroke();
-    ell(c, 0, -15, 17, 10, col);
-    c.fillStyle = sh(col, -0.25);
-    for (let i = -3; i < 3; i++) {
-      c.beginPath();
-      c.moveTo(i * 4, -24);
-      c.lineTo(i * 4 + 2, -29);
-      c.lineTo(i * 4 + 4, -24);
-      c.fill();
-    }
-    ell(c, 15, -14, 9, 8, col);
-    rr(c, 20, -16, 8, 7, 3, sh(col, 0.2));
-    c.fillStyle = OUT;
-    c.beginPath();
-    c.arc(25, -13, 1, 0, TAU);
-    c.fill();
-    c.fillStyle = '#fffbe8';
-    c.beginPath();
-    c.moveTo(20, -10);
-    c.quadraticCurveTo(26, -10, 26, -17);
-    c.lineTo(22, -11);
-    c.fill();
-    c.stroke();
-    c.beginPath();
-    c.moveTo(11, -22);
-    c.lineTo(13, -27);
-    c.lineTo(16, -21);
-    c.fillStyle = col;
-    c.fill();
-    c.stroke();
-    c.fillStyle = e.aggro ? '#ff4030' : OUT;
-    c.beginPath();
-    c.arc(16, -17, 1.7, 0, TAU);
-    c.fill();
-  }
-  c.restore();
+  if (v === 'boar') drawBoar(c, e, t, fcol(e, e.col));
+  else drawWolf(c, e, t, v, fcol(e, e.col));
 }
 function drawBat(c, e, t) {
   const s = e.sc,
@@ -244,70 +188,6 @@ function drawSpider(c, e, t) {
   c.fill();
   c.restore();
 }
-function drawScorpion(c, e, t) {
-  const s = e.sc,
-    flip = e.dx < 0,
-    w = e.moving ? e.walk : 0;
-  c.save();
-  c.translate(e.x, e.y);
-  shadow(c, 0, 0, 18 * s, 5 * s);
-  c.scale(s * (flip ? -1 : 1), s);
-  c.lineWidth = 2.2 / Math.sqrt(s);
-  c.strokeStyle = OUT;
-  const col = fcol(e, e.col);
-  for (let i = 0; i < 3; i++)
-    for (const k of [0, 1]) {
-      const ph = Math.sin(w * 1.5 + i + k * 3) * 2.5;
-      c.beginPath();
-      c.moveTo(-4 + i * 5, -6);
-      c.lineTo(-8 + i * 6 + ph, k ? 1 : -1);
-      c.lineWidth = 2.6;
-      c.stroke();
-    }
-  c.lineWidth = 2.2;
-  const strike = e.wind > 0 ? 1 - e.wind / 0.35 : e.swing > 0 ? 1 : 0;
-  let px = -10,
-    py = -8;
-  for (let i = 0; i < 5; i++) {
-    const a = -Math.PI * 0.15 - i * 0.42 - strike * 0.3;
-    const nx = px + Math.cos(a + Math.PI) * 6,
-      ny = py + Math.sin(a + Math.PI) * 6 - (i > 1 ? 3 : 0);
-    ell(c, nx, ny, 5.5 - i * 0.4, 4.5 - i * 0.3, sh(col, -0.05 * i));
-    px = nx;
-    py = ny;
-  }
-  c.fillStyle = sh(col, -0.35);
-  c.beginPath();
-  c.moveTo(px, py);
-  c.quadraticCurveTo(px + 10, py - 2, px + 8 + strike * 6, py + 8);
-  c.lineTo(px + 4, py + 2);
-  c.closePath();
-  c.fill();
-  c.stroke();
-  ell(c, 2, -8, 12, 7, col);
-  c.fillStyle = OUT;
-  c.beginPath();
-  c.arc(12, -10, 1.3, 0, TAU);
-  c.fill();
-  for (const k of [-1, 1]) {
-    c.save();
-    c.translate(12, -8 + k * 3);
-    c.rotate(k * 0.3 + Math.sin(t * 3) * 0.1);
-    rr(c, 0, -2, 9, 4, 2, col);
-    c.beginPath();
-    c.moveTo(9, -3);
-    c.quadraticCurveTo(17, -5, 16, 1);
-    c.lineTo(11, 0);
-    c.lineTo(15, 3);
-    c.quadraticCurveTo(12, 6, 9, 3);
-    c.closePath();
-    c.fillStyle = col;
-    c.fill();
-    c.stroke();
-    c.restore();
-  }
-  c.restore();
-}
 function drawGolem(c, e, t) {
   const s = e.sc,
     flip = e.dx < 0,
@@ -391,7 +271,7 @@ export function drawEnemy(c, e, t) {
   else if (k === 'quad') drawQuad(c, e, t, D.variant);
   else if (k === 'bat') drawBat(c, e, t);
   else if (k === 'spider') drawSpider(c, e, t);
-  else if (k === 'scorp') drawScorpion(c, e, t);
+  else if (k === 'scorp') drawScorpion(c, e, t, fcol(e, e.col));
   else if (k === 'golem') drawGolem(c, e, t);
   else {
     const L = Object.assign({}, D.look);
