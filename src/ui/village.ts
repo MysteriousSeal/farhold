@@ -1,7 +1,8 @@
 import { powerLines } from './inventory';
 import { SFX } from '../audio/sfx';
 import { $ } from '../core/dom';
-import { RAR, SLOTS } from '../data/classes';
+import { RAR, SLOTS, SLOT_NAME } from '../data/classes';
+import { compareItem } from '../game/power';
 import { BAGMAX } from '../game/drops';
 import { unstick } from '../game/enemies';
 import { doFade, toast } from '../game/fx';
@@ -9,7 +10,7 @@ import { equipSlot, genItem, itemName, upCost } from '../game/items';
 import { QMAX, abandonQuest, acceptQuest, genOffers, offers } from '../game/quests';
 import { game } from '../game/state';
 import { calcStats } from '../game/stats';
-import { btn, hdr, iconCanvas, openModal, statLines, wireClose } from './modal';
+import { btn, goldPill, hdr, iconCanvas, openModal, statLines, wireClose } from './modal';
 import { closeAll } from './screens';
 import { poisNear } from '../world/poi';
 /* shop */
@@ -39,7 +40,7 @@ export function openPotions(v) {
       [1, Math.round(pp * 0.8)],
       [5, Math.round(pp * 3.5)],
     ];
-  openModal(hdr(v.name + ' alchemist', '🪙 ' + game.P.gold + ' gold') + '<div id="potbody"></div>');
+  openModal(hdr(v.name + ' alchemist', goldPill(game.P.gold)) + '<div id="potbody"></div>');
   wireClose();
   const body = $('#potbody');
   for (const [n, price] of offers) {
@@ -79,7 +80,7 @@ function renderShop(v) {
   const s = shopStock.get(shopKey),
     pp = 12 + v.lvl * 5;
   openModal(
-    hdr(v.name + (shopFine ? ' fine goods' : ' market'), '🪙 ' + game.P.gold + ' gold') +
+    hdr(v.name + (shopFine ? ' fine goods' : ' market'), goldPill(game.P.gold)) +
       '<div class="tabs"><button class="chip' +
       (shopTab === 'buy' ? ' on' : '') +
       '" id="tb1">Buy</button><button class="chip' +
@@ -176,64 +177,237 @@ function renderShop(v) {
         'beforeend',
         '<div class="desc">Sold out. New stock arrives in a few minutes.</div>',
       );
-  } else {
-    const bag = document.createElement('div');
-    bag.className = 'bag';
-    game.P.inv.forEach((it) => {
-      const d = document.createElement('div');
-      d.className = 'cell' + (shopSel === it ? ' sel' : '');
-      d.style.borderColor = RAR[it.r].c;
-      d.appendChild(iconCanvas(it));
-      d.onclick = () => {
-        shopSel = it;
-        renderShop(v);
-      };
-      bag.appendChild(d);
-    });
-    body.appendChild(bag);
-    if (!game.P.inv.length)
-      body.insertAdjacentHTML('beforeend', '<div class="desc">Your bag is empty.</div>');
-    const det = document.createElement('div');
-    det.id = 'detail';
-    body.appendChild(det);
-    if (shopSel && game.P.inv.includes(shopSel)) {
-      const it = shopSel;
-      det.innerHTML =
-        '<div class="nm" style="color:' +
-        RAR[it.r].c +
-        '">' +
-        itemName(it) +
-        '</div><div class="stats">' +
-        statLines(it, game.P.eq[equipSlot(it, game.P.eq)]) +
-        '</div><div class="acts"></div>';
-      det.querySelector('.acts').appendChild(
-        btn('Sell for ' + it.val, () => {
-          game.P.gold += it.val;
-          game.P.inv.splice(game.P.inv.indexOf(it), 1);
-          shopSel = null;
-          SFX.coin();
-          renderShop(v);
-        }),
-      );
-    } else det.innerHTML = '<span style="opacity:.75">Tap an item to sell it.</span>';
-    const junk = game.P.inv.filter((i) => i.r <= 1);
-    if (junk.length) {
-      const tot = junk.reduce((a, i) => a + i.val, 0);
-      det.appendChild(
-        btn(
-          'Sell all common and uncommon (' + tot + ')',
-          () => {
-            game.P.inv = game.P.inv.filter((i) => i.r > 1);
-            game.P.gold += tot;
-            SFX.coin();
-            toast('Sold ' + junk.length + ' items for ' + tot + ' gold');
-            renderShop(v);
-          },
-          'alt',
-        ),
-      );
-    }
+  } else renderSell(v, body);
+}
+
+/* empty-state icons, in the same outlined style as the HUD buttons (index.html) */
+const ICO_BAG =
+  '<svg viewBox="0 0 32 32"><path d="M11.5 9 C11.5 4 20.5 4 20.5 9" fill="none" stroke="#241a2e" stroke-width="2.4"/><rect x="6" y="8.5" width="20" height="19.5" rx="6" fill="#b0663a" stroke="#241a2e" stroke-width="2.4"/><path d="M6.5 15 H25.5" stroke="#241a2e" stroke-width="2"/><rect x="10" y="17.5" width="12" height="7.5" rx="2.4" fill="#d08a50" stroke="#241a2e" stroke-width="2"/><rect x="14.3" y="13.2" width="3.4" height="4.6" rx="1" fill="#f5c451" stroke="#241a2e" stroke-width="1.6"/><path d="M9 11.5 Q10 10 12 10" stroke="#fff" stroke-opacity=".5" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>';
+const ICO_SEARCH =
+  '<svg viewBox="0 0 32 32"><path d="M19.5 19.5 L27 27" stroke="#241a2e" stroke-width="6" stroke-linecap="round"/><path d="M19.5 19.5 L27 27" stroke="#9a6a3a" stroke-width="3" stroke-linecap="round"/><circle cx="13.5" cy="13.5" r="9" fill="#bfe0f5" stroke="#241a2e" stroke-width="2.4"/><circle cx="13.5" cy="13.5" r="9" fill="none" stroke="#f5c451" stroke-width="1.6" transform="scale(.82) translate(2.96 2.96)"/><path d="M9 11 Q10 8.6 12.6 8" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>';
+/* ---------- sell tab: a sortable, filterable grid; select an item, then sell it ---------- */
+const SELL_FILTERS: [string, string, (it) => boolean][] = [
+  ['all', 'All', () => true],
+  ['weapon', 'Weapons', (it) => it.slot === 'weapon'],
+  ['armor', 'Armor', (it) => ['helm', 'armor', 'gloves', 'pants', 'boots'].includes(it.slot)],
+  ['jewel', 'Jewellery', (it) => it.slot === 'ring' || it.slot === 'amulet'],
+];
+const SELL_SORTS: [string, string, (a, b) => number][] = [
+  ['rarity', 'Rarity', (a, b) => b.r - a.r || b.val - a.val],
+  ['price', 'Price', (a, b) => b.val - a.val],
+  ['slot', 'Slot', (a, b) => SLOTS.indexOf(a.slot) - SLOTS.indexOf(b.slot) || b.r - a.r],
+];
+let sellFilter = 'all',
+  sellSort = 'rarity';
+/** Multi-select: pick several items (toggle chip, or Ctrl/Cmd/Shift-click) and sell them together. */
+let sellMulti = false;
+const sellPick = new Set<object>();
+const junkR = [true, true, false]; // bulk sale: common, uncommon, rare
+/** Would equipping `it` make the hero stronger? (never sold in bulk; marked with ▲) */
+const isUpgrade = (it) => compareItem(it).overall > 0.005;
+function renderSell(v, body) {
+  const f = SELL_FILTERS.find((x) => x[0] === sellFilter)[2],
+    items = game.P.inv.filter(f).sort(SELL_SORTS.find((x) => x[0] === sellSort)[2]);
+  if (shopSel && !game.P.inv.includes(shopSel)) shopSel = null;
+  for (const it of sellPick) if (!game.P.inv.includes(it)) sellPick.delete(it);
+  const chip = (id: string, label: string, on: boolean) =>
+    '<button class="chip' + (on ? ' on' : '') + '" data-k="' + id + '">' + label + '</button>';
+  body.innerHTML =
+    '<div class="selltools"><div class="chips" id="sFil">' +
+    SELL_FILTERS.map(([k, n, fn]) =>
+      chip(k, n + ' <small>' + game.P.inv.filter(fn).length + '</small>', k === sellFilter),
+    ).join('') +
+    '</div><div class="chips" id="sSort"><span class="lbl">Sort</span>' +
+    SELL_SORTS.map(([k, n]) => chip(k, n, k === sellSort)).join('') +
+    '<button class="chip' +
+    (sellMulti ? ' on' : '') +
+    '" id="sMulti" title="Or Ctrl/Shift-click items">☑ Select multiple</button></div></div><div class="sellwrap"><div class="sellgrid" id="sGrid"></div><div class="selldet" id="sDet"></div></div><div class="selljunk" id="sJunk"></div>';
+  body
+    .querySelectorAll('#sFil .chip')
+    .forEach((b: HTMLElement) => (b.onclick = () => ((sellFilter = b.dataset.k), renderShop(v))));
+  body
+    .querySelectorAll('#sSort .chip')
+    .forEach((b: HTMLElement) => (b.onclick = () => ((sellSort = b.dataset.k), renderShop(v))));
+  (body.querySelector('#sMulti') as HTMLElement).onclick = () => {
+    sellMulti = !sellMulti;
+    sellPick.clear();
+    if (sellMulti && shopSel) sellPick.add(shopSel);
+    shopSel = null;
+    renderShop(v);
+  };
+  // grid
+  const grid = body.querySelector('#sGrid');
+  for (const it of items) {
+    const d = document.createElement('div');
+    const on = sellMulti ? sellPick.has(it) : shopSel === it;
+    d.className = 'cell scell' + (on ? ' sel' : '') + (sellMulti ? ' multi' : '');
+    d.style.borderColor = RAR[it.r].c;
+    d.appendChild(iconCanvas(it));
+    if (isUpgrade(it))
+      d.insertAdjacentHTML('beforeend', '<i class="up" title="Better than what you wear">▲</i>');
+    d.insertAdjacentHTML(
+      'beforeend',
+      '<b class="price">' + it.val.toLocaleString('en-US') + '</b>',
+    );
+    if (sellMulti) d.insertAdjacentHTML('beforeend', '<i class="tick">' + (on ? '✓' : '') + '</i>');
+    d.onclick = (e: MouseEvent) => {
+      if (!sellMulti && (e.ctrlKey || e.metaKey || e.shiftKey)) {
+        // modifier-click switches to multi-select, keeping the current pick
+        sellMulti = true;
+        sellPick.clear();
+        if (shopSel) sellPick.add(shopSel);
+        shopSel = null;
+      }
+      if (sellMulti) {
+        if (sellPick.has(it)) sellPick.delete(it);
+        else sellPick.add(it);
+      } else shopSel = shopSel === it ? null : it;
+      renderShop(v);
+    };
+    grid.appendChild(d);
   }
+  if (!items.length)
+    grid.innerHTML = game.P.inv.length
+      ? '<div class="sempty">' +
+        ICO_SEARCH +
+        '<b>Nothing of this kind</b><small>Try another filter.</small></div>'
+      : '<div class="sempty">' +
+        ICO_BAG +
+        '<b>Your bags are empty</b><small>Loot from monsters and chests can be sold here.</small></div>';
+  // details
+  const det = body.querySelector('#sDet');
+  if (sellMulti) {
+    const picked = game.P.inv.filter((it) => sellPick.has(it)),
+      sum = picked.reduce((a, it) => a + it.val, 0),
+      ups = picked.filter(isUpgrade).length,
+      byR = RAR.map((r, i) => [r, picked.filter((it) => it.r === i).length] as const).filter(
+        (x) => x[1],
+      );
+    det.innerHTML =
+      '<div class="nm">' +
+      picked.length +
+      (picked.length === 1 ? ' item' : ' items') +
+      ' selected</div><div class="desc">' +
+      (byR
+        .map(
+          ([r, n]) => '<span style="color:' + r.c + '">' + n + ' ' + r.n.toLowerCase() + '</span>',
+        )
+        .join(' · ') || 'Tap items to add them to the sale.') +
+      '</div>' +
+      (ups
+        ? '<div class="warnup">▲ ' +
+          ups +
+          (ups === 1 ? ' is' : ' are') +
+          ' better than what you wear</div>'
+        : '') +
+      '<div class="msel"></div><div class="acts"></div>';
+    const ms = det.querySelector('.msel');
+    ms.appendChild(
+      btn(
+        'Select all',
+        () => (items.forEach((it) => sellPick.add(it)), renderShop(v)),
+        'alt',
+        !items.length,
+      ),
+    );
+    ms.appendChild(btn('Clear', () => (sellPick.clear(), renderShop(v)), 'alt', !picked.length));
+    det.querySelector('.acts').appendChild(
+      btn(
+        'Sell ' + picked.length + ' for ' + sum.toLocaleString('en-US') + ' gold',
+        () => {
+          game.P.inv = game.P.inv.filter((it) => !sellPick.has(it));
+          game.P.gold += sum;
+          sellPick.clear();
+          SFX.coin();
+          toast(
+            'Sold ' +
+              picked.length +
+              (picked.length === 1 ? ' item' : ' items') +
+              ' for ' +
+              sum +
+              ' gold',
+          );
+          renderShop(v);
+        },
+        '',
+        !picked.length,
+      ),
+    );
+  } else if (shopSel) {
+    const it = shopSel;
+    det.innerHTML =
+      '<div class="nm" style="color:' +
+      RAR[it.r].c +
+      '">' +
+      itemName(it) +
+      '</div><div class="desc">' +
+      RAR[it.r].n +
+      ' ' +
+      (SLOT_NAME[it.slot] || it.slot).toLowerCase() +
+      ' · level ' +
+      it.lvl +
+      '</div>' +
+      powerLines(it, false) +
+      '<div class="stats">' +
+      statLines(it, game.P.eq[equipSlot(it, game.P.eq)]) +
+      '</div>' +
+      (isUpgrade(it) ? '<div class="warnup">▲ Better than what you wear</div>' : '') +
+      '<div class="acts"></div>';
+    det.querySelector('.acts').appendChild(
+      btn('Sell for ' + it.val.toLocaleString('en-US') + ' gold', () => {
+        game.P.gold += it.val;
+        game.P.inv.splice(game.P.inv.indexOf(it), 1);
+        shopSel = null;
+        SFX.coin();
+        renderShop(v);
+      }),
+    );
+  } else
+    det.innerHTML =
+      '<div class="desc" style="opacity:.75">Select an item to see it and its price.</div>';
+  // bulk sale of junk: chosen rarities, never upgrades
+  const junk = game.P.inv.filter((it) => it.r <= 2 && junkR[it.r] && !isUpgrade(it)),
+    tot = junk.reduce((a, it) => a + it.val, 0),
+    jb = body.querySelector('#sJunk');
+  jb.innerHTML =
+    '<span class="lbl">Sell junk:</span>' +
+    ['Common', 'Uncommon', 'Rare']
+      .map(
+        (n, r) =>
+          '<label class="jr" style="color:' +
+          RAR[r].c +
+          '"><input type="checkbox" data-r="' +
+          r +
+          '"' +
+          (junkR[r] ? ' checked' : '') +
+          '> ' +
+          n +
+          '</label>',
+      )
+      .join('') +
+    '<span class="desc jsum">' +
+    junk.length +
+    (junk.length === 1 ? ' item' : ' items') +
+    ' · upgrades kept</span>';
+  jb.querySelectorAll('input').forEach(
+    (cb: HTMLInputElement) =>
+      (cb.onchange = () => ((junkR[+cb.dataset.r] = cb.checked), renderShop(v))),
+  );
+  jb.appendChild(
+    btn(
+      'Sell ' + junk.length + ' for ' + tot.toLocaleString('en-US') + ' gold',
+      () => {
+        game.P.inv = game.P.inv.filter((it) => !junk.includes(it));
+        game.P.gold += tot;
+        if (junk.includes(shopSel)) shopSel = null;
+        SFX.coin();
+        toast('Sold ' + junk.length + ' items for ' + tot + ' gold');
+        renderShop(v);
+      },
+      'alt',
+      !junk.length,
+    ),
+  );
 }
 /* smith */
 export function openSmith(v) {
@@ -243,7 +417,7 @@ function renderSmith(v) {
   openModal(
     hdr(
       'Blacksmith',
-      "Each upgrade adds 10% to an item's health, attack and armor. 🪙 " + game.P.gold + ' gold',
+      "Each upgrade adds 10% to an item's health, attack and armor. " + goldPill(game.P.gold),
     ) + '<div id="smbody"></div>',
   );
   wireClose();

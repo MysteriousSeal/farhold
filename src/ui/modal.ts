@@ -44,6 +44,15 @@ export function statLines(it, cmp) {
     })
     .join('');
 }
+const COIN_SVG =
+  '<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#f5c451" stroke="#241a2e" stroke-width="1.8"/><circle cx="10" cy="10" r="5.2" fill="none" stroke="#b8862e" stroke-width="1.4"/><path d="M6.5 6.8 Q8 5.4 10 5.4" stroke="#fff6c8" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>';
+/** The hero's purse as a gold pill with the HUD coin: "(coin) 29,410". */
+export const goldPill = (n: number) =>
+  '<span class="goldpill" title="Gold">' +
+  COIN_SVG +
+  '<b>' +
+  n.toLocaleString('en-US') +
+  '</b></span>';
 export function hdr(title, sub) {
   return (
     '<div class="mh"><div><h2>' +

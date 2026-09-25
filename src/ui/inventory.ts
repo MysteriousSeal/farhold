@@ -16,7 +16,7 @@ import {
 } from '../game/items';
 import { game } from '../game/state';
 import { calcStats, xpNeed } from '../game/stats';
-import { btn, iconCanvas, openModal, statLines } from './modal';
+import { btn, goldPill, iconCanvas, openModal, statLines } from './modal';
 import { closeAll } from './screens';
 /* ================= CHARACTER SHEET & BAGS ================= */
 // Two independent windows shown side by side (stacked on phones): the character sheet (C) with
@@ -225,7 +225,7 @@ function renderBags() {
         '/' +
         BAGMAX +
         '</span>',
-      '🪙 ' + game.P.gold + ' gold   🧪 ' + game.P.pot + ' potions',
+      goldPill(game.P.gold) + ' &nbsp; 🧪 ' + game.P.pot + ' potions',
       'bags',
     ) +
     '<div class="bag" id="iBag"></div><div class="acts" id="iBulk"></div><div id="detail"></div>';
