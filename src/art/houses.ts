@@ -997,9 +997,38 @@ function smithy(x: Ctx, h, rnd: () => number, B: Built) {
   // heavy double door under a stone lintel
   const dx = h.door * w * DOOR_F;
   ink(x);
-  rr(x, dx - 17, -34, 34, 5, 1.5, sh(col, 0.12));
-  door(x, dx - 6.5, 12, 29, h.doorCol);
-  door(x, dx + 6.5, 12, 29, h.doorCol);
+  // one frame, two plank leaves meeting in the middle, iron bands, handles at the seam
+  const dh = 29,
+    dw2 = 26;
+  rr(x, dx - dw2 / 2 - 2.5, -dh - 2.5, dw2 + 5, dh + 2.5, 2, sh(h.doorCol, -0.35));
+  for (const s0 of [-1, 1]) {
+    const lx = s0 < 0 ? dx - dw2 / 2 : dx;
+    rr(x, lx, -dh, dw2 / 2, dh, 1, h.doorCol);
+    x.save();
+    x.strokeStyle = 'rgba(0,0,0,.28)';
+    x.lineWidth = 1.1;
+    x.beginPath();
+    x.moveTo(lx + dw2 / 4, -dh);
+    x.lineTo(lx + dw2 / 4, 0);
+    x.stroke();
+    x.restore();
+  }
+  x.save();
+  x.strokeStyle = 'rgba(35,28,30,.7)';
+  x.lineWidth = 1.8;
+  for (const f of [0.3, 0.72]) {
+    x.beginPath();
+    x.moveTo(dx - dw2 / 2, -dh * f);
+    x.lineTo(dx + dw2 / 2, -dh * f);
+    x.stroke();
+  }
+  x.restore();
+  ink(x, 1.2);
+  circ(x, dx - 2.6, -dh * 0.45, 1.6, '#f5c451');
+  circ(x, dx + 2.6, -dh * 0.45, 1.6, '#f5c451');
+  ink(x);
+  rr(x, dx - 17, -34, 34, 5, 1.5, sh(col, 0.12)); // stone lintel
+  rr(x, dx - dw2 / 2 - 5, -2.5, dw2 + 10, 5, 2, STONE_FOUND); // one step
   // a small window glowing with forge light
   const wx = -h.door * w * 0.22;
   ink(x);
