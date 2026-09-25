@@ -3,10 +3,10 @@ import { OUT, TAU, mulberry } from '../core/math';
 /* ================= ART: decor sprites ================= */
 export type Sprite = ReturnType<typeof makeSpr>;
 export const SPR: Record<string, Sprite> = {};
-export function makeSpr(w, h, ax, ay, fn) {
-  const c = mkCanvas(w * 2, h * 2),
+export function makeSpr(w, h, ax, ay, fn, res = 2) {
+  const c = mkCanvas(w * res, h * res),
     x = c.getContext('2d');
-  x.scale(2, 2);
+  x.scale(res, res);
   x.translate(ax, ay);
   x.lineJoin = 'round';
   x.lineCap = 'round';
@@ -437,63 +437,139 @@ export function buildSprites() {
     x.translate(cx, cy);
     x.rotate(rot);
     x.scale(s, s);
-    const head = (g: number) => {
-      x.beginPath();
-      x.ellipse(0, -3, 7 + g, 6.4 + g, 0, 0, TAU);
-      x.rect(-5 - g, -1.5 - g, 10 + g * 2, 5 + g * 2);
-      x.fill();
-    };
-    // jaw with teeth
-    x.fillStyle = OUT;
-    x.beginPath();
-    x.rect(-4.4 - OW, 2.6 - OW, 8.8 + OW * 2, 3.6 + OW * 2);
-    x.fill();
+    x.lineJoin = 'round';
+    // silhouettes: round cranium narrowing through the cheekbones into the upper jaw
+    const head = new Path2D();
+    head.ellipse(0, -4, 7.6, 6.9, 0, 0, TAU);
+    const face = new Path2D();
+    face.moveTo(-6.4, -2);
+    face.quadraticCurveTo(-6.6, 1.6, -4.4, 2.2);
+    face.lineTo(-4, 3.6);
+    face.lineTo(4, 3.6);
+    face.lineTo(4.4, 2.2);
+    face.quadraticCurveTo(6.6, 1.6, 6.4, -2);
+    face.closePath();
+    const jaw = new Path2D();
+    jaw.moveTo(-4.6, 3.4);
+    jaw.quadraticCurveTo(-4.9, 6.4, -2.6, 7.3);
+    jaw.quadraticCurveTo(0, 8, 2.6, 7.3);
+    jaw.quadraticCurveTo(4.9, 6.4, 4.6, 3.4);
+    jaw.closePath();
+    // outline pass (one silhouette), then the bone fill
+    x.strokeStyle = OUT;
+    x.lineWidth = OW * 2;
+    for (const p of [jaw, head, face]) x.stroke(p);
     x.fillStyle = BSH;
-    x.fillRect(-4.4, 2.6, 8.8, 3.6);
-    x.fillStyle = 'rgba(42,29,44,.75)';
-    for (const k of [-2.2, 0, 2.2]) x.fillRect(k - 0.35, 2.8, 0.7, 3.2);
-    // cranium
-    x.fillStyle = OUT;
-    head(OW);
+    x.fill(jaw);
     x.fillStyle = BONE;
-    head(0);
+    x.fill(head);
+    x.fill(face);
+    // shading: a darker crescent on the lower right, a highlight on the upper left
     x.save();
-    x.beginPath();
-    x.ellipse(0, -3, 7, 6.4, 0, 0, TAU);
-    x.rect(-5, -1.5, 10, 5);
-    x.clip();
+    x.clip(head);
     x.fillStyle = BSH;
-    x.fillRect(-8, 0.4, 16, 5);
-    x.fillStyle = 'rgba(255,255,255,.55)';
     x.beginPath();
-    x.ellipse(-3, -6.4, 2.4, 1.2, -0.5, 0, TAU);
+    x.ellipse(2.4, 0.6, 8, 6.5, 0, 0, TAU);
+    x.fill();
+    x.fillStyle = BONE;
+    x.beginPath();
+    x.ellipse(-0.6, -4.8, 7.4, 6.2, 0, 0, TAU);
+    x.fill();
+    x.fillStyle = 'rgba(255,255,255,.7)';
+    x.beginPath();
+    x.ellipse(-3.4, -7.6, 2.6, 1.3, -0.5, 0, TAU);
     x.fill();
     x.restore();
-    // eye sockets and nose
+    x.fillStyle = 'rgba(120,100,70,.28)';
+    x.beginPath();
+    x.moveTo(-6.4, -2);
+    x.quadraticCurveTo(-6.6, 1.6, -4.4, 2.2);
+    x.lineTo(-4, 3.6);
+    x.lineTo(4, 3.6);
+    x.lineTo(4.4, 2.2);
+    x.quadraticCurveTo(0, 1.4, -6.4, -2);
+    x.fill();
+    // teeth: upper and lower rows of small rounded tiles
+    x.lineWidth = 0.6;
+    for (const [ty, n] of [
+      [2.1, 5],
+      [3.9, 4],
+    ]) {
+      const tw = 1.45,
+        x0 = (-n * tw) / 2;
+      for (let i = 0; i < n; i++) {
+        x.beginPath();
+        x.roundRect(x0 + i * tw, ty, tw, 1.8, 0.45);
+        x.fillStyle = '#f7f1e2';
+        x.fill();
+        x.stroke();
+      }
+    }
+    // eye sockets with a faint inner glow, and the nasal opening
+    for (const sx of [-1, 1]) {
+      x.fillStyle = '#2a1d2c';
+      x.beginPath();
+      x.ellipse(sx * 3.1, -2.6, 2.2, 2.5, sx * -0.2, 0, TAU);
+      x.fill();
+      x.fillStyle = 'rgba(120,90,140,.45)';
+      x.beginPath();
+      x.ellipse(sx * 3.1 - 0.5, -2, 0.9, 1, 0, 0, TAU);
+      x.fill();
+      // brow ridge
+      x.strokeStyle = 'rgba(80,60,40,.35)';
+      x.lineWidth = 0.8;
+      x.beginPath();
+      x.ellipse(sx * 3.1, -2.8, 3, 3.3, 0, Math.PI * 1.15, Math.PI * 1.85);
+      x.stroke();
+    }
     x.fillStyle = '#2a1d2c';
     for (const sx of [-1, 1]) {
       x.beginPath();
-      x.ellipse(sx * 3, -2.6, 1.7, 2, sx * -0.15, 0, TAU);
+      x.moveTo(0, 1.5);
+      x.quadraticCurveTo(sx * 1.4, 0.8, sx * 0.9, -0.2);
+      x.quadraticCurveTo(sx * 0.3, -0.4, 0, 0.3);
       x.fill();
     }
+    // hairline crack
+    x.strokeStyle = OUT;
+    x.lineWidth = 0.75;
     x.beginPath();
-    x.moveTo(0, -0.3);
-    x.lineTo(0.9, 1.4);
-    x.lineTo(-0.9, 1.4);
-    x.closePath();
-    x.fill();
+    x.moveTo(1.2, -10.8);
+    x.lineTo(2.4, -8.6);
+    x.lineTo(1.5, -7.4);
+    x.lineTo(2.8, -5.9);
+    x.stroke();
     x.restore();
   };
-  SPR.skull = makeSpr(30, 22, 15, 17, (x) => {
-    shadow(x, 0, 0, 9, 3, 0.25);
-    skull(x, 0, -6, 1.1, 0.12);
-  });
-  SPR.bones = makeSpr(56, 34, 28, 27, (x) => {
-    shadow(x, 0, 0, 21, 6, 0.28);
-    bone(x, -6, -3, 22, 0.28);
-    bone(x, -2, -5, 18, -0.55);
-    skull(x, 12, -8, 1.3, -0.15);
-  });
+  SPR.skull = makeSpr(
+    30,
+    30,
+    15,
+    24,
+    (x) => {
+      shadow(x, 0, 0, 10, 3, 0.25);
+      // a little sand drift against the jaw
+      x.fillStyle = 'rgba(160,120,70,.35)';
+      x.beginPath();
+      x.ellipse(-3, -0.5, 8, 2, 0, 0, TAU);
+      x.fill();
+      skull(x, 0, -7, 1.1, 0.12);
+    },
+    5,
+  );
+  SPR.bones = makeSpr(
+    56,
+    38,
+    28,
+    31,
+    (x) => {
+      shadow(x, 0, 0, 21, 6, 0.28);
+      bone(x, -6, -3, 22, 0.28);
+      bone(x, -2, -5, 18, -0.55);
+      skull(x, 12, -9, 1.3, -0.15);
+    },
+    4,
+  );
   SPR.log = makeSpr(56, 26, 28, 22, (x) => {
     shadow(x, 0, 0, 22, 5, 0.22);
     rr(x, -22, -14, 40, 12, 6, '#8a5a36');
