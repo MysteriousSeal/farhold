@@ -21,7 +21,7 @@ export function houseFront(c: Ctx, t: number) {
   const I = game.HS;
   drawRoomFront(c, I);
   drawRoomLights(c, I, t);
-  for (const n of I.npcs) if (n.say) speech(c, n.x, n.y - 92, n.say, Math.min(1, n.sayT * 2));
+  for (const n of I.npcs) if (n.say) speech(c, n.x, n.y - 92, n.say, Math.min(1, n.sayT * 4));
 }
 
 /** Rounded speech bubble with a tail, wrapped to a few lines, above (x, y). */
@@ -45,19 +45,26 @@ function speech(c: Ctx, x: number, y: number, text: string, a: number) {
     h = lines.length * lh + 10,
     bx = x - w / 2,
     by = y - h;
+  // one outline around the bubble and its tail
+  const r = 8,
+    bx1 = bx + w,
+    by1 = by + h;
+  c.beginPath();
+  c.moveTo(bx + r, by);
+  c.arcTo(bx1, by, bx1, by1, r);
+  c.arcTo(bx1, by1, bx, by1, r);
+  c.lineTo(x + 6, by1);
+  c.lineTo(x, by1 + 8);
+  c.lineTo(x - 6, by1);
+  c.arcTo(bx, by1, bx, by, r);
+  c.arcTo(bx, by, bx1, by, r);
+  c.closePath();
   c.fillStyle = '#fff8e6';
   c.strokeStyle = OUT;
   c.lineWidth = 2;
-  c.beginPath();
-  c.roundRect(bx, by, w, h, 8);
-  c.moveTo(x - 6, by + h);
-  c.lineTo(x, by + h + 8);
-  c.lineTo(x + 6, by + h);
+  c.lineJoin = 'round';
   c.fill();
   c.stroke();
-  // cover the seam between the bubble and its tail
-  c.fillStyle = '#fff8e6';
-  c.fillRect(x - 5, by + h - 2, 10, 3);
   c.fillStyle = '#241a2e';
   c.textAlign = 'center';
   c.textBaseline = 'top';

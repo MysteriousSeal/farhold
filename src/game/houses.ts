@@ -14,6 +14,7 @@ import { game, hero } from './state';
 // Interiors are generated on first visit and kept for the session, so residents stay where
 // they wandered. Inside is safe: no enemies, and health comes back quickly (update.ts).
 const cache = new Map<string, Interior>();
+const TALK_R = 48; // talk range (the 'Talk' prompt shows inside it)
 
 /** Where a house's front door is outside, in world coordinates. */
 export const doorOf = (h) => ({ x: h.x + (h.door || 0) * h.w * DOOR_F, y: h.y });
@@ -103,6 +104,8 @@ export function updateHouse(dt: number) {
   if (!I) return;
   for (const n of I.npcs) {
     if (n.sayT > 0) {
+      // walking out of talk range ends the line: the bubble fades out quickly
+      if (Math.hypot(game.P.x - n.x, game.P.y - n.y - 6) > TALK_R) n.sayT = Math.min(n.sayT, 0.25);
       n.sayT -= dt;
       if (n.sayT <= 0) n.say = null;
       n.dx = game.P.x - n.x;
@@ -151,7 +154,7 @@ export function updateHouse(dt: number) {
 /** Interaction candidates inside a house: residents to talk to, and the way out. */
 export function houseInteract(cand) {
   const I = game.HS;
-  for (const n of I.npcs) cand(n.x, n.y + 6, 48, 'Talk', () => talkTo(n), n.y - 62);
+  for (const n of I.npcs) cand(n.x, n.y + 6, TALK_R, 'Talk', () => talkTo(n), n.y - 62);
   cand(I.door.x, I.door.y - 6, 50, 'Go outside', () => leaveHouse(), I.door.y - 60);
 }
 /** Door prompts for the houses of a village (outside). */
