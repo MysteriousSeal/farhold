@@ -37,15 +37,15 @@ function logs(c: Ctx, x: number, y: number) {
 function hearth(c: Ctx, f: Furn, t: number) {
   const { x, y } = f;
   // chimney breast rising up the wall
-  rr(c, x - 38, y - 96, 76, 96, 3, STONE);
+  rr(c, x - 38, y - 88, 76, 88, 3, STONE);
   c.save();
   c.beginPath();
-  c.rect(x - 38, y - 96, 76, 96);
+  c.rect(x - 38, y - 88, 76, 88);
   c.clip();
   c.strokeStyle = 'rgba(40,30,35,.4)';
   c.lineWidth = 1.2;
   for (let r = 0; r < 7; r++) {
-    const yy = y - 96 + r * 14;
+    const yy = y - 88 + r * 14;
     c.beginPath();
     c.moveTo(x - 38, yy);
     c.lineTo(x + 38, yy);
@@ -61,7 +61,7 @@ function hearth(c: Ctx, f: Furn, t: number) {
   c.restore();
   c.strokeStyle = OUT;
   c.lineWidth = 2;
-  c.strokeRect(x - 38, y - 96, 76, 96);
+  c.strokeRect(x - 38, y - 88, 76, 88);
   // mantel with a candle and a jug
   rr(c, x - 42, y - 46, 84, 7, 2, WOOD);
   rr(c, x - 30, y - 56, 5, 10, 1.5, '#f4ecd8');
@@ -97,6 +97,15 @@ function shelf(c: Ctx, f: Furn) {
   const { x, y } = f,
     w = 34,
     h = 76;
+  c.beginPath();
+  c.moveTo(x - w / 2 - 1, y - h);
+  c.lineTo(x - w / 2 + 3, y - h - 6);
+  c.lineTo(x + w / 2 - 3, y - h - 6);
+  c.lineTo(x + w / 2 + 1, y - h);
+  c.closePath();
+  c.fillStyle = WOOD_L;
+  c.fill();
+  c.stroke();
   rr(c, x - w / 2, y - h, w, h, 2, WOOD);
   c.fillStyle = WOOD_D;
   c.fillRect(x - w / 2 + 4, y - h + 5, w - 8, h - 10);
@@ -122,43 +131,127 @@ function shelf(c: Ctx, f: Furn) {
   c.lineWidth = 2;
   c.strokeRect(x - w / 2, y - h, w, h);
 }
+/** Carved wardrobe standing against the wall: crown moulding, panelled doors, a drawer. */
 function cupboard(c: Ctx, f: Furn) {
-  const { x, y } = f;
-  rr(c, x - 17, y - 58, 34, 58, 3, WOOD);
-  rr(c, x - 14, y - 52, 13, 44, 2, WOOD_L);
-  rr(c, x + 1, y - 52, 13, 44, 2, WOOD_L);
-  c.fillStyle = GOLD;
-  for (const kx of [-3, 3]) {
-    c.beginPath();
-    c.arc(x + kx, y - 30, 1.6, 0, TAU);
-    c.fill();
+  const { x, y } = f,
+    w = 36,
+    h = 76,
+    top = y - h;
+  // top face, seen from above
+  c.beginPath();
+  c.moveTo(x - w / 2 - 2, top);
+  c.lineTo(x - w / 2 + 2, top - 6);
+  c.lineTo(x + w / 2 - 2, top - 6);
+  c.lineTo(x + w / 2 + 2, top);
+  c.closePath();
+  c.fillStyle = WOOD_L;
+  c.fill();
+  c.stroke();
+  // feet and body
+  for (const fx of [-w / 2 + 2, w / 2 - 7]) rr(c, x + fx, y - 5, 5, 5, 1, WOOD_D);
+  rr(c, x - w / 2, top + 5, w, h - 10, 2, WOOD);
+  rr(c, x - w / 2 - 2, top, w + 4, 8, 2, WOOD_D); // crown moulding
+  // two panelled doors
+  for (const dx of [-w / 2 + 3, 1]) {
+    rr(c, x + dx, top + 11, w / 2 - 4, h - 34, 2, WOOD_L);
+    c.lineWidth = 1.4;
+    rr(c, x + dx + 3, top + 15, w / 2 - 10, 18, 2, sh(WOOD_L, 0.08));
+    rr(c, x + dx + 3, top + 37, w / 2 - 10, 18, 2, sh(WOOD_L, 0.08));
+    c.lineWidth = 2;
   }
-  // plates on top
-  ell(c, x - 7, y - 60, 6, 2.4, '#e8e4dc');
-  ell(c, x + 8, y - 62, 4, 4, '#c86a3a');
+  // iron hinges and ring pulls
+  c.fillStyle = IRON;
+  for (const hy of [top + 16, top + 48]) {
+    c.fillRect(x - w / 2 + 1, hy, 4, 5);
+    c.fillRect(x + w / 2 - 5, hy, 4, 5);
+  }
+  // brass handles beside the centre seam
+  c.lineWidth = 1.2;
+  for (const kx of [-5, 2]) rr(c, x + kx, top + 33, 3, 10, 1.5, GOLD);
+  c.lineWidth = 2;
+  // drawer
+  rr(c, x - w / 2 + 3, y - 20, w - 6, 11, 2, sh(WOOD, 0.06));
+  c.fillStyle = GOLD;
+  c.beginPath();
+  c.arc(x, y - 14.5, 1.8, 0, TAU);
+  c.fill();
+  // a plate and a jug on top
+  c.save();
+  c.translate(x - 8, top - 10);
+  ell(c, 0, 0, 5, 6, '#e8e4dc');
+  c.lineWidth = 1.2;
+  ell(c, 0, 0, 3, 3.6, null);
+  c.restore();
+  rr(c, x + 5, top - 16, 9, 12, 3.5, '#c86a3a');
 }
+/** A bed end (head or foot): a low board between two posts with round tops, base at y. */
+function bedEnd(c: Ctx, x: number, y: number, w: number) {
+  for (const px of [-w / 2 - 2, w / 2 - 3]) rr(c, x + px, y - 16, 5, 16, 1.5, WOOD_D);
+  rr(c, x - w / 2 + 1, y - 13, w - 2, 9, 2, WOOD);
+  c.fillStyle = WOOD_L;
+  c.fillRect(x - w / 2 + 4, y - 11, w - 8, 2);
+  for (const px of [-w / 2 - 2, w / 2 - 3]) ell(c, x + px + 2.5, y - 17, 3.2, 3.2, WOOD_L);
+}
+/** Cosy bed seen from the room's angle: headboard with posts, quilt, sheet fold, footboard. */
 function bed(c: Ctx, f: Furn) {
   const x = f.x,
     y = f.y,
-    top = y - f.ch * IT + 2,
-    col = f.col || '#b84a4a';
-  shadow(c, x, y, 20, 5, 0.25);
-  rr(c, x - 18, top - 18, 36, 24, 4, WOOD); // headboard
-  rr(c, x - 17, top, 34, y - top - 6, 4, '#f4ecd8'); // mattress
-  rr(c, x - 13, top + 3, 26, 12, 5, '#ffffff'); // pillow
-  // blanket with a fold
-  rr(c, x - 17, top + 20, 34, y - top - 26, 4, col);
-  c.fillStyle = sh(col, 0.2);
-  c.fillRect(x - 16, top + 21, 32, 5);
-  c.strokeStyle = sh(col, -0.3);
-  c.lineWidth = 1.2;
+    // against the back wall the headboard stands right on the wall's base line
+    top = f.cy === 1 ? IT - 6 : y - f.ch * IT + 4,
+    col = f.col || '#b84a4a',
+    w = 34;
+  shadow(c, x, y + 1, 21, 5, 0.28);
+  // headboard, matching the footboard
+  bedEnd(c, x, top + 12, w);
+  // mattress with its front edge showing
+  rr(c, x - w / 2 + 1, top + 2, w - 2, y - top - 14, 4, '#f4ecd8');
+  // pillow, plump and shaded
+  rr(c, x - 11, top + 4, 22, 12, 6, '#ffffff');
+  c.fillStyle = 'rgba(160,150,190,.25)';
   c.beginPath();
-  c.moveTo(x - 10, top + 34);
-  c.quadraticCurveTo(x, top + 38, x + 10, top + 33);
+  c.ellipse(x + 3, top + 12, 8, 3, 0, 0, TAU);
+  c.fill();
+  c.strokeStyle = 'rgba(120,110,140,.5)';
+  c.lineWidth = 1;
+  c.beginPath();
+  c.moveTo(x - 4, top + 9);
+  c.quadraticCurveTo(x, top + 11, x + 4, top + 9);
   c.stroke();
   c.strokeStyle = OUT;
   c.lineWidth = 2;
-  rr(c, x - 19, y - 10, 38, 10, 3, WOOD_D); // footboard
+  // quilt draping a little over the sides, with a stitched lattice
+  const qy = top + 20,
+    qh = y - qy - 12;
+  rr(c, x - w / 2 - 1, qy, w + 2, qh, 4, col);
+  c.save();
+  c.beginPath();
+  c.rect(x - w / 2, qy + 1, w, qh - 2);
+  c.clip();
+  c.strokeStyle = sh(col, 0.22);
+  c.lineWidth = 1.2;
+  for (let k = -3; k <= 3; k++) {
+    c.beginPath();
+    c.moveTo(x + k * 10 - 20, qy);
+    c.lineTo(x + k * 10 + 20, qy + qh);
+    c.moveTo(x + k * 10 + 20, qy);
+    c.lineTo(x + k * 10 - 20, qy + qh);
+    c.stroke();
+  }
+  c.fillStyle = 'rgba(0,0,0,.14)';
+  c.fillRect(x + w / 2 - 6, qy, 6, qh); // shade on the far side
+  c.restore();
+  // folded-back sheet over the top of the quilt
+  rr(c, x - w / 2, qy - 2, w, 7, 3, '#fbf6ea');
+  c.strokeStyle = 'rgba(120,110,140,.45)';
+  c.lineWidth = 1;
+  c.beginPath();
+  c.moveTo(x - w / 2 + 3, qy + 3);
+  c.lineTo(x + w / 2 - 3, qy + 3);
+  c.stroke();
+  c.strokeStyle = OUT;
+  c.lineWidth = 2;
+  // footboard with posts
+  bedEnd(c, x, y, w);
 }
 function table(c: Ctx, f: Furn, t: number) {
   const { x, y } = f,

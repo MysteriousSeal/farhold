@@ -118,6 +118,17 @@ function floor(c: Ctx, I: Interior) {
       }
     }
   }
+  // a doormat just inside the front door
+  c.strokeStyle = OUT;
+  c.lineWidth = 2;
+  c.fillStyle = '#8a3a34';
+  c.beginPath();
+  c.roundRect(I.door.x - 16, y1 - 24, 32, 14, 3);
+  c.fill();
+  c.stroke();
+  c.strokeStyle = '#d8b878';
+  c.lineWidth = 1.2;
+  c.strokeRect(I.door.x - 12, y1 - 21, 24, 8);
   // soft shadow along the back and side walls
   const g1 = c.createLinearGradient(0, y0, 0, y0 + 26);
   g1.addColorStop(0, 'rgba(20,12,20,.4)');
@@ -417,27 +428,45 @@ export function drawRoomFront(c: Ctx, I: Interior) {
     c.fillRect(a, y + 10, b - a, 12);
     c.strokeRect(a, y + 10, b - a, 12);
   }
-  // doorway: threshold, open door leaf and daylight spilling in
-  c.fillStyle = '#6b4a30';
-  c.fillRect(dx0, y + 6, dx1 - dx0, 8);
-  c.strokeRect(dx0, y + 6, dx1 - dx0, 8);
-  const lt = nightOut() ? 'rgba(120,150,255,' : 'rgba(255,240,190,';
-  const g = c.createLinearGradient(0, y + 6, 0, y - 50);
-  g.addColorStop(0, lt + '.28)');
-  g.addColorStop(1, lt + '0)');
-  c.fillStyle = g;
+  // the closed front door seen from above, lying in the wall line between two frame posts:
+  // its top edge where the wall's cap is, its planks where the wall's face is
+  const dw = dx1 - dx0;
+  c.fillStyle = '#9a6a44';
+  c.fillRect(dx0, y - 2, dw, 12);
+  c.fillStyle = 'rgba(40,24,14,.3)';
+  c.fillRect(dx0, y + 6, dw, 4); // the door's thickness, in shadow
+  c.fillStyle = '#7a5234';
+  c.fillRect(dx0, y + 10, dw, 12);
+  c.strokeStyle = 'rgba(40,24,14,.5)';
+  c.lineWidth = 1;
   c.beginPath();
-  c.moveTo(dx0, y + 6);
-  c.lineTo(dx1, y + 6);
-  c.lineTo(dx1 + 14, y - 50);
-  c.lineTo(dx0 - 14, y - 50);
-  c.closePath();
-  c.fill();
-  rr(c, dx1, y - 30, 7, 40, 2, I.pal.trim);
+  for (let k = 1; k < 4; k++) {
+    c.moveTo(dx0 + (dw * k) / 4, y + 10);
+    c.lineTo(dx0 + (dw * k) / 4, y + 22);
+  }
+  c.stroke();
+  c.fillStyle = '#4a4652';
+  c.fillRect(dx0, y + 17, dw, 3); // iron band
+  c.strokeStyle = OUT;
+  c.lineWidth = 2;
+  c.strokeRect(dx0, y - 2, dw, 24);
+  c.beginPath();
+  c.moveTo(dx0, y + 10);
+  c.lineTo(dx1, y + 10);
+  c.stroke();
   c.fillStyle = '#e3b24a';
   c.beginPath();
-  c.arc(dx1 + 3.5, y - 8, 1.5, 0, TAU);
+  c.arc(dx1 - 6, y + 13.5, 2, 0, TAU);
   c.fill();
+  c.lineWidth = 1.2;
+  c.stroke();
+  // frame posts on both sides of the doorway
+  c.lineWidth = 2;
+  c.fillStyle = I.pal.trim;
+  for (const px of [dx0 - 5, dx1 - 1]) {
+    c.fillRect(px, y - 4, 6, 27);
+    c.strokeRect(px, y - 4, 6, 27);
+  }
 }
 
 const LIGHTS: Record<string, [number, number]> = {

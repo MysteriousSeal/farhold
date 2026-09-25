@@ -221,6 +221,9 @@ export function genInterior(v, h, idx: number): Interior {
   return I;
 }
 
+/** Tall pieces that stand flush against the back wall, and how deep they reach into the room. */
+const WALL_TALL = new Set(['hearth', 'shelf', 'cupboard', 'stove']),
+  WALL_DEPTH = 18;
 /* ---------- furnishing ---------- */
 function furnish(I: Interior, rnd: () => number) {
   const { GW, GH, grid } = I,
@@ -307,6 +310,22 @@ function furnish(I: Interior, rnd: () => number) {
     for (const [i, j] of spots) if (place(k, i, j, 1, 1, extra)) return true;
     return false;
   };
+  /** A bed in a corner (back wall + side wall); a second bed goes right beside the first. */
+  const bedIn = (r: Room, col: string) => {
+    const beds = I.furn.filter((f) => f.k === 'bed' && f.cx >= r.x0 && f.cx <= r.x1),
+      xs = beds.length
+        ? beds.flatMap((b) => [b.cx - 1, b.cx + 1])
+        : rnd() < 0.5
+          ? [r.x0, r.x1]
+          : [r.x1, r.x0];
+    for (const i of xs) if (i >= r.x0 && i <= r.x1 && place('bed', i, 1, 1, 2, { col })) return;
+  };
+  /** Keep a rug's cells clear of later furniture. */
+  const reserve = (cx: number, cy: number, cw: number, ch: number) => {
+    for (let j = cy; j < cy + ch; j++)
+      for (let i = cx; i < cx + cw; i++)
+        if (i >= 1 && j >= 1 && i <= GW - 2 && j <= d && !occ[at(i, j)]) occ[at(i, j)] = 2;
+  };
   const blankets = ['#b84a4a', '#4a6ab8', '#5a9a5a', '#9a6ab8', '#c8923a', '#4a9a9a'];
   for (const r of I.rooms) {
     const rw = r.x1 - r.x0 + 1;
@@ -322,7 +341,10 @@ function furnish(I: Interior, rnd: () => number) {
       const tw = Math.min(7, rw - 6),
         tx = mid - Math.floor(tw / 2);
       const t = place('bantable', tx, 3, tw, 2);
-      if (t) I.furn.push({ ...t, k: 'rug', y: -1e4, cx: tx - 1, cy: 2, cw: tw + 2, ch: 4 });
+      if (t) {
+        I.furn.push({ ...t, k: 'rug', y: -1e4, cx: tx - 1, cy: 2, cw: tw + 2, ch: 4 });
+        reserve(tx - 1, 2, tw + 2, 4);
+      }
       for (const cx of [r.x0, r.x1]) place('candle', cx, 1, 1, 1);
       for (let n = 0; n < 4; n++) side(pick(['barrel', 'crate']), r);
       continue;
@@ -330,6 +352,8 @@ function furnish(I: Interior, rnd: () => number) {
     if (r.purpose === 'main') {
       if (I.kind === 'tower') place('stair', r.x1 - 1, 1, 2, 2);
       back(I.kind === 'hut' ? 'firepit' : 'hearth', r.x0, r.x1, 2, 1);
+      // one-room homes sleep in a corner
+      if (I.rooms.length === 1) bedIn(r, pick(blankets));
       if (rw >= 4 && d >= 4) {
         // table with chairs in the middle, on a rug
         const tx = Math.max(r.x0 + 1, Math.min(r.x1 - 2, Math.floor((r.x0 + r.x1) / 2))),
@@ -345,7 +369,9 @@ function furnish(I: Interior, rnd: () => number) {
               o.cy + o.ch <= ty - 1 ||
               o.cy >= ty + 2,
           );
-          if (clear) I.furn.push({ ...t, k: 'rug', cx: tx - 1, cy: ty - 1, cw: 4, ch: 3, y: -1e4 });
+          if (clear) {
+            I.furn.push({ ...t, k: 'rug', cx: tx - 1, cy: ty - 1, cw: 4, ch: 3, y: -1e4 });
+          }
           // chairs behind the table only where those cells are still free
           for (const [ci, fx, fl] of [
             [tx, -IT * 0.45, false],
@@ -356,14 +382,14 @@ function furnish(I: Interior, rnd: () => number) {
               I.furn.push({ ...t, k: 'chair', x: t.x + fx, y: t.y - IT + 2, flip: fl });
             }
           I.furn.push({ ...t, k: 'chairF', x: t.x, y: t.y + 16 });
+          if (clear) reserve(tx - 1, ty - 1, 4, 3); // after the chairs, which sit on the rug
         }
       }
-      if (I.rooms.length === 1) back('bed', r.x0, r.x1, 1, 2, { col: pick(blankets) });
       back(pick(['shelf', 'cupboard']), r.x0, r.x1);
       for (let n = 0; n < 2; n++) side(pick(['barrel', 'plant', 'crate', 'sack']), r);
     } else if (r.purpose === 'bed') {
       const beds = rw >= 4 && rnd() < 0.5 ? 2 : 1;
-      for (let n = 0; n < beds; n++) back('bed', r.x0, r.x1, 1, 2, { col: pick(blankets) });
+      for (let n = 0; n < beds; n++) bedIn(r, pick(blankets));
       back('cupboard', r.x0, r.x1);
       side('chest', r);
       side('plant', r);
@@ -419,10 +445,16 @@ function furnish(I: Interior, rnd: () => number) {
     I.deco.push({ k, x: (i + 0.5) * IT, w: IT, s: rnd(), col: pick(blankets) });
     i++; // leave a gap between wall pieces
   }
+  // tall pieces stand with their backs flush against the back wall
+  for (const f of I.furn) if (WALL_TALL.has(f.k) && f.cy === 1) f.y = IT + WALL_DEPTH;
   // collision boxes for the furniture (flat pieces stay walkable)
   const flat = new Set(['rug', 'rugS', 'chairF']);
   for (const f of I.furn) {
     if (flat.has(f.k)) continue;
+    if (WALL_TALL.has(f.k) && f.cy === 1) {
+      I.solids.push({ x0: f.cx * IT + 3, x1: (f.cx + f.cw) * IT - 3, y0: IT - 20, y1: f.y + 2 });
+      continue;
+    }
     if (f.k === 'chair') {
       I.solids.push({ e: 1, x: f.x, y: f.y - 4, rx: 7, ry: 5 });
       continue;
