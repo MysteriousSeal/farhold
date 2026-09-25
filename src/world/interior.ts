@@ -109,6 +109,26 @@ const LINES = [
   "I heard the market's got new wares today.",
   'The nights have been restless. Something howls in the hills.',
   'Close the door behind you, the draught is terrible.',
+  'My late husband carved that chair. It still creaks when I miss him.',
+  "Don't mind the mess. The cat thinks the shelves are hers.",
+  'I once saw a dragon over the hills. Or a very large crow.',
+  'The well water tastes of iron lately. The smith says that is good for you.',
+  'If you find my goat out there, tell her to come home.',
+  'We keep a candle in the window for travellers who lose their way.',
+  'My son wants to be a hero like you. I pray he becomes a baker.',
+  'Every winter the roof leaks in the same spot. Every spring I forget.',
+  'The waystone glowed blue the night you arrived. Folk noticed.',
+  "Mind the third floorboard, it's been loose since my grandfather's day.",
+  'I trade eggs for news. Got any news?',
+  'The old tower on the ridge has been dark for years. Nobody goes near it.',
+  "Bandits took the miller's cart last week. Keep your purse close.",
+  'I knit these socks myself. Warmest in the village, I swear it.',
+  'Stars were strange last night. Grandmother says that means change.',
+  'We had a bard stay once. He ate everything and sang nothing.',
+  "Skeletons don't sleep, they say. That is why the caves are never quiet.",
+  'Take an apple for the road. Go on, I have too many.',
+  'The market prices went up again. Everything costs a wolf pelt these days.',
+  'Rest here as long as you need. No harm comes through that door.',
 ];
 const BIOME_LINES = [
   ['The meadows are lovely this time of year.', 'Good soil here. Good people too.'],
@@ -567,6 +587,14 @@ function furnishSmithy(I: Interior, v) {
 }
 
 /* ---------- residents ---------- */
+/** `n` distinct lines from `all`, chosen with the seeded `rnd`. */
+function pickLines(all: string[], n: number, rnd: () => number) {
+  const pool = all.slice(),
+    out: string[] = [];
+  while (out.length < n && pool.length)
+    out.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0]);
+  return out;
+}
 function addResidents(I: Interior, rnd: () => number, hall: boolean) {
   const q = rnd(),
     n = hall ? 2 + Math.floor(rnd() * 3) : q < 0.3 ? 0 : q < 0.65 ? 1 : q < 0.9 ? 2 : 3,
@@ -594,8 +622,9 @@ function addResidents(I: Interior, rnd: () => number, hall: boolean) {
       moving: false,
       wt: rnd() * 3,
       look: villagerLook(rnd),
-      line: Math.floor(rnd() * lines.length),
-      lines,
+      line: 0,
+      // each resident knows four different lines, picked by the house seed
+      lines: pickLines(lines, 4, rnd),
       say: null,
       sayT: 0,
     });
