@@ -656,8 +656,8 @@ export function drawWeapon(c, x, y, ang, kind, sw, col?, glow?, style = 0, scale
       c.fillStyle = '#ccc';
       c.fillRect(20, -8, 2, 4);
     } else if (kind === 'axe' || style === 1) {
-      // keep the blade on the forward/upper side whichever way the axe points
-      if (Math.cos(ang + sw) < 0) c.scale(1, -1);
+      // cutting edge faces down whichever way the axe points
+      if (Math.cos(ang + sw) >= 0) c.scale(1, -1);
       rr(c, 0, -2.5, 34, 5, 2, '#7a5230');
       drawAxeHead(c, 31, bl);
     } else {

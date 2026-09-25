@@ -4,7 +4,8 @@ import { terr } from '../world/terrain';
 /* ================= WORLD TICK ================= */
 export function updateDay(dt) {
   if (game.mode === 'dungeon') {
-    game.dark = 0.86;
+    // caves are fully lit (no fog of war); the day/night cycle only applies outside
+    game.dark = 0;
     game.dusk = 0;
     return;
   }
