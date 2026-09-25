@@ -4,6 +4,7 @@ import { game } from '../game/state';
 import { traceCliffs } from './cliffs';
 import { sampleHeights } from './contour';
 import { tracePools, traceShores } from './shores';
+import { genFlora } from './flora';
 import { IT } from './interior';
 import { genDungeonChunk } from './dungeon';
 import { houseRoute, poiSolid, poisNear } from './poi';
@@ -203,35 +204,7 @@ function finishGen(G) {
     if (t === 3) {
       if (inPoi(wx, wy, -20)) continue;
       if (b === 0 || b === 1 || b === 2 || b === 5) {
-        x.strokeStyle =
-          b === 2
-            ? 'rgba(120,90,30,.45)'
-            : b === 5
-              ? 'rgba(40,60,30,.5)'
-              : b === 1
-                ? 'rgba(30,90,40,.5)'
-                : 'rgba(50,120,40,.5)';
-        x.lineWidth = 1.6;
-        x.beginPath();
-        x.moveTo(lx - 3, ly - 5);
-        x.lineTo(lx, ly);
-        x.lineTo(lx + 1, ly - 7);
-        x.moveTo(lx, ly);
-        x.lineTo(lx + 4, ly - 4);
-        x.stroke();
-        if (b === 0 && q < 0.12) {
-          const col = pick(['#fff4d6', '#ffd24a', '#ff8fb0', '#b8d8ff', '#ffffff']);
-          x.fillStyle = col;
-          for (let p = 0; p < 5; p++) {
-            x.beginPath();
-            x.arc(lx + Math.cos(p * 1.256) * 2.6, ly - 6 + Math.sin(p * 1.256) * 2.6, 1.9, 0, TAU);
-            x.fill();
-          }
-          x.fillStyle = '#f0a020';
-          x.beginPath();
-          x.arc(lx, ly - 6, 1.4, 0, TAU);
-          x.fill();
-        }
+        // grass tufts and flowers are crisp vectors drawn each frame (world/flora.ts)
         if (b === 2 && q < 0.35) {
           x.fillStyle = pick(['#e07a2e', '#c8452f', '#f0b43a', '#a8542a']);
           x.beginPath();
@@ -251,18 +224,7 @@ function finishGen(G) {
           x.fillRect(lx - 1.5, ly - 7, 1.2, 1.2);
         }
       } else if (b === 3) {
-        if (q < 0.35) {
-          x.strokeStyle = 'rgba(180,130,70,.45)';
-          x.lineWidth = 2;
-          x.beginPath();
-          x.arc(lx, ly + 8, 10, 3.6, 5.8);
-          x.stroke();
-        } else if (q < 0.4) {
-          x.fillStyle = 'rgba(140,100,60,.6)';
-          x.beginPath();
-          x.ellipse(lx, ly, 2.5, 1.6, 0, 0, TAU);
-          x.fill();
-        }
+        // desert pebbles, ripples and tufts are crisp vectors (world/flora.ts)
       } else if (b === 4) {
         if (q < 0.25) {
           x.strokeStyle = 'rgba(170,195,225,.6)';
@@ -293,11 +255,6 @@ function finishGen(G) {
           x.stroke();
         }
       }
-    } else if (t === 2 && q < 0.2) {
-      x.fillStyle = 'rgba(150,120,80,.45)';
-      x.beginPath();
-      x.ellipse(lx, ly, 2.5, 1.6, 0, 0, TAU);
-      x.fill();
     } else if (t === 4 && q < 0.2) {
       x.strokeStyle = 'rgba(60,55,60,.35)';
       x.lineWidth = 1.4;
@@ -447,7 +404,31 @@ function finishGen(G) {
   let hasPool = false;
   for (let p = 0; p < types.length && !hasPool; p++) hasPool = types[p] === 1 && bio[p] === 5;
   const pools = hasPool ? tracePools(ox, oy, CH, (x, y) => inPlace(G.pois, x, y)) : null;
-  return { cvs, decor, waves, cliffs, shores, pools, last: 0 };
+  // stray grass islands in the sand become sand again (their outline was dropped)
+  const islands = (shores && shores.islands) || [];
+  for (const is of islands) {
+    const px = clamp(Math.round(is.x0 - ox - 6), 0, CH - 1),
+      py = clamp(Math.round((is.y0 + is.y1) / 2 - oy), 0, CH - 1),
+      d = x.getImageData(px, py, 1, 1).data;
+    x.fillStyle = 'rgb(' + d[0] + ',' + d[1] + ',' + d[2] + ')';
+    x.beginPath();
+    for (let p = 0; p < is.pts.length; p += 2) x.lineTo(is.pts[p] - ox, is.pts[p + 1] - oy);
+    x.closePath();
+    x.fill();
+    x.strokeStyle = x.fillStyle;
+    x.lineWidth = 3;
+    x.stroke();
+  }
+  const onIsland = (wx: number, wy: number) =>
+    islands.some((is) => wx > is.x0 - 4 && wx < is.x1 + 4 && wy > is.y0 - 4 && wy < is.y1 + 4);
+  const flora = genFlora(
+    cx,
+    cy,
+    CH,
+    (lx, ly) => (onIsland(ox + lx, oy + ly) ? [2, at(lx, ly)[1]] : at(lx, ly)),
+    (wx, wy) => inPoi(wx, wy, -10),
+  );
+  return { cvs, decor, waves, cliffs, shores, pools, flora, last: 0 };
 }
 const DECOR_R = {
   oak: 11,

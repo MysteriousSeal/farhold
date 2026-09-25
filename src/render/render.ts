@@ -45,6 +45,7 @@ import { addLight } from '../game/fx';
 import { drawNpc } from '../game/npcs';
 import { offers } from '../game/quests';
 import { houseBack, houseFront, houseItems } from './interior';
+import { drawFlora } from '../art/flora';
 import { game, hero, lights, weather } from '../game/state';
 import { joy } from '../input/input';
 import { bgStep, getChunk } from '../world/chunks';
@@ -294,7 +295,8 @@ export function render() {
     cliffs = [],
     moss = [],
     shores = [],
-    pools = [];
+    pools = [],
+    flora = [];
   for (let i = Math.floor((x0 - 40) / CH); i <= Math.floor((x1 + 40) / CH); i++)
     for (let j = Math.floor((y0 - 40) / CH); j <= Math.floor((y1 + 130) / CH); j++) {
       const ch = getChunk(i, j, true);
@@ -320,11 +322,14 @@ export function render() {
           if (m.x > x0 - 30 && m.x < x1 + 30 && m.y > y0 - 20 && m.y < y1 + 20) moss.push(m);
       if (ch.shores) shores.push(ch.shores);
       if (ch.pools) pools.push(ch.pools);
+      if (ch.flora) flora.push(ch.flora);
     }
   // crisp vector shorelines and cliffs on top of all ground chunks
   drawShores(g, shores, game.time);
   drawPools(g, pools, game.time);
   drawCliffs(g, cliffs);
+  const windK = 1 + weather.k * (weather.type === 'rain' ? 2 : 0);
+  drawFlora(g, flora, x0, y0, x1, y1, game.time, windK);
   if (game.mode === 'house') houseBack(g);
   if (game.mode === 'dungeon') for (const m of moss) drawMoss(g, m, game.DG.b === 6, game.time);
   if (game.genBudget > 0) {
@@ -457,7 +462,6 @@ export function render() {
   if (game.P && (game.state === 'play' || game.state === 'inv' || game.state === 'modal'))
     list.push({ y: game.P.y, f: (c) => drawHero(c, game.time) });
   list.sort((a, b) => a.y - b.y);
-  const windK = 1 + weather.k * (weather.type === 'rain' ? 2 : 0);
   for (const it of list) {
     if (it.d) {
       const d = it.d,

@@ -1,5 +1,5 @@
 import { vn } from '../core/math';
-import { march } from './contour';
+import { hAt, march } from './contour';
 import { COL, terr } from './terrain';
 /* ---------- Shorelines (vector, drawn every frame at full resolution) ---------- */
 // Height levels of the lines, from deep water up to the grass edge.
@@ -14,7 +14,15 @@ const LEVELS = {
 type Style = keyof typeof LEVELS;
 const ORDER: Style[] = ['deep', 'ripple', 'surf', 'wet', 'shore', 'grass'];
 /** Per chunk: flat segment lists [ax, ay, bx, by, ...] keyed by `style:biome`. */
-export type Shores = { segs: Map<string, number[]>; paths?: Map<string, Path2D> };
+export type Island = { pts: number[]; x0: number; y0: number; x1: number; y1: number };
+export type Shores = {
+  segs: Map<string, number[]>;
+  paths?: Map<string, Path2D>;
+  /** tiny grass patches inside the sand, turned back into sand (see smallIslands) */
+  islands?: Island[];
+};
+/** Largest grass patch (world units across) that is treated as a stray island and removed. */
+const ISLAND_MAX = 70;
 
 /** Trace shore lines inside a size×size square from sampled heights `v`. */
 export function traceShores(ox: number, oy: number, size: number, v: Float32Array): Shores {
@@ -36,7 +44,84 @@ export function traceShores(ox: number, oy: number, size: number, v: Float32Arra
       if (!a) segs.set(k, (a = []));
       a.push(ax, ay, bx, by);
     });
-  return { segs };
+  const islands: Island[] = [];
+  for (const [k, a] of segs) {
+    if (!k.startsWith('grass:')) continue;
+    const { loops, keep } = smallIslands(a);
+    islands.push(...loops);
+    segs.set(k, keep);
+  }
+  return { segs, islands };
+}
+
+/**
+ * Chain the grass-edge segments into outlines and pick out the small closed ones that ring a
+ * rise above the grass line (a stray island of grass in the sand). Returns those outlines
+ * and the remaining segments.
+ */
+function smallIslands(a: number[]) {
+  const n = a.length / 4,
+    key = (x: number, y: number) => Math.round(x * 16) + ',' + Math.round(y * 16),
+    ends = new Map<string, number[]>();
+  for (let i = 0; i < n; i++)
+    for (const e of [0, 2]) {
+      const k = key(a[i * 4 + e], a[i * 4 + e + 1]);
+      const l = ends.get(k);
+      if (l) l.push(i);
+      else ends.set(k, [i]);
+    }
+  const used = new Uint8Array(n),
+    drop = new Uint8Array(n),
+    loops: Island[] = [];
+  for (let i = 0; i < n; i++) {
+    if (used[i]) continue;
+    used[i] = 1;
+    const chain = [i],
+      pts = [a[i * 4], a[i * 4 + 1], a[i * 4 + 2], a[i * 4 + 3]],
+      start = key(a[i * 4], a[i * 4 + 1]);
+    let cx = a[i * 4 + 2],
+      cy = a[i * 4 + 3],
+      closed = false;
+    for (let guard = 0; guard < 400; guard++) {
+      const k = key(cx, cy);
+      if (k === start) {
+        closed = true;
+        break;
+      }
+      const j = (ends.get(k) || []).find((q) => !used[q]);
+      if (j === undefined) break;
+      used[j] = 1;
+      chain.push(j);
+      const fwd = key(a[j * 4], a[j * 4 + 1]) === k;
+      cx = a[j * 4 + (fwd ? 2 : 0)];
+      cy = a[j * 4 + (fwd ? 3 : 1)];
+      pts.push(cx, cy);
+    }
+    if (!closed) continue;
+    let x0 = 1e9,
+      y0 = 1e9,
+      x1 = -1e9,
+      y1 = -1e9,
+      mx = 0,
+      my = 0;
+    for (let p = 0; p < pts.length; p += 2) {
+      x0 = Math.min(x0, pts[p]);
+      x1 = Math.max(x1, pts[p]);
+      y0 = Math.min(y0, pts[p + 1]);
+      y1 = Math.max(y1, pts[p + 1]);
+      mx += pts[p];
+      my += pts[p + 1];
+    }
+    mx /= pts.length / 2;
+    my /= pts.length / 2;
+    if (x1 - x0 > ISLAND_MAX || y1 - y0 > ISLAND_MAX || hAt(mx, my) <= LEVELS.grass) continue;
+    for (const c of chain) drop[c] = 1;
+    loops.push({ pts, x0, y0, x1, y1 });
+  }
+  const keep: number[] = [];
+  for (let i = 0; i < n; i++)
+    if (!drop[i]) keep.push(a[i * 4], a[i * 4 + 1], a[i * 4 + 2], a[i * 4 + 3]);
+  return { loops, keep };
 }
 
 const rgb = (c: number[], f: number, a = 1) =>
