@@ -1,4 +1,5 @@
 import { WARP_TIME } from '../game/warp';
+import { heroStyle } from '../game/style';
 import { drawMoss } from '../art/decor';
 import {
   drawCityGround,
@@ -142,33 +143,33 @@ function drawHero(c, t) {
   const hp = handPos(hero.dx, hero.dy, hero.moving && !rolling, hero.walk, t, game.P.race),
     // a resting sword/axe is carried on the shoulder
     carry =
-      game.P.cls === 'warrior' && hero.atk <= 0 && hero.whirl <= 0 && !leap && !rolling
+      heroStyle() === 'warrior' && hero.atk <= 0 && hero.whirl <= 0 && !leap && !rolling
         ? carryPos(hero.dx, hero.dy, hero.moving, hero.walk, t, game.P.race)
         : null,
     wx = game.P.x + (carry ? carry.x : hp.x),
     wy = game.P.y + (carry ? carry.y : hp.y) - z;
-  let ang = carry ? carry.ang : restAng(hp, game.P.cls),
+  let ang = carry ? carry.ang : restAng(hp, heroStyle()),
     sw = 0;
-  if (game.P.cls === 'warrior') {
+  if (heroStyle() === 'warrior') {
     if (hero.whirl > 0) ang = game.time * 22;
     else if (hero.atk > 0) {
       const s = hero.comboSw;
       ang = hero.aim + s * lerp(-1.4, 1.4, 1 - hero.atk);
     }
-  } else if (game.P.cls === 'ranger') {
+  } else if (heroStyle() === 'ranger') {
     if (hero.atk > 0) {
       ang = hero.aim;
       sw = hero.atk;
     }
-  } else if (game.P.cls === 'mage' && hero.atk > 0)
+  } else if (heroStyle() === 'mage' && hero.atk > 0)
     ang = restAng(hp, 'mage') + (hp.flip ? -1 : 1) * 0.5 * hero.atk;
   const wd = () => {
-    if (!rolling) drawWeapon(c, wx, wy, ang, game.P.cls, sw, wcol, glow, w ? w.style : 0);
+    if (!rolling) drawWeapon(c, wx, wy, ang, heroStyle(), sw, wcol, glow, w ? w.style : 0);
   };
   if (z) {
     shadow(c, game.P.x, game.P.y, 12, 4.5, 0.3);
   }
-  const behind = carry ? carry.behind : weaponBehind(hp, game.P.cls, hero.atk > 0);
+  const behind = carry ? carry.behind : weaponBehind(hp, heroStyle(), hero.atk > 0);
   if (behind && hero.whirl <= 0) wd();
   const alpha = hero.inv > 0 && !leap && Math.sin(t * 50) > 0 ? 0.5 : null;
   if (rolling && Math.random() < 0.7)
@@ -232,7 +233,7 @@ function drawHero(c, t) {
     c.fillText('Warping…', game.P.x, by - 3);
     c.restore();
   }
-  if (game.P.cls === 'warrior' && hero.atk > 0 && hero.whirl <= 0) {
+  if (heroStyle() === 'warrior' && hero.atk > 0 && hero.whirl <= 0) {
     c.save();
     c.translate(game.P.x, game.P.y - 18);
     c.rotate(hero.aim);

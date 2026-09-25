@@ -74,6 +74,21 @@ describe('game/save', () => {
     expect(migrate({ inv: [], race: 'elf', skin: '#c4895c' }).skin).toBe('#c4895c');
   });
 
+  it('drops the class, keeps weapon families and refunds skills once', () => {
+    const p = migrate({
+      inv: [{ slot: 'weapon', st: {} }],
+      eq: { weapon: { slot: 'weapon', wc: 'ranger', st: {} } },
+      cls: 'mage',
+      sp: { a0: 3 },
+    });
+    expect(p.cls).toBeUndefined();
+    expect(p.inv[0].wc).toBe('mage');
+    expect(p.eq.weapon.wc).toBe('ranger');
+    expect(p.sp).toEqual({});
+    p.sp.a0 = 2;
+    expect(migrate(p).sp).toEqual({ a0: 2 });
+  });
+
   it('skips a corrupt save', () => {
     store.set('farhold_slot:bad', '{nope');
     expect(loadSave()).toBeNull();

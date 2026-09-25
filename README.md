@@ -8,8 +8,8 @@ Everything is drawn in code: there are no image or sound files. The art is vecto
 
 ## Features
 
-- **Three classes:** Warrior (three-hit combos and cleaving swings), Ranger (fast, piercing arrows) and Mage (exploding arcane bolts). Each class has a skill tree with two active skills.
-- **Four races:** Human, Elf, Dwarf and Orc, each with its own bonuses, plus appearance options.
+- **Your weapon is your style:** every hero starts the same and can equip anything. Blades and axes fight with three-hit cleaving combos, bows fire fast piercing arrows and staves cast exploding arcane bolts. One shared skill tree, whose two active skills follow the weapon you hold.
+- **Your hero:** choose a name and appearance (skin, hair style and colour); everything else comes from what you find.
 - **Endless seeded world:** the same seed always gives the same world, with biomes, lakes, mountains and weather.
 - **Towns and villages:** Hearthfire is a walled town with a market, a blacksmith, an alchemist, a fine-goods merchant, a bounty board and a waystone for fast travel. Villages along the way have their own shops and quests.
 - **Caves and lairs:** caves hold treasure guarded by a mini-boss. Lairs hold named bosses, which leave a treasure chest behind when defeated.
@@ -71,7 +71,7 @@ src/
                     dungeons, and vector outlines for mountains and shorelines
   art/              Canvas drawing: characters, creatures, houses, the town,
                     props, items
-  data/             Classes, races, enemies, bosses and skill trees
+  data/             Items, enemies, bosses, skill trees and dialogue
   game/             Game rules: state, combat, enemies, loot, stats, quests,
                     saving
   render/           World rendering and the minimap

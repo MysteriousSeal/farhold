@@ -1,22 +1,22 @@
 import { equipSlot } from './items';
-import { CLS } from '../data/classes';
+import { STYLE_CD, heroStyle } from './style';
 import { game } from './state';
 import { computeStats } from './stats';
 /* ================= ITEM POWER ================= */
 // How much stronger an item would make the hero, from the real combat formulas:
-//  damage    = attack × crit multiplier × attack speed / class attack delay,
+//  damage    = attack × crit multiplier × attack speed / the weapon style's attack delay,
 //              with ~20% of damage from skills that scale with cooldown reduction
 //  toughness = health × armor mitigation (damage taken is ×100/(100+4·armor)),
 //              plus a modest bonus for sustain (regen and life steal over 10 s)
 //  speed     counts for a small share.
 
-/** Damage / toughness weights of the overall score, per class. */
+/** Damage / toughness weights of the overall score, per fighting style (melee fights up close). */
 const WEIGHTS = { warrior: [0.5, 0.5], ranger: [0.65, 0.35], mage: [0.65, 0.35] };
 const SPEED_W = 0.1;
 
-export function powerOf(cls: string, s) {
+export function powerOf(style: string, s) {
   const critMul = 1 + (Math.min(75, s.crit) / 100) * (s.critd / 100),
-    hitDps = (s.atk * critMul * (1 + s.aspd / 100)) / CLS[cls].cd,
+    hitDps = (s.atk * critMul * (1 + s.aspd / 100)) / STYLE_CD[style],
     dmg = hitDps * (0.8 + 0.2 / (1 - Math.min(50, s.cdr) / 100)),
     ehp = s.hp * (1 + (s.def * 4) / 100),
     sustain = s.hp * (0.006 + (s.regenPct || 0) / 100) + s.regen + (hitDps * s.leech) / 100,
@@ -26,9 +26,12 @@ export function powerOf(cls: string, s) {
 
 /** Relative change (0.14 = +14%) if `it` replaced the item in its slot. */
 export function compareItem(it, p = game.P) {
-  const a = powerOf(p.cls, computeStats(p)),
-    b = powerOf(p.cls, computeStats({ ...p, eq: { ...p.eq, [equipSlot(it, p.eq)]: it } })),
-    [wd, wt] = WEIGHTS[p.cls] || [0.5, 0.5],
+  // a weapon brings its own fighting style (a bow makes you fight at range)
+  const p2 = { ...p, eq: { ...p.eq, [equipSlot(it, p.eq)]: it } },
+    sb = heroStyle(p2),
+    a = powerOf(heroStyle(p), computeStats(p)),
+    b = powerOf(sb, computeStats(p2)),
+    [wd, wt] = WEIGHTS[sb] || [0.5, 0.5],
     dmg = b.dmg / a.dmg - 1,
     tough = b.tough / a.tough - 1,
     spd = b.spd / a.spd - 1;

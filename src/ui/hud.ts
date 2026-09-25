@@ -1,9 +1,10 @@
 import { drawHumanoid } from '../art/humanoid';
+import { heroStyle } from '../game/style';
 import { zoom } from '../render/render';
 import { clearBonusXp, fmtClock, resetLeft } from '../game/dungeons';
 import { $, H, W } from '../core/dom';
 import { clamp } from '../core/math';
-import { SKILLCD, TREES, pointsFree, rank } from '../data/skills';
+import { SKILLCD, pointsFree, rank, skillTree } from '../data/skills';
 import { game, hero } from '../game/state';
 import { xpNeed } from '../game/stats';
 import { isTouch } from '../input/input';
@@ -74,14 +75,14 @@ export function updHud() {
   drawPortrait();
   for (const n of [1, 2]) {
     const r = rank('s' + n),
-      cdMax = SKILLCD[game.P.cls][n - 1] * (1 - game.ST.cdr / 100),
+      cdMax = SKILLCD[heroStyle()][n - 1] * (1 - game.ST.cdr / 100),
       cd = Math.max(0, hero.scd[n - 1]),
       f = r ? cd / cdMax : 1;
     for (const id of ['#bS' + n, '#ks' + n]) {
       const b = $(id);
       b.style.setProperty('--cd', f * 360 + 'deg');
       b.classList.toggle('locked', !r);
-      b.querySelector('.ic').textContent = TREES[game.P.cls].nodes.find((o) => o.id === 's' + n).ic;
+      b.querySelector('.ic').textContent = skillTree().nodes.find((o) => o.id === 's' + n).ic;
     }
   }
   const a = $('#bAct');

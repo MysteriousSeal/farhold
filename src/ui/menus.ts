@@ -1,8 +1,8 @@
 import { SFX } from '../audio/sfx';
+import { STYLE_NAME, heroStyle } from '../game/style';
 import { $ } from '../core/dom';
 import { saveSettings, settings } from '../core/settings';
-import { CLS } from '../data/classes';
-import { SKILLCD, TREES, nodeUnlocked, pointsFree, rank } from '../data/skills';
+import { SKILLCD, nodeUnlocked, pointsFree, rank, skillTree } from '../data/skills';
 import { toast } from '../game/fx';
 import { loadSave, save } from '../game/save';
 import { game } from '../game/state';
@@ -18,11 +18,11 @@ export function openSkills() {
   renderSkills();
 }
 function renderSkills() {
-  const T = TREES[game.P.cls],
+  const T = skillTree(),
     free = pointsFree();
   openModal(
     hdr(
-      CLS[game.P.cls].n + ' skills',
+      'Skills · ' + STYLE_NAME[heroStyle()].toLowerCase() + ' techniques',
       free + ' point' + (free === 1 ? '' : 's') + ' to spend. You earn one each level.',
     ) + '<div class="tree" id="tree"></div><div id="skd"></div>',
   );
@@ -79,7 +79,7 @@ function renderSkills() {
       (r ? 'Now: ' + n.d(r) : 'Not learned') +
       '</div>' +
       (r < n.max ? '<div class="desc" style="color:#ffe38a">Next: ' + n.d(r + 1) + '</div>' : '') +
-      (n.act ? '<div class="desc">Cooldown ' + SKILLCD[game.P.cls][n.act - 1] + 's</div>' : '') +
+      (n.act ? '<div class="desc">Cooldown ' + SKILLCD[heroStyle()][n.act - 1] + 's</div>' : '') +
       '<div class="acts"></div>';
     const why = !un
       ? n.r === 2 && game.P.lvl < 6
@@ -137,8 +137,6 @@ export function openPause() {
       game.P.name +
       ', level ' +
       game.P.lvl +
-      ' ' +
-      CLS[game.P.cls].n +
       '. World seed ' +
       game.P.seed +
       '. Foes slain: ' +

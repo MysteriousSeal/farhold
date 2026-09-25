@@ -1,4 +1,5 @@
 import { cancelWarp, updateWarp } from './warp';
+import { heroStyle } from './style';
 import { inPlaceNow } from '../world/poi';
 import { WADE, isPool } from '../world/terrain';
 import { SFX } from '../audio/sfx';
@@ -78,7 +79,7 @@ function updateHero(dt) {
   hero.slow -= dt;
   hero.scd[0] -= dt;
   hero.scd[1] -= dt;
-  if (hero.atk > 0) hero.atk -= dt / (game.P.cls === 'warrior' ? 0.2 : 0.18);
+  if (hero.atk > 0) hero.atk -= dt / (heroStyle() === 'warrior' ? 0.2 : 0.18);
   if (hero.leap) {
     const L = hero.leap;
     L.t += dt;
@@ -151,7 +152,7 @@ function updateHero(dt) {
         if (n) SFX.hit();
       }
     } else if (game.atkHeld) heroAttack();
-    if (hero.atk > 0 && game.P.cls !== 'warrior') {
+    if (hero.atk > 0 && heroStyle() !== 'warrior') {
       vx *= 0.55;
       vy *= 0.55;
     }

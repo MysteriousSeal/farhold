@@ -75,7 +75,9 @@ export function genItem(lvl, bonus = 0, slot?, minR = 0) {
       : Math.round(st[n]);
   if (st.cdr) st.cdr = Math.min(st.cdr, 20);
   if (st.leech) st.leech = Math.min(st.leech, 6);
-  const wc = game.P ? game.P.cls : 'warrior',
+  // weapon family: melee (blades and axes) is the most common, then bows and staves
+  const q = Math.random(),
+    wc = q < 0.5 ? 'warrior' : q < 0.75 ? 'ranger' : 'mage',
     style = (Math.random() * 3) | 0;
   const B = {
     weapon: {

@@ -47,6 +47,18 @@ export function migrate(p) {
     if (k >= 0) p.skin = SKINS[k];
   }
   p.race = 'human';
+  // no more classes: weapons keep the family they were made as (their old owner's class when
+  // unmarked), the style comes from the weapon held, and skill points are refunded once
+  // into the shared tree
+  if (p.cls) {
+    for (const it of [...(p.inv || []), ...Object.values(p.eq || {})])
+      if (it && it.slot === 'weapon' && !it.wc) it.wc = p.cls;
+    delete p.cls;
+  }
+  if (!p.tree2) {
+    p.sp = {};
+    p.tree2 = 1;
+  }
   return p;
 }
 /* ---------- save slots ---------- */

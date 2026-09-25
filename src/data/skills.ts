@@ -1,5 +1,7 @@
 import { game } from '../game/state';
+import { heroStyle } from '../game/style';
 /* ---- skill trees ---- */
+// Per-style trees: only their active skills (s1, s2) are still used, see skillTree().
 export const TREES = {
   warrior: {
     cols: ['Blade', 'Iron', 'Techniques'],
@@ -239,6 +241,83 @@ export const TREES = {
     ],
   },
 };
+/**
+ * The shared skill tree: passive nodes for every hero, while the two active skills (s1, s2)
+ * are the ones of the equipped weapon's style (taken from the per-style trees above).
+ */
+const SHARED = {
+  cols: ['Might', 'Endurance', 'Techniques'],
+  nodes: [
+    {
+      id: 'a0',
+      c: 0,
+      r: 0,
+      n: 'Sharpened edge',
+      ic: '⚔',
+      max: 5,
+      d: (r) => '+' + 6 * r + '% damage',
+    },
+    {
+      id: 'a1',
+      c: 0,
+      r: 1,
+      n: 'Reach',
+      ic: '◗',
+      max: 3,
+      d: (r) =>
+        '+' +
+        15 * r +
+        '% swing arc and spell radius, arrows pierce ' +
+        r +
+        ' more foe' +
+        (r > 1 ? 's' : ''),
+    },
+    {
+      id: 'a2',
+      c: 0,
+      r: 2,
+      n: 'Executioner',
+      ic: '✖',
+      max: 3,
+      d: (r) => '+' + 25 * r + '% critical damage',
+    },
+    { id: 'b0', c: 1, r: 0, n: 'Toughness', ic: '♥', max: 5, d: (r) => '+' + 7 * r + '% health' },
+    { id: 'b1', c: 1, r: 1, n: 'Guard', ic: '⛨', max: 3, d: (r) => '+' + 12 * r + '% armor' },
+    {
+      id: 'b2',
+      c: 1,
+      r: 2,
+      n: 'Second wind',
+      ic: '✚',
+      max: 3,
+      d: (r) => 'Regenerate ' + (0.4 * r).toFixed(1) + '% health per second',
+    },
+    {
+      id: 'c1',
+      c: 2,
+      r: 1,
+      n: 'Battle rhythm',
+      ic: '⟳',
+      max: 3,
+      d: (r) => '-' + 10 * r + '% skill cooldowns',
+    },
+  ],
+};
+/** The tree for the hero's current fighting style (shared passives + the style's two skills). */
+export type SkillNode = {
+  id: string;
+  c: number;
+  r: number;
+  n: string;
+  ic: string;
+  max: number;
+  act?: number;
+  d: (r: number) => string;
+};
+export function skillTree(style = heroStyle()): { cols: string[]; nodes: SkillNode[] } {
+  const own = TREES[style].nodes.filter((n) => n.act);
+  return { cols: SHARED.cols, nodes: [...SHARED.nodes, ...own] };
+}
 export const SKILLCD = { warrior: [7, 10], ranger: [5, 11], mage: [7, 12] };
 export const SKILLN = {
   warrior: ['Whirlwind', 'Leap slam'],
@@ -248,7 +327,7 @@ export const SKILLN = {
 export const rank = (id) => (game.P.sp && game.P.sp[id]) || 0;
 export function nodeUnlocked(n) {
   if (n.r === 0) return true;
-  const prev = TREES[game.P.cls].nodes.find((o) => o.c === n.c && o.r === n.r - 1);
+  const prev = skillTree().nodes.find((o) => o.c === n.c && o.r === n.r - 1);
   return rank(prev.id) > 0 && (n.r < 2 || game.P.lvl >= 6);
 }
 export function pointsFree() {

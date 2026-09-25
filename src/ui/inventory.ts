@@ -1,8 +1,9 @@
 import { carryPos, drawHumanoid, drawWeapon, handOver, handPos, restAng } from '../art/humanoid';
+import { heroStyle } from '../game/style';
 import { compareItem, fmtPct } from '../game/power';
 import { SFX } from '../audio/sfx';
 import { $ } from '../core/dom';
-import { CLS, MATS, RAR, SLOT_NAME } from '../data/classes';
+import { MATS, RAR, SLOT_NAME } from '../data/classes';
 import { BAGMAX } from '../game/drops';
 import { toast } from '../game/fx';
 import {
@@ -111,16 +112,16 @@ function drawPortrait(cv: HTMLCanvasElement) {
   const k = 2 * 2.9;
   x.setTransform(k, 0, 0, k, cv.width / 2 - 2 * k, cv.height / 2 + 22 * k);
   // warriors stand on guard (blade up); other classes hold their weapon at rest
-  const guard = game.P.cls === 'warrior' ? carryPos(0, 1, false, 0, 0, game.P.race) : null,
+  const guard = heroStyle() === 'warrior' ? carryPos(0, 1, false, 0, 0, game.P.race) : null,
     hp = guard || handPos(0, 1, false, 0, 0, game.P.race),
-    ang = guard ? guard.ang : restAng(hp, game.P.cls),
+    ang = guard ? guard.ang : restAng(hp, heroStyle()),
     wd = () =>
       drawWeapon(
         x,
         hp.x,
         hp.y,
         ang,
-        game.P.cls,
+        heroStyle(),
         0,
         w ? MATS[w.mat][1] : null,
         null, // no rarity glow on held weapons
@@ -180,7 +181,7 @@ function renderChar() {
     need = xpNeed(P.lvl),
     el = $('#wChar');
   el.innerHTML =
-    winHead(P.name, 'Level ' + P.lvl + ' ' + CLS[P.cls].n, 'char') +
+    winHead(P.name, 'Level ' + P.lvl, 'char') +
     '<div class="bar xp sheetxp"><i style="width:' +
     Math.min(100, (P.xp / need) * 100).toFixed(1) +
     '%"></i></div><div class="xpt">' +

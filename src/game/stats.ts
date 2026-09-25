@@ -1,15 +1,15 @@
 import type { Look, Stats } from './types';
 import { sh } from '../core/math';
-import { CLS, MATS, RAR, SLOTS } from '../data/classes';
+import { MATS, OUTFIT, RAR, SLOTS } from '../data/classes';
 import { rank } from '../data/skills';
 import { itemStat } from './items';
 import { game } from './state';
-/** Final stats for a hero `p` (class, race, level, gear, skills) without touching game state. */
+/** Final stats for a hero `p` (level, gear, skills) without touching game state. */
 export function computeStats(p = game.P): Stats {
   const s: Stats = {
-    hp: 100,
+    hp: 120,
     atk: 10,
-    def: 0,
+    def: 2,
     crit: 5,
     critd: 80,
     spd: 150,
@@ -26,10 +26,6 @@ export function computeStats(p = game.P): Stats {
     twin: 0,
     rollCd: 1,
   };
-  const ad = (o) => {
-    for (const k in o) s[k] += o[k];
-  };
-  ad(CLS[p.cls].st);
   const l = p.lvl - 1;
   s.hp += l * 14;
   s.atk += l * 2.2;
@@ -38,36 +34,16 @@ export function computeStats(p = game.P): Stats {
     const it = p.eq[k];
     if (it) for (const n in it.st) s[n] += itemStat(it, n);
   }
-  const c = p.cls;
-  if (c === 'warrior') {
-    s.dmgMul += 0.06 * rank('a0');
-    s.arc += 0.15 * rank('a1');
-    s.critd += 25 * rank('a2');
-    s.hpMul += 0.07 * rank('b0');
-    s.defMul += 0.12 * rank('b1');
-    s.regenPct = 0.4 * rank('b2');
-    s.cdr += 10 * rank('c1');
-  }
-  if (c === 'ranger') {
-    s.crit += 4 * rank('a0');
-    s.pierce += rank('a1');
-    s.dmgMul += 0.1 * rank('a2');
-    s.spd *= 1 + 0.05 * rank('b0');
-    s.rollCd -= 0.15 * rank('b1');
-    s.hpMul += 0.08 * rank('b2');
-    s.cdr += 10 * rank('c1');
-    s.aspd += 5 * rank('c1');
-  }
-  if (c === 'mage') {
-    s.dmgMul += 0.06 * rank('a0');
-    s.rad += 0.15 * rank('a1');
-    s.twin = 0.1 * rank('a2');
-    s.defMul += 0.1 * rank('b0');
-    s.hpMul += 0.04 * rank('b0');
-    s.leech += 1.5 * rank('b1');
-    s.hpMul += 0.08 * rank('b2');
-    s.cdr += 10 * rank('c1');
-  }
+  // shared skill tree (data/skills.ts)
+  s.dmgMul += 0.06 * rank('a0');
+  s.arc += 0.15 * rank('a1');
+  s.rad += 0.15 * rank('a1');
+  s.pierce += rank('a1');
+  s.critd += 25 * rank('a2');
+  s.hpMul += 0.07 * rank('b0');
+  s.defMul += 0.12 * rank('b1');
+  s.regenPct = 0.4 * rank('b2');
+  s.cdr += 10 * rank('c1');
   s.hp = Math.round(s.hp * s.hpMul);
   s.atk = Math.round(s.atk * s.dmgMul * 10) / 10;
   s.def = Math.round(s.def * s.defMul);
@@ -86,9 +62,9 @@ export function calcStats() {
 export const UNDERWEAR = '#e6dcc4';
 export function lookOfPlayer(p) {
   const e = p.eq || {};
-  // Without body armor the hero is bare-skinned in linen shorts; the class outfit comes with armor.
+  // Without body armor the hero is bare-skinned in linen shorts; the tunic comes with armor.
   const bare = !e.armor;
-  const C2 = CLS[p.cls],
+  const C2 = OUTFIT,
     L: Look = {
       skin: p.skin,
       hair: p.hair,
@@ -97,7 +73,7 @@ export function lookOfPlayer(p) {
       cloth: bare ? p.skin : C2.cloth,
       cloth2: bare ? sh(p.skin, -0.2) : C2.cloth2,
       cape: bare ? null : C2.cape,
-      robe: bare ? false : C2.robe,
+      robe: false,
       tusks: p.race === 'orc',
     };
   // legs stay bare (linen shorts) until pants are worn; gloves colour the hands

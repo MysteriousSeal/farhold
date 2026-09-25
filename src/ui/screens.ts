@@ -11,7 +11,7 @@ import { backfillBossChests, refreshQuestTargets } from '../game/bossChest';
 import { audioInit } from '../audio/sfx';
 import { $ } from '../core/dom';
 import { pick, strSeed } from '../core/math';
-import { CLS, HAIRC, HAIRS, SKINS } from '../data/classes';
+import { HAIRC, HAIRS, SKINS } from '../data/classes';
 import { respawn } from '../game/combat';
 import { unstick } from '../game/enemies';
 import { banner } from '../game/fx';
@@ -41,7 +41,7 @@ export function closeAll() {
   setHud(true);
   save();
 }
-const C = { cls: 'warrior', race: 'human', skin: 0, hair: 0, hairC: 1 };
+const C = { race: 'human', skin: 0, hair: 0, hairC: 1 };
 const randSeed = () =>
   pick(['Oak', 'Ember', 'Raven', 'Frost', 'Stone', 'Wyrm', 'Thorn', 'Gale']) +
   '-' +
@@ -64,13 +64,6 @@ function chips(el, items, cur, on, sw?) {
 }
 function refreshCreate() {
   chips(
-    $('#cCls'),
-    Object.keys(CLS).map((k) => [k, CLS[k].n]),
-    () => C.cls,
-    (v) => (C.cls = v),
-  );
-  $('#cClsD').textContent = CLS[C.cls].desc;
-  chips(
     $('#cSkin'),
     SKINS.map((c, i) => [i, 'Skin ' + (i + 1), c]),
     () => C.skin,
@@ -90,11 +83,10 @@ function refreshCreate() {
     (v) => (C.hairC = v),
     true,
   );
-  $('#prevname').textContent = ($('#cName').value || 'Nameless') + ', ' + CLS[C.cls].n;
+  $('#prevname').textContent = $('#cName').value || 'Nameless';
 }
 function previewPlayer() {
   return {
-    cls: C.cls,
     race: 'human',
     skin: SKINS[C.skin],
     hair: C.hair,
@@ -119,9 +111,9 @@ export function drawPreview(t) {
     di = dirs[Math.floor(t / 1.6) % 4],
     walk = t * 9;
   const hp = handPos(di[0], di[1], true, walk, t, C.race),
-    ang = restAng(hp, C.cls),
-    wd = () => drawWeapon(pc, hp.x, hp.y, ang, C.cls, 0);
-  const behind = weaponBehind(hp, C.cls);
+    ang = restAng(hp, 'sword'),
+    wd = () => drawWeapon(pc, hp.x, hp.y, ang, 'sword', 0);
+  const behind = weaponBehind(hp, 'sword');
   if (behind) wd();
   drawHumanoid(pc, 0, 0, { look: L, dx: di[0], dy: di[1], moving: true, walk, time: t });
   if (!behind) {
@@ -221,8 +213,6 @@ function openLoad() {
       esc(p.name || 'Hero') +
       '</div><div class="scl">Level ' +
       (p.lvl || 1) +
-      ' ' +
-      (CLS[p.cls] ? CLS[p.cls].n : '') +
       '</div><div class="smeta">' +
       esc(p.region || 'Hearthfire') +
       ' · ' +
@@ -304,11 +294,13 @@ function startGame(p, fresh?) {
   game.zoneName = '';
   game.curBoss = null;
   if (fresh) {
+    // everyone starts with a rusty sword; any weapon found later can be equipped
     const w = genItem(1, 0, 'weapon');
     w.r = 0;
     w.mat = 0;
     w.style = 0;
-    w.name = 'Rusty ' + { warrior: 'Sword', ranger: 'Shortbow', mage: 'Staff' }[game.P.cls];
+    w.wc = 'warrior';
+    w.name = 'Rusty Sword';
     w.st = { atk: 4 };
     game.P.eq.weapon = w;
   }

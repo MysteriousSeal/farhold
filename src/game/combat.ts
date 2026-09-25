@@ -1,9 +1,9 @@
 import { cancelWarp } from './warp';
+import { STYLE_CD, heroStyle } from './style';
 import type { Rec } from './types';
 import { SFX } from '../audio/sfx';
 import { $ } from '../core/dom';
 import { angDiff, rand } from '../core/math';
-import { CLS } from '../data/classes';
 import { SKILLCD, SKILLN, rank } from '../data/skills';
 import { leaveDungeon } from './dungeons';
 import { killEnemy, unstick } from './enemies';
@@ -75,7 +75,7 @@ export function damageEnemy(e, mul, kx, ky, o: Rec = {}) {
 export function heroAttack() {
   if (hero.cd > 0 || hero.roll > 0 || hero.leap || hero.whirl > 0) return;
   cancelWarp();
-  const c = game.P.cls,
+  const c = heroStyle(),
     ox = game.P.x,
     oy = game.P.y - 18;
   let ang = hero.aim;
@@ -86,7 +86,7 @@ export function heroAttack() {
     hero.dx = Math.cos(ang);
     hero.dy = Math.sin(ang);
   }
-  hero.cd = CLS[c].cd / (1 + game.ST.aspd / 100);
+  hero.cd = STYLE_CD[c] / (1 + game.ST.aspd / 100);
   hero.atk = 1;
   game.kickX = Math.cos(ang) * 4;
   game.kickY = Math.sin(ang) * 4;
@@ -185,12 +185,12 @@ export function useSkill(n) {
   cancelWarp();
   const r = rank('s' + n);
   if (!r) {
-    toast('Unlock ' + SKILLN[game.P.cls][n - 1] + ' in the skill tree');
+    toast('Unlock ' + SKILLN[heroStyle()][n - 1] + ' in the skill tree');
     return;
   }
   if (hero.scd[n - 1] > 0 || hero.roll > 0 || hero.leap) return;
-  hero.scd[n - 1] = SKILLCD[game.P.cls][n - 1] * (1 - game.ST.cdr / 100);
-  const c = game.P.cls;
+  hero.scd[n - 1] = SKILLCD[heroStyle()][n - 1] * (1 - game.ST.cdr / 100);
+  const c = heroStyle();
   if (c === 'warrior' && n === 1) {
     hero.whirl = 0.7;
     hero.whirlTick = 0;

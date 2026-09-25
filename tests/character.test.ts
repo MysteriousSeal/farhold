@@ -4,11 +4,11 @@ import { mulberry } from '../src/core/math';
 import { pointsFree } from '../src/data/skills';
 import { genItem, itemStat, salvageAll, salvageable, upCost } from '../src/game/items';
 import { game } from '../src/game/state';
-import { CLS } from '../src/data/classes';
+import { OUTFIT } from '../src/data/classes';
+import { heroStyle, weaponStyle } from '../src/game/style';
 import { UNDERWEAR, calcStats, lookOfPlayer, xpNeed } from '../src/game/stats';
 
 const hero = (o: Record<string, unknown> = {}) => ({
-  cls: 'warrior',
   race: 'human',
   lvl: 1,
   hp: 1,
@@ -77,28 +77,29 @@ describe('game/items', () => {
 });
 
 describe('game/stats', () => {
-  it('base stats per class (heroes are human, no racial bonus)', () => {
+  it('every hero starts with the same base stats', () => {
     game.P = hero();
     calcStats();
-    expect(game.ST).toMatchObject({ hp: 140, atk: 10, def: 4, crit: 5, spd: 150 });
+    expect(game.ST).toMatchObject({ hp: 120, atk: 10, def: 2, crit: 5, spd: 150 });
+  });
 
-    game.P = hero({ cls: 'ranger' });
-    calcStats();
-    expect(game.ST).toMatchObject({ hp: 100, atk: 11, crit: 11, spd: 164 });
-
-    game.P = hero({ cls: 'mage' });
-    calcStats();
-    expect(game.ST).toMatchObject({ hp: 90, atk: 14, def: 0, spd: 150 });
+  it('the equipped weapon decides the fighting style', () => {
+    const p: any = hero();
+    expect(heroStyle(p)).toBe('warrior'); // bare-handed fights in melee
+    p.eq.weapon = { slot: 'weapon', wc: 'ranger', st: {} };
+    expect(heroStyle(p)).toBe('ranger');
+    expect(weaponStyle({ slot: 'weapon', wc: 'mage' })).toBe('mage');
+    expect(weaponStyle({ slot: 'weapon' })).toBe('warrior');
   });
 
   it('levels, skills and gear feed into stats', () => {
     game.P = hero({ lvl: 5 });
     calcStats();
-    expect(game.ST).toMatchObject({ hp: 196, atk: 18.8, def: 7 });
+    expect(game.ST).toMatchObject({ hp: 176, atk: 18.8, def: 5 });
 
     game.P = hero({ lvl: 6, sp: { b0: 5 } });
     calcStats();
-    expect(game.ST.hp).toBe(Math.round((140 + 5 * 14) * 1.35));
+    expect(game.ST.hp).toBe(Math.round((120 + 5 * 14) * 1.35));
     expect(pointsFree()).toBe(0);
 
     game.P = hero();
@@ -118,8 +119,8 @@ describe('player look', () => {
   const gear = (slot: string, name: string) => ({ slot, name, r: 0, mat: 1, plus: 0, st: {} });
 
   it('an unequipped hero wears only linen shorts and is barefoot', () => {
-    for (const cls of ['warrior', 'ranger', 'mage']) {
-      const p = hero({ cls });
+    {
+      const p = hero();
       const L = lookOfPlayer(p);
       expect(L.shorts).toBe(UNDERWEAR);
       expect(L.cloth).toBe(p.skin);
@@ -132,7 +133,7 @@ describe('player look', () => {
   });
 
   it('each gear slot dresses its own body part', () => {
-    const p = hero({ cls: 'mage' });
+    const p = hero();
     p.eq.boots = gear('boots', 'Iron Boots');
     let L = lookOfPlayer(p);
     expect(L.shorts).toBe(UNDERWEAR);
@@ -142,8 +143,8 @@ describe('player look', () => {
     p.eq.helm = gear('helm', 'Iron Cap');
     L = lookOfPlayer(p);
     expect(L.shorts).toBe(UNDERWEAR); // legs stay bare until pants are worn
-    expect(L.cloth).toBe(CLS.mage.cloth);
-    expect(L.robe).toBe(true);
+    expect(L.cloth).toBe(OUTFIT.cloth);
+    expect(L.robe).toBe(false);
     expect(L.helm).toBe(MATS[1][1]);
 
     p.eq.pants = gear('pants', 'Iron Leggings');
@@ -173,7 +174,7 @@ describe('item power comparison', () => {
     const w = compareItem(axe);
     expect(w.dmg).toBeCloseTo(1, 5); // 10 → 20 attack doubles damage
     expect(w.tough).toBeCloseTo(0, 5);
-    expect(w.overall).toBeCloseTo(0.5, 5); // warrior weighs damage 50%
+    expect(w.overall).toBeCloseTo(0.5, 5); // melee weighs damage 50%
     const a = compareItem(vest);
     expect(a.tough).toBeGreaterThan(0);
     expect(a.dmg).toBeCloseTo(0, 5);
