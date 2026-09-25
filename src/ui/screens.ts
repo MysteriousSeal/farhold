@@ -5,6 +5,7 @@ import { audioInit } from '../audio/sfx';
 import { $ } from '../core/dom';
 import { pick, strSeed } from '../core/math';
 import { BEARDS, HAIRC, HAIRS, MATS, SKINS } from '../data/classes';
+import { NAMES } from '../data/names';
 import { respawn } from '../game/combat';
 import { unstick } from '../game/enemies';
 import { banner } from '../game/fx';
@@ -149,10 +150,6 @@ $('#cDice').onclick = () => {
   $('#cSeed').value = randSeed();
 };
 $('#cName').oninput = refreshCreate;
-const NAMES = {
-  m: ['Aldric', 'Brom', 'Kael', 'Rook', 'Garrick', 'Tobin', 'Edric', 'Corwin', 'Halden', 'Osric'],
-  f: ['Wren', 'Isolde', 'Maren', 'Tamsin', 'Elowen', 'Brynn', 'Sera', 'Liora', 'Hild', 'Ysolde'],
-};
 let face = 0; // preview facing, turned with the arrows (0: toward the player)
 $('#cRotL').onclick = () => (face = (face + 3) % 4);
 $('#cRotR').onclick = () => (face = (face + 1) % 4);
