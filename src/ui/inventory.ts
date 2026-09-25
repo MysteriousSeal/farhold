@@ -16,7 +16,7 @@ import {
 } from '../game/items';
 import { game } from '../game/state';
 import { calcStats, xpNeed } from '../game/stats';
-import { btn, goldPill, iconCanvas, openModal, statLines } from './modal';
+import { btn, goldPill, itemCard, potPill, iconCanvas, openModal, statLines } from './modal';
 import { closeAll } from './screens';
 /* ================= CHARACTER SHEET & BAGS ================= */
 // Two independent windows shown side by side (stacked on phones): the character sheet (C) with
@@ -225,25 +225,14 @@ function renderBags() {
         '/' +
         BAGMAX +
         '</span>',
-      goldPill(game.P.gold) + ' &nbsp; 🧪 ' + game.P.pot + ' potions',
+      goldPill(game.P.gold) + ' ' + potPill(game.P.pot),
       'bags',
     ) +
-    '<div class="bag" id="iBag"></div><div class="acts" id="iBulk"></div><div id="detail"></div>';
+    '<div class="bagsplit"><div><div class="bag" id="iBag"></div><div class="acts" id="iBulk"></div></div><div id="detail"></div></div>';
   const bg = $('#iBag');
   game.P.inv.forEach((it) => {
-    const d = document.createElement('div');
-    d.className = 'cell' + (selItem && !selItem.eq && selItem.it === it ? ' sel' : '');
-    d.style.borderColor = RAR[it.r].c;
-    d.appendChild(iconCanvas(it));
-    // overall change if this item were equipped
-    const pw = compareItem(it).overall;
-    if (Math.abs(pw) >= 0.005) {
-      const u = document.createElement('span');
-      u.className = 'upg';
-      u.textContent = fmtPct(pw);
-      if (pw < 0) u.style.color = '#ff7d70';
-      d.appendChild(u);
-    }
+    // same card as the vendor: power change vs worn, level and salvage value
+    const d = itemCard(it, salvageValue(it), !!selItem && !selItem.eq && selItem.it === it);
     d.onclick = () => {
       selItem = { it };
       salvageArmed = false;
@@ -286,7 +275,7 @@ function renderBags() {
   if (selItem && !selItem.eq) renderDetail(dt);
   else
     dt.innerHTML =
-      '<span style="opacity:.75">Tap an item to inspect it. Badges show how much stronger (or weaker) it would make you.</span>';
+      '<div class="dempty"><b>No item selected</b><span>Tap an item to see its stats. Badges show how much stronger (or weaker) it would make you.</span></div>';
 }
 
 /* ---------- item details (equip / unequip / salvage) ---------- */

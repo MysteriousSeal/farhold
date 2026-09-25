@@ -1151,14 +1151,6 @@ input.txt {
 .cell.sel {
   outline: 3px solid #fff;
 }
-.cell .upg {
-  position: absolute;
-  right: 3px;
-  top: 1px;
-  color: #7ee37a;
-  font-size: 11px;
-  text-shadow: 0 1px 2px #000;
-}
 .stats {
   font-size: 14px;
   line-height: 1.65;
@@ -1353,7 +1345,58 @@ input.txt {
   width: min(430px, 100%);
 }
 .win.bagsw {
-  width: min(560px, 100%);
+  width: min(800px, 100%);
+}
+/* bags: grid on the left, the selected item's stats on the right */
+.bagsplit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 14px;
+  align-items: start;
+}
+.bagsplit #detail {
+  margin-top: 0;
+  position: sticky;
+  top: 0;
+  min-height: 260px;
+}
+.bagsplit .bag {
+  grid-template-columns: repeat(5, 1fr);
+}
+@media (max-width: 720px) {
+  .bagsplit {
+    grid-template-columns: 1fr;
+  }
+}
+#detail .dempty {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 60px 10px;
+  text-align: center;
+  opacity: 0.75;
+}
+.potpill {
+  border-color: #6b3036;
+}
+.goldpill + .goldpill {
+  margin-left: 8px;
+}
+/* breathing room between the header (title + purse) and the bag grid */
+.bagsw .mh {
+  margin-bottom: 16px;
+}
+.bagsw .mh .desc {
+  margin-top: 8px;
+}
+.bagsplit .bag {
+  gap: 10px;
+}
+.bagsplit #iBulk {
+  margin-top: 14px;
+}
+.potpill b {
+  color: #ffb0a0;
 }
 .sheetxp {
   margin: 8px 0 0;

@@ -1,4 +1,5 @@
-/* Vendor (market) buy and sell tabs — see ui/village.ts */
+/* Vendor (market) buy and sell tabs — see ui/village.ts. The .scell item card (itemCard in
+   ui/modal.ts) is also used by the bags. */
 /* ---------- vendor sell tab ---------- */
 .selltools {
   display: flex;

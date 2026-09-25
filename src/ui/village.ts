@@ -10,7 +10,7 @@ import { equipSlot, genItem, itemName, upCost } from '../game/items';
 import { QMAX, abandonQuest, acceptQuest, genOffers, offers } from '../game/quests';
 import { game } from '../game/state';
 import { calcStats } from '../game/stats';
-import { btn, goldPill, hdr, iconCanvas, openModal, statLines, wireClose } from './modal';
+import { btn, goldPill, hdr, itemCard, iconCanvas, openModal, statLines, wireClose } from './modal';
 import { closeAll } from './screens';
 import { poisNear } from '../world/poi';
 /* shop */
@@ -148,13 +148,9 @@ function renderBuy(v, body, s, pp) {
   }
   const grid = body.querySelector('#bGrid');
   for (const it of s.items) {
-    const d = document.createElement('div'),
-      price = priceOf(it);
-    d.className =
-      'cell scell' + (buySel === it ? ' sel' : '') + (game.P.gold < price ? ' poor' : '');
-    d.style.borderColor = RAR[it.r].c;
-    d.appendChild(iconCanvas(it));
-    d.insertAdjacentHTML('beforeend', cardTags(it, price));
+    const price = priceOf(it),
+      d = itemCard(it, price, buySel === it);
+    if (game.P.gold < price) d.classList.add('poor');
     d.onclick = () => {
       buySel = it;
       renderShop(v);
@@ -239,24 +235,6 @@ const sellPick = new Set<object>();
 const junkR = [true, true, false]; // bulk sale: common, uncommon, rare
 /** Would equipping `it` make the hero stronger? (never sold in bulk; marked with ▲) */
 const isUpgrade = (it) => compareItem(it).overall > 0.005;
-/** Card overlays shared by both tabs: power change vs worn (top-left), level and price (bottom). */
-function cardTags(it, price: number) {
-  const pc = Math.round(compareItem(it).overall * 100),
-    tag =
-      pc > 0
-        ? '<i class="pct up" title="Better than what you wear">▲' + pc + '%</i>'
-        : pc < 0
-          ? '<i class="pct down" title="Weaker than what you wear">▼' + -pc + '%</i>'
-          : '';
-  return (
-    tag +
-    '<span class="foot"><i class="lv">Lv' +
-    it.lvl +
-    '</i><b class="price">' +
-    price.toLocaleString('en-US') +
-    '</b></span>'
-  );
-}
 function renderSell(v, body) {
   const f = SELL_FILTERS.find((x) => x[0] === sellFilter)[2],
     items = game.P.inv.filter(f).sort(SELL_SORTS.find((x) => x[0] === sellSort)[2]);
@@ -290,12 +268,9 @@ function renderSell(v, body) {
   // grid
   const grid = body.querySelector('#sGrid');
   for (const it of items) {
-    const d = document.createElement('div');
-    const on = sellMulti ? sellPick.has(it) : shopSel === it;
-    d.className = 'cell scell' + (on ? ' sel' : '') + (sellMulti ? ' multi' : '');
-    d.style.borderColor = RAR[it.r].c;
-    d.appendChild(iconCanvas(it));
-    d.insertAdjacentHTML('beforeend', cardTags(it, it.val));
+    const on = sellMulti ? sellPick.has(it) : shopSel === it,
+      d = itemCard(it, it.val, on);
+    if (sellMulti) d.classList.add('multi');
     if (sellMulti) d.insertAdjacentHTML('beforeend', '<i class="tick">' + (on ? '✓' : '') + '</i>');
     d.onclick = (e: MouseEvent) => {
       if (!sellMulti && (e.ctrlKey || e.metaKey || e.shiftKey)) {
