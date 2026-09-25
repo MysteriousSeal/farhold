@@ -127,17 +127,7 @@ export function genDungeon(key, lvl, b) {
   }
   D.exit = { x: start.cx * T + T / 2, y: start.cy * T + T / 2 };
   D.chest = { x: end.cx * T + T / 2, y: end.cy * T + T / 2 - 30, open: false };
-  D.mini = mkCanvas(GW, GH);
-  const mc = D.mini.getContext('2d'),
-    im = mc.createImageData(GW, GH);
-  for (let i = 0; i < GW * GH; i++) {
-    const f = gr[i];
-    im.data[i * 4] = f ? 140 : 30;
-    im.data[i * 4 + 1] = f ? 128 : 24;
-    im.data[i * 4 + 2] = f ? 150 : 40;
-    im.data[i * 4 + 3] = 255;
-  }
-  mc.putImageData(im, 0, 0);
+  D.grid = gr; // floor cells, for the minimap
   return D;
 }
 export function genDungeonChunk(D, cx, cy) {
