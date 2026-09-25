@@ -119,7 +119,7 @@ export function genDungeon(key, lvl, b) {
       const px = (r.x + 1 + rnd() * (r.w - 2)) * T,
         py = (r.y + 1 + rnd() * (r.h - 2)) * T;
       D.props.push({
-        k: pick(['bones', 'barrel', 'crate', 'bones', 'web', 'rubble']),
+        k: pick(['bones', 'barrel', 'crate', 'remains', 'web', 'rubble']),
         x: px,
         y: py,
       });

@@ -570,6 +570,88 @@ export function buildSprites() {
     },
     4,
   );
+  // scattered remains: a ribcage on its side, a thigh bone and small bones, no skull
+  const ribcage = (x, cx: number, cy: number) => {
+    x.save();
+    x.translate(cx, cy);
+    const ribs = new Path2D(),
+      spine = new Path2D();
+    // curved ribs hanging from the spine, shortening toward both ends
+    // each rib arcs up from the spine and bends back over it, like a cage lying on its side
+    for (let i = 0; i < 5; i++) {
+      const sx = -10 + i * 4.8,
+        len = [8, 11, 12.5, 12, 9.5][i];
+      ribs.moveTo(sx, -1);
+      ribs.bezierCurveTo(sx + 6, -1 - len * 0.15, sx + 7, -1 - len * 0.9, sx + 1, -1 - len);
+    }
+    spine.moveTo(-13, 0.4);
+    spine.quadraticCurveTo(0, 1.8, 14, -0.4);
+    x.lineCap = 'round';
+    x.lineJoin = 'round';
+    // one outline pass for the whole silhouette, then the bone colour
+    x.strokeStyle = OUT;
+    x.lineWidth = 2.4 + OW * 2;
+    x.stroke(ribs);
+    x.lineWidth = 3.4 + OW * 2;
+    x.stroke(spine);
+    x.strokeStyle = BONE;
+    x.lineWidth = 2.4;
+    x.stroke(ribs);
+    x.strokeStyle = BSH;
+    x.lineWidth = 3.4;
+    x.stroke(spine);
+    // vertebra notches along the spine
+    x.strokeStyle = 'rgba(90,70,50,.45)';
+    x.lineWidth = 0.7;
+    for (let i = 0; i < 6; i++) {
+      const vx = -9 + i * 4;
+      x.beginPath();
+      x.moveTo(vx, -1.2);
+      x.lineTo(vx, 1.6);
+      x.stroke();
+    }
+    // highlight on the ribs' outer curves
+    x.strokeStyle = 'rgba(255,255,255,.55)';
+    x.lineWidth = 0.8;
+    for (let i = 1; i < 4; i++) {
+      const sx = -10 + i * 4.8;
+      x.beginPath();
+      x.moveTo(sx + 3, -2.6);
+      x.quadraticCurveTo(sx + 5.2, -5, sx + 4.8, -8);
+      x.stroke();
+    }
+    x.restore();
+  };
+  const vertebra = (x, cx: number, cy: number) => {
+    x.fillStyle = OUT;
+    x.beginPath();
+    x.ellipse(cx, cy, 2.6 + OW, 1.8 + OW, 0, 0, TAU);
+    x.fill();
+    x.fillStyle = BONE;
+    x.beginPath();
+    x.ellipse(cx, cy, 2.6, 1.8, 0, 0, TAU);
+    x.fill();
+    x.fillStyle = BSH;
+    x.beginPath();
+    x.ellipse(cx + 0.3, cy + 0.5, 1, 0.7, 0, 0, TAU);
+    x.fill();
+  };
+  SPR.remains = makeSpr(
+    76,
+    40,
+    38,
+    32,
+    (x) => {
+      shadow(x, 0, 0, 30, 6, 0.26);
+      ribcage(x, -12, -3);
+      bone(x, 20, -6, 22, -0.3, 3.8); // thigh bone
+      bone(x, 10, 2, 10, 0.4, 2.6); // small arm bones
+      bone(x, 30, 1, 8, 1.3, 2.3);
+      vertebra(x, -29, 1);
+      vertebra(x, 4, 2.5);
+    },
+    4,
+  );
   SPR.log = makeSpr(56, 26, 28, 22, (x) => {
     shadow(x, 0, 0, 22, 5, 0.22);
     rr(x, -22, -14, 40, 12, 6, '#8a5a36');

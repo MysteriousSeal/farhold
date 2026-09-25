@@ -450,8 +450,8 @@ export function drawProp(c, p, t) {
     c.moveTo(9, -18);
     c.lineTo(-9, -2);
     c.stroke();
-  } else if (k === 'bones') {
-    const s = SPR.bones;
+  } else if (k === 'bones' || k === 'remains') {
+    const s = SPR[k];
     c.drawImage(s.c, -s.ax, -s.ay, s.w, s.h);
   } else if (k === 'web') {
     // cobweb: irregular spokes, sagging spiral threads, a torn strand, dewdrops, maybe a spider

@@ -396,6 +396,7 @@ function finishGen(G) {
           else if (q < 0.17) d = 'drybush';
           else if (q < 0.19) d = 'skull';
           else if (q < 0.2) d = 'palm';
+          else if (q < 0.212) d = q < 0.206 ? 'bones' : 'remains';
           break;
         case 4:
           if (q < 0.25) d = 'snowpine';
@@ -412,7 +413,7 @@ function finishGen(G) {
         case 6:
           if (q < 0.14) d = 'blighttree';
           else if (q < 0.24) d = 'crystal';
-          else if (q < 0.3) d = 'bones';
+          else if (q < 0.3) d = q < 0.27 ? 'bones' : 'remains';
           else if (q < 0.35) d = 'blightrock';
           break;
       }
