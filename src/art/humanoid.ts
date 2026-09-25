@@ -5,6 +5,7 @@ import {
   femTop,
   femTorso,
   hairBack,
+  hairBlend,
   hairFront,
   hairLocks,
   hairTop,
@@ -165,7 +166,9 @@ export function drawHumanoid(c, x, y, o) {
     }
   }
   // long hair behind
-  if (L.hair === 1 && !L.hood && !L.helm && !L.cowl) {
+  if (L.hair === 1 && !up && !side && !L.hood && !L.cowl) {
+    // (from behind and from the side it falls over the back instead: see hairFront)
+    // long hair hangs below a helmet too
     rr(
       c,
       side ? -12 : diag ? (up ? -10 : -12) : -11,
@@ -176,7 +179,7 @@ export function drawHumanoid(c, x, y, o) {
       tint(L.hairC),
     );
   }
-  if (L.hair === 2 && (up || side || diag) && !L.hood && !L.cowl) {
+  if (L.hair === 2 && !up && (side || diag) && !L.hood && !L.cowl) {
     c.fillStyle = tint(L.hairC);
     c.beginPath();
     c.ellipse(
@@ -456,7 +459,11 @@ export function drawHumanoid(c, x, y, o) {
       c.fillStyle = shaved(L) ? mixCol(tint(L.hairC), skin, 0.6) : tint(L.hairC);
       c.beginPath();
       if (up) c.rect(-HR, hy - HR, HR * 2, HR * 2);
-      else if (side) {
+      else if (shaved(L) && !side) {
+        // buzz cut / mohawk: a straight hairline, no fringe
+        c.rect(-HR, hy - HR, HR * 2, HR - 4.5);
+        if (fd) c.rect(-HR, hy - 5, HR - 4.5, HR + 5);
+      } else if (side) {
         c.moveTo(-HR, hy + HR);
         c.lineTo(-HR, hy - HR);
         c.lineTo(HR, hy - HR);
@@ -542,6 +549,7 @@ export function drawHumanoid(c, x, y, o) {
     c.beginPath();
     c.arc(0, hy, HR, 0, TAU);
     c.stroke();
+    if (L.hairC) hairBlend(c, L, hy, V, tint(L.hairC)); // (the helmet is drawn over it)
     if (L.hairC) hairTop(c, L, hy, V, tint(L.hairC), lw);
     if (!up) {
       const ec = L.eyes || OUT;

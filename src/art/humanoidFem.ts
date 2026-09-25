@@ -15,7 +15,8 @@ export function hairBack(c: Ctx, L, hy: number, v: View, col: string) {
   if (L.hood || L.cowl) return;
   const { up, side, diag } = v;
   c.fillStyle = col;
-  if (L.hair === 4 && !L.helm) {
+  if (L.hair === 4) {
+    // (also below a helmet)
     // bob: a rounded cut ending at the jaw
     const x0 = side ? -12 : diag ? (up ? -11 : -12.5) : -12.5,
       w = side ? 14 : diag ? 22 : 25;
@@ -32,12 +33,14 @@ export function hairBack(c: Ctx, L, hy: number, v: View, col: string) {
     }
     c.fillStyle = '#c8423a';
     c.fillRect(bx - 2.2 - (side ? 3 : 0), hy + 25, 4.4, 2);
-  } else if (L.hair === 9 && !L.helm) {
-    // curly: a halo of curls around the head (longer for women)
+  } else if (L.hair === 9) {
+    // curly: a halo of curls around the head (longer for women); under a helmet only the
+    // curls below its rim show
     const n = L.fem ? 11 : 8,
       reach = L.fem ? 1.25 : 0.72; // how far round the sides the curls go (× π)
     for (let k = 0; k < n; k++) {
       const a = -Math.PI / 2 - Math.PI * reach + (k / (n - 1)) * Math.PI * reach * 2;
+      if (L.helm && Math.sin(a) < -0.05) continue;
       c.beginPath();
       c.arc(Math.cos(a) * 9.8, hy + Math.sin(a) * 9.8 + (L.fem ? 1 : 0), 4.2, 0, TAU);
       c.fillStyle = k % 2 ? sh(col, -0.1) : col;
@@ -80,6 +83,77 @@ export function hairBack(c: Ctx, L, hy: number, v: View, col: string) {
     }
   }
 }
+/**
+ * Outline of long hair falling over the back, from the side or from behind. Its outer edges
+ * leave the head exactly at the widest point of the head (where the head's edge is vertical),
+ * so the head and the hair form one smooth silhouette; its top edge runs inside the head.
+ * `dx` shifts it to line up with the head (the head is nudged in 3/4 views).
+ */
+function longPath(L, hy: number, v: View, dx = 0) {
+  const p = new Path2D(),
+    R = 10.5,
+    bot = hy + (L.fem ? (v.side ? 23 : 24) : v.side ? 19 : 20),
+    x = (n: number) => n + dx;
+  if (v.side) {
+    // from the back of the head over the shoulder; the inner edge tucks in toward the neck
+    p.moveTo(x(-R), hy);
+    p.quadraticCurveTo(x(-R), hy + 10, x(-11), bot - 3);
+    p.quadraticCurveTo(x(-9), bot + 1, x(-6), bot - 1);
+    p.quadraticCurveTo(x(-4), bot + 1, x(-2.5), bot - 3);
+    p.quadraticCurveTo(x(-3), hy + 13, x(-2), hy + 9);
+    p.lineTo(x(-4), hy - 4);
+  } else {
+    // a curtain whose sides flare very slightly toward an uneven tip
+    const m = x(0);
+    p.moveTo(x(-R), hy);
+    p.lineTo(x(-6), hy - 6);
+    p.lineTo(x(6), hy - 6);
+    p.lineTo(x(R), hy);
+    p.quadraticCurveTo(x(R), hy + 10, x(R + 0.8), bot - 4);
+    p.quadraticCurveTo(x(R - 1.5), bot + 1, m + 3, bot - 1);
+    p.quadraticCurveTo(m, bot + 2, m - 3, bot - 1);
+    p.quadraticCurveTo(x(-R + 1.5), bot + 1, x(-R - 0.8), bot - 4);
+    p.quadraticCurveTo(x(-R), hy + 10, x(-R), hy);
+  }
+  p.closePath();
+  return p;
+}
+/**
+ * After the head is drawn: long hair flows out of the head with no seam. The part of the head
+ * inside the hanging hair (and its outline) is repainted in the hair colour, then the strands
+ * are drawn over both.
+ */
+export function hairBlend(c: Ctx, L, hy: number, v: View, col: string) {
+  if (L.hair !== 1 || L.hood || L.cowl || !(v.side || v.up)) return;
+  const p = longPath(L, hy, v),
+    bot = hy + (L.fem ? 23 : 19);
+  c.save();
+  c.clip(p);
+  c.fillStyle = col;
+  c.beginPath();
+  c.arc(0, hy, 12, 0, TAU);
+  c.fill();
+  c.restore();
+  // the hair's own outline only outside the head: no seam anywhere inside it
+  c.save();
+  c.beginPath();
+  c.rect(-40, hy - 40, 80, 90);
+  c.arc(0, hy, 10.5, 0, TAU);
+  c.clip('evenodd');
+  c.stroke(p);
+  c.restore();
+  c.strokeStyle = sh(col, -0.3);
+  c.lineWidth = 1;
+  const xs = v.side ? [-8.5, -5.5] : [-5.8, 0, 5.8];
+  for (const [i, sx] of xs.entries()) {
+    const k = v.side ? 0 : i - (xs.length - 1) / 2;
+    c.beginPath();
+    c.moveTo(sx, hy + 8);
+    c.quadraticCurveTo(sx + k * 1.5 - (v.side ? 1 : 0), hy + 14, sx + k * 0.8, bot - 3);
+    c.stroke();
+  }
+  c.strokeStyle = OUT;
+}
 /** Shaved sides for the buzz cut and mohawk: the hair is a faint shadow over the skin. */
 export const shaved = (L) => L.hair === 7 || L.hair === 8;
 /**
@@ -99,9 +173,9 @@ function curlsOver(c: Ctx, L, hy: number, v: View, col: string) {
       else if (v.up)
         keep = x < 5 || y < -4; // back 3/4: most of the head
       else if (v.side)
-        keep = x < 0 || y < -6; // back half and the crown
+        keep = (x < 0 && y < 6) || y < -6; // back half and the crown
       else if (v.diag)
-        keep = x < -3.5 || y < -6.5; // front 3/4: behind the ear and the crown
+        keep = (x < -4 && y < 3) || y < -6.5; // front 3/4: behind the ear, the crown
       else keep = y < -5.5; // front: fringe along the hairline
       if (keep) pts.push([x, y]);
     }
@@ -179,14 +253,39 @@ export function hairTop(c: Ctx, L, hy: number, v: View, col: string, lw: number)
     c.closePath();
     c.fillStyle = col;
     c.fill();
-    c.lineWidth = 1.4;
+    // a soft darker edge like the other hair inside the head (a black line reads as a band)
+    c.strokeStyle = sh(col, -0.3);
+    c.lineWidth = 1;
     c.stroke();
+    c.strokeStyle = OUT;
   }
 }
 /** Hair in front of the body: the braid over the shoulder (front view) or down the back (rear views). */
 export function hairFront(c: Ctx, L, hy: number, v: View, col: string, lw: number) {
-  if (L.hair !== 5 || L.hood || L.cowl) return;
+  if (L.hood || L.cowl) return;
   c.lineWidth = lw;
+  if (L.hair === 1 && (v.side || v.up)) {
+    // long hair falling over the back (side and rear views); strands are added by hairBlend
+    // drawn before the head, which is nudged by +1 in 3/4 views: line up with it
+    const p = longPath(L, hy, v, v.diag ? 1 : 0);
+    c.fillStyle = col;
+    c.fill(p);
+    c.stroke(p);
+    return;
+  }
+  if (L.hair === 2 && v.up) {
+    // ponytail seen from behind: tied at the nape, hanging over the back
+    const bx = v.diag ? -1 : 0;
+    c.beginPath();
+    c.ellipse(bx, hy + 13, 3.6, 7.5, 0, 0, TAU);
+    c.fillStyle = col;
+    c.fill();
+    c.stroke();
+    c.fillStyle = sh(col, -0.25);
+    c.fillRect(bx - 2.4, hy + 6.5, 4.8, 2);
+    return;
+  }
+  if (L.hair !== 5) return;
   if (v.up) {
     // seen from behind: the braid hangs down the middle of the back
     const bx = v.diag ? -1 : 0;
