@@ -1,5 +1,5 @@
-import { shadow } from '../core/dom';
-import { OUT, TAU, sh } from '../core/math';
+import { shadow } from '../../core/dom';
+import { OUT, TAU, sh } from '../../core/math';
 /* ================= ART: wolves ================= */
 // A lean wolf in three facings (side, front, back): two-tone fur (darker back, pale belly and
 // muzzle), a fur ruff around the neck, a bushy light-tipped tail and a trotting leg cycle.

@@ -1,5 +1,5 @@
-import { shadow } from '../core/dom';
-import { OUT, TAU, sh } from '../core/math';
+import { shadow } from '../../core/dom';
+import { OUT, TAU, sh } from '../../core/math';
 /* ================= ART: boars ================= */
 // A heavy, low boar in three facings (side, front, back): barrel body with a shoulder hump,
 // a dark bristle mane along the spine, a wedge head with a pink snout disc and curved tusks,

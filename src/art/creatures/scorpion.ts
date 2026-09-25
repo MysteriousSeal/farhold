@@ -1,5 +1,5 @@
-import { shadow } from '../core/dom';
-import { OUT, TAU, sh } from '../core/math';
+import { shadow } from '../../core/dom';
+import { OUT, TAU, sh } from '../../core/math';
 /* ================= ART: scorpions ================= */
 // An armoured scorpion in three facings (side, front, back): a carapace with eye clusters,
 // a segmented abdomen of overlapping plates, jointed legs that scuttle, big pincers that snap
