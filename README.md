@@ -27,8 +27,9 @@ Everything is drawn in code: there are no image or sound files. The art is vecto
 | Skills                          | `1`, `2`             | Skill buttons                       |
 | Drink a potion                  | `Q`                  | Potion button                       |
 | Interact (shops, chests, caves) | `E`                  | Action button                       |
-| Bag                             | `I`                  | **Bag**                             |
-| Skill tree                      | `C`                  | **Skills**                          |
+| Bags                            | `B` (or `I`)         | **Bags**                            |
+| Character sheet                 | `C`                  | **Hero**                            |
+| Skill tree                      | `K`                  | **Skills**                          |
 | Pause menu                      | `Esc`                | **Menu**                            |
 
 Red rings on the ground warn of heavy attacks. Roll out of them.

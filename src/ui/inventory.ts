@@ -2,14 +2,18 @@ import { drawHumanoid, drawWeapon, handPos, restAng } from '../art/humanoid';
 import { compareItem, fmtPct } from '../game/power';
 import { SFX } from '../audio/sfx';
 import { $ } from '../core/dom';
-import { MATS, RAR, SLOTS } from '../data/classes';
+import { CLS, MATS, RACE, RAR } from '../data/classes';
 import { BAGMAX } from '../game/drops';
 import { toast } from '../game/fx';
-import { itemName, salvageAll, salvageValue, salvageable } from '../game/items';
+import { gearScore, itemName, salvageAll, salvageValue, salvageable } from '../game/items';
 import { game } from '../game/state';
-import { calcStats } from '../game/stats';
-import { btn, hdr, iconCanvas, openModal, statLines, wireClose } from './modal';
-/* inventory */
+import { calcStats, xpNeed } from '../game/stats';
+import { btn, iconCanvas, openModal, statLines } from './modal';
+import { closeAll } from './screens';
+/* ================= CHARACTER SHEET & BAGS ================= */
+// Two independent windows shown side by side (stacked on phones): the character sheet (C) with
+// a front-facing portrait framed by the gear slots, and the bags (B / I).
+
 const pctSpan = (x: number) =>
   '<span class="' + (x < 0 ? 'dn' : 'up') + '">' + fmtPct(x) + '</span>';
 /** Headline "+14% overall" plus a damage / toughness breakdown for a bag item. */
@@ -26,86 +30,178 @@ export function powerLines(it, equipped: boolean) {
     '</div>'
   );
 }
-let selItem = null,
+
+let charOpen = false,
+  bagsOpen = false,
+  selItem = null,
   salvageArmed = false;
-export function openInv() {
-  if (game.state !== 'play') return;
-  selItem = null;
-  salvageArmed = false;
-  openModal('<div id="invroot"></div>');
-  game.state = 'inv';
-  renderInv();
-  $('#bagBtn').classList.remove('pulse');
-}
-function drawDoll() {
-  const cv2 = $('#invHero');
-  if (!cv2) return;
-  const x = cv2.getContext('2d');
-  x.clearRect(0, 0, 300, 300);
-  const w = game.P.eq.weapon,
-    poses = [
-      [0, 1, -62],
-      [1, 0, 62],
-    ];
-  for (const [dx, dy, ox] of poses) {
-    x.setTransform(2.7, 0, 0, 2.7, 150 + ox, 228);
-    const hp = handPos(dx, dy, false, 0, 0, game.P.race),
-      ang = restAng(hp, game.P.cls),
-      wd = () =>
-        drawWeapon(
-          x,
-          hp.x,
-          hp.y,
-          ang,
-          game.P.cls,
-          0,
-          w ? MATS[w.mat][1] : null,
-          w && w.r >= 2 ? RAR[w.r].c : null,
-          w ? w.style : 0,
-        );
-    if (hp.behind) wd();
-    drawHumanoid(x, 0, 0, { look: game.P.look, dx, dy, moving: false, walk: 0, time: 0 });
-    if (!hp.behind) wd();
+
+function open() {
+  if (!charOpen && !bagsOpen) {
+    closeAll();
+    return;
   }
-  x.setTransform(1, 0, 0, 1, 0, 0);
+  if (game.state !== 'inv') {
+    openModal('<div class="wins" id="wins"></div>');
+    game.state = 'inv';
+  }
+  $('#mp').classList.add('bare');
+  render();
 }
-function renderInv() {
-  const root = $('#invroot');
+/** B / I / Tab / bag button: show or hide the bags window. */
+export function toggleBags() {
+  if (game.state !== 'play' && game.state !== 'inv') return;
+  if (game.state === 'play') charOpen = false;
+  bagsOpen = game.state === 'play' ? true : !bagsOpen;
+  if (bagsOpen) salvageArmed = false;
+  $('#bagBtn').classList.remove('pulse');
+  open();
+}
+/** C / hero button: show or hide the character sheet. */
+export function toggleChar() {
+  if (game.state !== 'play' && game.state !== 'inv') return;
+  if (game.state === 'play') bagsOpen = false;
+  charOpen = game.state === 'play' ? true : !charOpen;
+  open();
+}
+/** Kept for callers that simply want the bags. */
+export const openInv = toggleBags;
+
+function winHead(title: string, sub: string, which: string) {
+  return (
+    '<div class="mh"><div><h2>' +
+    title +
+    '</h2>' +
+    (sub ? '<div class="desc">' + sub + '</div>' : '') +
+    '</div><button class="btn sm" data-win="' +
+    which +
+    '" aria-label="Close">✕</button></div>'
+  );
+}
+function render() {
+  const root = $('#wins');
   if (!root) return;
   root.innerHTML =
-    hdr('Inventory', '🪙 ' + game.P.gold + ' gold   🧪 ' + game.P.pot + ' potions') +
-    '<div class="invgrid"><div><div class="doll"><canvas id="invHero" width="300" height="300"></canvas></div><h3>Equipped</h3><div class="slots" id="iSlots"></div><div class="stats" id="iStats"></div></div><div><h3>Bag <span style="opacity:.6">' +
-    game.P.inv.length +
-    '/' +
-    BAGMAX +
-    '</span></h3><div class="bag" id="iBag"></div><div class="acts" id="iBulk"></div><div id="detail"></div></div></div>';
-  wireClose();
-  drawDoll();
-  const sl = $('#iSlots');
-  for (const k of SLOTS) {
-    const it = game.P.eq[k],
-      d = document.createElement('div');
-    d.className = 'cell' + (selItem && selItem.it === it && it ? ' sel' : '');
-    if (it) {
-      d.style.borderColor = RAR[it.r].c;
-      d.appendChild(iconCanvas(it));
-    }
-    const lb = document.createElement('span');
-    lb.className = 'lab';
-    lb.textContent = k;
-    d.appendChild(lb);
-    d.onclick = () => {
-      if (it) {
-        selItem = { it, eq: true };
-        renderInv();
-      }
+    (charOpen ? '<div class="win charw" id="wChar"></div>' : '') +
+    (bagsOpen ? '<div class="win bagsw" id="wBags"></div>' : '');
+  if (charOpen) renderChar();
+  if (bagsOpen) renderBags();
+  root.querySelectorAll('[data-win]').forEach((b: HTMLElement) => {
+    b.onclick = () => {
+      if (b.dataset.win === 'char') charOpen = false;
+      else bagsOpen = false;
+      open();
     };
-    sl.appendChild(d);
+  });
+}
+
+/* ---------- character sheet ---------- */
+function drawPortrait(cv: HTMLCanvasElement) {
+  const x = cv.getContext('2d'),
+    w = game.P.eq.weapon;
+  x.clearRect(0, 0, cv.width, cv.height);
+  x.setTransform(2 * 3.3, 0, 0, 2 * 3.3, cv.width / 2, cv.height - 26);
+  const hp = handPos(0, 1, false, 0, 0, game.P.race),
+    ang = restAng(hp, game.P.cls),
+    wd = () =>
+      drawWeapon(
+        x,
+        hp.x,
+        hp.y,
+        ang,
+        game.P.cls,
+        0,
+        w ? MATS[w.mat][1] : null,
+        w && w.r >= 2 ? RAR[w.r].c : null,
+        w ? w.style : 0,
+      );
+  drawHumanoid(x, 0, 0, { look: game.P.look, dx: 0, dy: 1, moving: false, walk: 0, time: 0 });
+  wd();
+  x.setTransform(1, 0, 0, 1, 0, 0);
+}
+const SLOT_ICON = { helm: '⛑', amulet: '📿', armor: '🥋', ring: '💍', boots: '👢', weapon: '⚔' };
+function slotCell(k: string) {
+  const it = game.P.eq[k],
+    d = document.createElement('div');
+  d.className = 'cell slot' + (selItem && selItem.eq && selItem.it === it && it ? ' sel' : '');
+  if (it) {
+    d.style.borderColor = RAR[it.r].c;
+    d.appendChild(iconCanvas(it));
+  } else {
+    const e = document.createElement('span');
+    e.className = 'empty';
+    e.textContent = SLOT_ICON[k];
+    d.appendChild(e);
   }
+  const lb = document.createElement('span');
+  lb.className = 'lab';
+  lb.textContent = k;
+  d.appendChild(lb);
+  d.title = it ? itemName(it) : 'Empty ' + k + ' slot';
+  d.onclick = () => {
+    if (!it) return;
+    selItem = { it, eq: true };
+    render();
+  };
+  return d;
+}
+function renderChar() {
+  const P = game.P,
+    need = xpNeed(P.lvl),
+    el = $('#wChar');
+  el.innerHTML =
+    winHead(P.name, 'Level ' + P.lvl + ' ' + RACE[P.race].n + ' ' + CLS[P.cls].n, 'char') +
+    '<div class="bar xp sheetxp"><i style="width:' +
+    Math.min(100, (P.xp / need) * 100).toFixed(1) +
+    '%"></i></div><div class="xpt">' +
+    Math.floor(P.xp) +
+    ' / ' +
+    need +
+    ' xp</div>' +
+    '<div class="sheet"><div class="scol" id="sLeft"></div><div class="portrait"><canvas id="sHero" width="440" height="500"></canvas></div><div class="scol" id="sRight"></div></div>' +
+    '<div class="wslot" id="sWeapon"></div>' +
+    '<div class="gs">Gear score <b>' +
+    gearScore(P.eq) +
+    '</b></div><div class="stats sheetstats" id="sStats"></div><div id="cdetail"></div>';
+  for (const k of ['helm', 'amulet', 'armor']) $('#sLeft').appendChild(slotCell(k));
+  for (const k of ['ring', 'boots']) $('#sRight').appendChild(slotCell(k));
+  $('#sWeapon').appendChild(slotCell('weapon'));
+  drawPortrait($('#sHero'));
+  $('#sStats').innerHTML = [
+    ['Health', Math.ceil(P.hp) + ' / ' + game.ST.hp],
+    ['Attack', game.ST.atk],
+    ['Armor', game.ST.def],
+    ['Crit chance', game.ST.crit + '%'],
+    ['Crit damage', '+' + game.ST.critd + '%'],
+    ['Attack speed', '+' + game.ST.aspd + '%'],
+    ['Speed', game.ST.spd],
+    ['Life steal', game.ST.leech + '%'],
+    ['Skill cooldown', '-' + game.ST.cdr + '%'],
+    ['Gold', P.gold],
+  ]
+    .map((r) => '<div>' + r[0] + ' <b>' + r[1] + '</b></div>')
+    .join('');
+  if (selItem && selItem.eq) renderDetail($('#cdetail'));
+}
+
+/* ---------- bags ---------- */
+function renderBags() {
+  const el = $('#wBags');
+  el.innerHTML =
+    winHead(
+      'Bags <span style="opacity:.6;font-size:20px">' +
+        game.P.inv.length +
+        '/' +
+        BAGMAX +
+        '</span>',
+      '🪙 ' + game.P.gold + ' gold   🧪 ' + game.P.pot + ' potions',
+      'bags',
+    ) +
+    '<div class="bag" id="iBag"></div><div class="acts" id="iBulk"></div><div id="detail"></div>';
   const bg = $('#iBag');
   game.P.inv.forEach((it) => {
     const d = document.createElement('div');
-    d.className = 'cell' + (selItem && selItem.it === it ? ' sel' : '');
+    d.className = 'cell' + (selItem && !selItem.eq && selItem.it === it ? ' sel' : '');
     d.style.borderColor = RAR[it.r].c;
     d.appendChild(iconCanvas(it));
     // overall change if this item were equipped
@@ -120,7 +216,7 @@ function renderInv() {
     d.onclick = () => {
       selItem = { it };
       salvageArmed = false;
-      renderInv();
+      render();
     };
     bg.appendChild(d);
   });
@@ -141,7 +237,7 @@ function renderInv() {
         () => {
           if (!salvageArmed) {
             salvageArmed = true;
-            renderInv();
+            render();
             return;
           }
           const r = salvageAll(game.P);
@@ -149,32 +245,21 @@ function renderInv() {
           if (selItem && !selItem.eq && !game.P.inv.includes(selItem.it)) selItem = null;
           SFX.coin();
           toast('Salvaged ' + r.count + ' items for ' + r.gold + ' gold');
-          renderInv();
+          render();
         },
         salvageArmed ? '' : 'alt',
       ),
     );
   } else salvageArmed = false;
-  $('#iStats').innerHTML = [
-    ['Level', game.P.lvl],
-    ['Health', Math.ceil(game.P.hp) + ' / ' + game.ST.hp],
-    ['Attack', game.ST.atk],
-    ['Armor', game.ST.def],
-    ['Crit chance', game.ST.crit + '%'],
-    ['Crit damage', '+' + game.ST.critd + '%'],
-    ['Attack speed', '+' + game.ST.aspd + '%'],
-    ['Speed', game.ST.spd],
-    ['Life steal', game.ST.leech + '%'],
-    ['Skill cooldown', '-' + game.ST.cdr + '%'],
-  ]
-    .map((r) => '<div>' + r[0] + ' <b>' + r[1] + '</b></div>')
-    .join('');
   const dt = $('#detail');
-  if (!selItem) {
+  if (selItem && !selItem.eq) renderDetail(dt);
+  else
     dt.innerHTML =
       '<span style="opacity:.75">Tap an item to inspect it. Badges show how much stronger (or weaker) it would make you.</span>';
-    return;
-  }
+}
+
+/* ---------- item details (equip / unequip / salvage) ---------- */
+function renderDetail(dt: HTMLElement) {
   const it = selItem.it,
     cur = selItem.eq ? null : game.P.eq[it.slot];
   dt.innerHTML =
@@ -205,7 +290,7 @@ function renderInv() {
         game.P.inv.push(it);
         selItem = null;
         calcStats();
-        renderInv();
+        render();
       }),
     );
   else {
@@ -218,7 +303,7 @@ function renderInv() {
         selItem = null;
         calcStats();
         SFX.pick();
-        renderInv();
+        render();
       }),
     );
     bx.appendChild(
@@ -229,7 +314,7 @@ function renderInv() {
           game.P.inv.splice(game.P.inv.indexOf(it), 1);
           selItem = null;
           SFX.coin();
-          renderInv();
+          render();
         },
         'alt',
       ),

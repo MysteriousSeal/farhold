@@ -2,7 +2,7 @@ import { audioInit } from '../audio/sfx';
 import { $, W, cv } from '../core/dom';
 import { drinkPot, heroRoll, useSkill } from '../game/combat';
 import { game } from '../game/state';
-import { openInv } from '../ui/inventory';
+import { toggleBags, toggleChar } from '../ui/inventory';
 import { openPause, openSkills } from '../ui/menus';
 import { closeAll } from '../ui/screens';
 /* ================= INPUT ================= */
@@ -19,24 +19,28 @@ addEventListener('keydown', (e) => {
       game.atkHeld = true;
       e.preventDefault();
     }
-    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyK') heroRoll();
+    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') heroRoll();
     if (e.code === 'KeyQ') drinkPot();
     if (e.code === 'Digit1' || e.code === 'KeyU') useSkill(1);
     if (e.code === 'Digit2' || e.code === 'KeyO') useSkill(2);
     if (e.code === 'KeyE' || e.code === 'KeyF') {
       if (game.interact) game.interact.act();
     }
-    if (e.code === 'KeyI' || e.code === 'Tab') {
+    if (e.code === 'KeyB' || e.code === 'KeyI' || e.code === 'Tab') {
       e.preventDefault();
-      openInv();
+      toggleBags();
     }
-    if (e.code === 'KeyC' || e.code === 'KeyT') {
-      openSkills();
-    }
+    if (e.code === 'KeyC') toggleChar();
+    if (e.code === 'KeyK' || e.code === 'KeyT') openSkills();
     if (e.code === 'Escape') openPause();
+  } else if (game.state === 'inv' && ['KeyB', 'KeyI', 'Tab', 'KeyC'].includes(e.code)) {
+    // bags and character sheet toggle independently while either is open
+    e.preventDefault();
+    if (e.code === 'KeyC') toggleChar();
+    else toggleBags();
   } else if (
     (game.state === 'inv' || game.state === 'modal') &&
-    (e.code === 'Escape' || e.code === 'KeyI' || e.code === 'Tab' || e.code === 'KeyC')
+    ['Escape', 'KeyB', 'KeyI', 'Tab', 'KeyC', 'KeyK', 'KeyT'].includes(e.code)
   ) {
     e.preventDefault();
     closeAll();
@@ -133,6 +137,7 @@ tbtn('#bS2', () => useSkill(2));
 tbtn('#bAct', () => {
   if (game.interact) game.interact.act();
 });
-$('#bagBtn').onclick = () => openInv();
+$('#bagBtn').onclick = () => toggleBags();
+$('#charBtn').onclick = () => toggleChar();
 $('#skillsBtn').onclick = () => openSkills();
 $('#menuBtn').onclick = () => openPause();

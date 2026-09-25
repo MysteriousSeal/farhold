@@ -13,6 +13,7 @@ export function openModal(html) {
   game.atkHeld = false;
   joy.id = null;
   joy.x = joy.y = 0;
+  mp.classList.remove('bare');
   mp.innerHTML = html;
   showScreen('modal');
   setHud(false);

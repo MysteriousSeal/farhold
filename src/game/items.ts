@@ -130,6 +130,16 @@ export const itemStat = (it, k) => {
 export const itemName = (it) => (it.plus ? '+' + it.plus + ' ' : '') + it.name;
 export const upCost = (it) =>
   Math.round((20 + it.lvl * 12) * RAR[it.r].m * Math.pow(1.45, it.plus || 0));
+/**
+ * Gear score: one number that grows as you gear up. Each equipped item adds its item level
+ * times a rarity factor (Common 1 … Legendary 2.2), +10% per blacksmith upgrade.
+ */
+export const gearScore = (eq) =>
+  Object.values(eq).reduce(
+    (a: number, it: any) =>
+      a + (it ? Math.round(it.lvl * 10 * RAR[it.r].m * (1 + 0.1 * (it.plus || 0))) : 0),
+    0,
+  ) as number;
 /** Salvaging an item yields half its merchant value. */
 export const salvageValue = (it) => Math.ceil(it.val / 2);
 /** Rarity at and above which bulk salvage keeps items (Epic, Legendary). */
