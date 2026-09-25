@@ -1774,3 +1774,25 @@ input.txt {
     gap: 6px;
   }
 }
+
+/* health potion slot on the skill bar: its count in the corner */
+.kpot .ic svg {
+  width: 30px;
+  height: 30px;
+}
+.kpot .pn {
+  position: absolute;
+  right: 5px;
+  bottom: 3px;
+  font: 800 14px var(--f);
+  color: #fff3d0;
+  text-shadow:
+    0 0 2px #241a2e,
+    0 1px 2px #241a2e,
+    1px 0 2px #241a2e,
+    -1px 0 2px #241a2e;
+  z-index: 2;
+}
+.kpot {
+  cursor: pointer;
+}

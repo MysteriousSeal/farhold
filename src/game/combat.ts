@@ -295,7 +295,13 @@ export function useSkill(n) {
     SFX.zap();
   }
 }
+/** Seconds before another potion can be drunk. */
+export const POT_CD = 10;
 export function drinkPot() {
+  if (hero.potCd > 0) {
+    toast('Potion ready in ' + Math.ceil(hero.potCd) + 's');
+    return;
+  }
   if (game.P.pot <= 0) {
     toast('No potions left');
     return;
@@ -305,6 +311,7 @@ export function drinkPot() {
     return;
   }
   game.P.pot--;
+  hero.potCd = POT_CD;
   const h = Math.round(game.ST.hp * 0.45);
   game.P.hp = Math.min(game.ST.hp, game.P.hp + h);
   SFX.pot();

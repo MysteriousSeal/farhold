@@ -7,6 +7,7 @@ import { clamp } from '../core/math';
 import { SKILLCD, pointsFree, rank, skillTree } from '../data/skills';
 import { game, hero } from '../game/state';
 import { xpNeed } from '../game/stats';
+import { POT_CD } from '../game/combat';
 import { isTouch } from '../input/input';
 import { mini } from '../render/minimap';
 import { QMAX, activeQuests, trackedQuests } from '../game/quests';
@@ -70,6 +71,13 @@ export function updHud() {
   $('#gdt').textContent = fmt(game.P.gold);
   $('#ptt').textContent = game.P.pot;
   $('#ptt2').textContent = game.P.pot;
+  $('#ptt3').textContent = game.P.pot;
+  // potion slot: cooldown sweep, dimmed when none are left
+  for (const id of ['#ksPot', '#bPot']) {
+    const b = $(id);
+    b.style.setProperty('--cd', (Math.max(0, hero.potCd) / POT_CD) * 360 + 'deg');
+    b.classList.toggle('locked', game.P.pot <= 0);
+  }
   const wp = heroWorldPos();
   $('#dgt').textContent = String(game.mode === 'dungeon' ? game.DG.lvl : dangerAt(wp.x, wp.y));
   drawPortrait();

@@ -67,6 +67,7 @@ export const hero = {
   lastAtk: 0,
   comboSw: 0,
   scd: [0, 0],
+  potCd: 0, // seconds until another potion can be drunk
   whirl: 0,
   whirlTick: 0,
   leap: null,

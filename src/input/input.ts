@@ -143,4 +143,5 @@ $('#bagBtn').onclick = () => toggleBags();
 $('#charBtn').onclick = () => toggleChar();
 $('#skillsBtn').onclick = () => openSkills();
 $('#questBtn').onclick = () => openJournal();
+$('#ksPot').onclick = () => drinkPot();
 $('#menuBtn').onclick = () => openPause();

@@ -78,6 +78,7 @@ function updateHero(dt) {
   hero.inv -= dt;
   hero.slow -= dt;
   hero.scd[0] -= dt;
+  hero.potCd -= dt;
   hero.scd[1] -= dt;
   if (hero.atk > 0) hero.atk -= dt / (heroStyle() === 'warrior' ? 0.2 : 0.18);
   if (hero.leap) {
