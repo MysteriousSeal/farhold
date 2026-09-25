@@ -1,3 +1,4 @@
+import { clearBonusXp } from '../game/dungeons';
 import { $, W } from '../core/dom';
 import { clamp } from '../core/math';
 import { SKILLCD, TREES, pointsFree, rank } from '../data/skills';
@@ -65,7 +66,15 @@ export function updHud() {
     db.style.display = 'block';
     db.classList.toggle('done', pct >= 100);
     db.classList.toggle('low', bossOn);
-    $('#dgn').textContent = D.name + ' · Cleared ' + pct + '%';
+    const first = !game.P.dgClear[D.poiKey];
+    $('#dgn').textContent =
+      D.name +
+      ' · Cleared ' +
+      pct +
+      '% · ' +
+      (D.bonus
+        ? '+' + D.bonusXp + ' xp earned'
+        : 'Reward ' + clearBonusXp(D.lvl, first) + ' xp' + (first ? '' : ' (repeat)'));
     $('#dgf').style.width = pct + '%';
   } else db.style.display = 'none';
   const bars = (bossOn ? 1 : 0) + (db.style.display === 'block' ? 1 : 0);

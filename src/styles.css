@@ -938,7 +938,7 @@ input.txt {
   left: 50%;
   transform: translateX(-50%);
   top: calc(env(safe-area-inset-top) + 8px);
-  width: min(360px, calc(100vw - 150px));
+  width: min(460px, calc(100vw - 150px));
   display: none;
   z-index: 6;
   pointer-events: none;

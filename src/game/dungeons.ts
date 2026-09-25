@@ -134,6 +134,7 @@ export function dungeonKill() {
   const first = !game.P.dgClear[D.poiKey];
   game.P.dgClear[D.poiKey] = 1;
   const xp = clearBonusXp(D.lvl, first);
+  D.bonusXp = xp;
   gainXp(xp);
   SFX.quest();
   banner(D.name + ' cleared', '+' + xp + ' xp bonus' + (first ? '' : ' (repeat clear)'));
