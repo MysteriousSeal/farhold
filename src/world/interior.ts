@@ -140,7 +140,7 @@ export function genInterior(v, h, idx: number): Interior {
     2,
     Math.min(w - 1, Math.round((w + 1) / 2 + (h.door || 0) * Math.round(w * 0.22))),
   );
-  grid[at(doorCx, GH - 1)] = 1;
+  // the doorway stays solid: the door is closed, you leave with 'Go outside' on the doormat
   // rooms: partition walls with 2-row doorways
   const nRooms = kind === 'hall' ? 1 : ri(S.rooms[0], S.rooms[1]),
     parts: number[] = [],
