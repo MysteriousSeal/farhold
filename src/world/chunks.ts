@@ -115,6 +115,22 @@ function stepGen(G, steps) {
           let r = col[0],
             gg = col[1],
             bb = col[2];
+          if (t <= 1 && h < 0.4) {
+            // open water: swamp water fades softly into the neighbouring water instead of
+            // ending on a hard, blocky biome edge
+            const ws = clamp((v[1] - 0.575) / 0.03, 0, 1) * clamp((v[2] - 0.415) / 0.03, 0, 1),
+              qo = classify(h, Math.min(v[1], 0.58), v[2], c, v[3], v[4]) & 7;
+            if (ws > 0 && ws < 1 && qo !== 4 && qo !== 3) {
+              const sc = groundF(t, 5, h, c, v[5], v[6], v[7], v[8], v[9], v[4]),
+                sr = sc[0],
+                sg = sc[1],
+                sb = sc[2],
+                oc = groundF(t, qo, h, c, v[5], v[6], v[7], v[8], v[9], v[4]);
+              r = oc[0] + (sr - oc[0]) * ws;
+              gg = oc[1] + (sg - oc[1]) * ws;
+              bb = oc[2] + (sb - oc[2]) * ws;
+            }
+          }
           for (let n = 0; n < HT.length; n++) {
             const dd = h - HT[n];
             if (dd > -AE && dd < AE) {

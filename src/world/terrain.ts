@@ -99,7 +99,7 @@ export const COL = {
     [90, 164, 212],
     [92, 176, 226],
     [182, 222, 242],
-    [90, 112, 70],
+    [74, 136, 128], // murky swamp water (pools use POOL below)
     [86, 70, 124],
   ],
   0: [
@@ -108,13 +108,14 @@ export const COL = {
     [58, 112, 178],
     [58, 124, 196],
     [92, 142, 196],
-    [60, 82, 58],
+    [48, 100, 112],
     [48, 38, 86],
   ],
 };
-const _gc = [0, 0, 0];
+const _gc = [0, 0, 0],
+  POOL = [90, 112, 70];
 export function groundF(t, b, h, c, s1, s2, s3, s4, s5, sw) {
-  const a = COL[t][b];
+  const a = t === 1 && b === 5 && h >= 0.425 ? POOL : COL[t][b];
   let r = a[0],
     gg = a[1],
     bb = a[2],
