@@ -40,20 +40,23 @@ function startGen(cx, cy) {
 export const inPlace = (pois, x: number, y: number) =>
   pois.some((p) => Math.hypot(x - p.x, (y - p.y) * 1.15) < p.r + 20);
 /** How far (world units) a biome border blends into its neighbour on either side. */
-const BLEND_W = 12;
+const BLEND_W = 12,
+  BLEND_WATER = 20; // water is a big uniform surface: a longer fade looks natural
 const _soft = [0, 0, 0];
 /**
  * Soft biome borders on land: where another biome is within BLEND_W (judged from the local
  * gradients of moisture, temperature and blight, which are continuous across chunks), the
  * colour is a tent-weighted average of the biomes around, instead of a pixel staircase.
  */
-function softBorder(F, a, b2, c2, h, c, v, t, b, col) {
+function softBorder(F, a, b2, c2, h, c, v, t, b, col, W = BLEND_W) {
   const gm = Math.hypot(F[b2 + 1] - F[a + 1], F[c2 + 1] - F[a + 1]) / GS,
     gt = Math.hypot(F[b2 + 2] - F[a + 2], F[c2 + 2] - F[a + 2]) / GS,
     gb = Math.hypot(F[b2 + 3] - F[a + 3], F[c2 + 3] - F[a + 3]) / GS,
-    dm = gm * BLEND_W,
-    dt = gt * BLEND_W,
-    db = gb * BLEND_W;
+    dm = gm * W,
+    dt = gt * W,
+    db = gb * W,
+    // the blight corridor grows with distance from the centre (corr): vary it too
+    dc = c > 0 && c < 1 ? W / 7000 : 0;
   let near = false;
   for (const [sx, sy] of [
     [1, 1],
@@ -61,7 +64,10 @@ function softBorder(F, a, b2, c2, h, c, v, t, b, col) {
     [-1, 1],
     [-1, -1],
   ])
-    if ((classify(h, v[1] + sx * dm, v[2] + sy * dt, c, v[3] + sx * db, v[4]) & 7) !== b) {
+    if (
+      (classify(h, v[1] + sx * dm, v[2] + sy * dt, c + sy * dc, v[3] + sx * db, v[4]) & 7) !==
+      b
+    ) {
       near = true;
       break;
     }
@@ -79,7 +85,7 @@ function softBorder(F, a, b2, c2, h, c, v, t, b, col) {
         h,
         v[1] + (i / 2) * dm,
         v[2] + (k / 2) * dt,
-        c,
+        c + (k / 2) * dc,
         v[3] + (i / 2) * db,
         v[4],
       );
@@ -189,7 +195,8 @@ function stepGen(G, steps) {
             p = j * FN + i,
             o = p * 4;
           let col = groundF(t, b, h, c, v[5], v[6], v[7], v[8], v[9], v[4]);
-          if (t >= 2) col = softBorder(F, a, b2, c2, h, c, v, t, b, col);
+          // soft biome borders: on land, and wider across open water
+          col = softBorder(F, a, b2, c2, h, c, v, t, b, col, t <= 1 ? BLEND_WATER : BLEND_W);
           if (b === 3 && (t === 2 || t === 3)) col = desertSand(F, a, b2, c2, h, c, v, col);
           if (h > PEAK_H - 0.012) {
             const e = 3,
@@ -206,22 +213,6 @@ function stepGen(G, steps) {
           let r = col[0],
             gg = col[1],
             bb = col[2];
-          if (t <= 1 && h < 0.4) {
-            // open water: swamp water fades softly into the neighbouring water instead of
-            // ending on a hard, blocky biome edge
-            const ws = clamp((v[1] - 0.575) / 0.03, 0, 1) * clamp((v[2] - 0.415) / 0.03, 0, 1),
-              qo = classify(h, Math.min(v[1], 0.58), v[2], c, v[3], v[4]) & 7;
-            if (ws > 0 && ws < 1 && qo !== 4 && qo !== 3) {
-              const sc = groundF(t, 5, h, c, v[5], v[6], v[7], v[8], v[9], v[4]),
-                sr = sc[0],
-                sg = sc[1],
-                sb = sc[2],
-                oc = groundF(t, qo, h, c, v[5], v[6], v[7], v[8], v[9], v[4]);
-              r = oc[0] + (sr - oc[0]) * ws;
-              gg = oc[1] + (sg - oc[1]) * ws;
-              bb = oc[2] + (sb - oc[2]) * ws;
-            }
-          }
           for (let n = 0; n < HT.length; n++) {
             const dd = h - HT[n];
             if (dd > -AE && dd < AE) {

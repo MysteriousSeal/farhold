@@ -93,23 +93,24 @@ export const COL = {
     [92, 96, 88],
     [70, 58, 86],
   ],
+  // water is the same classic blue in every biome (tundra lakes are frozen)
   1: [
     [88, 170, 224],
-    [84, 160, 214],
-    [90, 164, 212],
-    [92, 176, 226],
+    [88, 170, 224],
+    [88, 170, 224],
+    [88, 170, 224],
     [182, 222, 242],
-    [74, 136, 128], // murky swamp water (pools use POOL below)
-    [86, 70, 124],
+    [88, 170, 224],
+    [88, 170, 224],
   ],
   0: [
     [58, 120, 192],
-    [54, 110, 180],
-    [58, 112, 178],
-    [58, 124, 196],
+    [58, 120, 192],
+    [58, 120, 192],
+    [58, 120, 192],
     [92, 142, 196],
-    [48, 100, 112],
-    [48, 38, 86],
+    [58, 120, 192],
+    [58, 120, 192],
   ],
 };
 const _gc = [0, 0, 0],
@@ -120,7 +121,8 @@ export function groundF(t, b, h, c, s1, s2, s3, s4, s5, sw) {
     gg = a[1],
     bb = a[2],
     s = 0;
-  if (b !== 6 && c > 0) {
+  if (b !== 6 && c > 0 && !(t <= 1 && !(t === 1 && b === 5 && h >= 0.425))) {
+    // the far corridor's purple tint is for land only (water keeps its blue)
     const q = c * 0.35;
     r = lerp(r, 110, q);
     gg = lerp(gg, 92, q);

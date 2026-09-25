@@ -133,20 +133,15 @@ function strokeStyle(st: Style, b: number, t: number): [string, number] {
       return b === 4 ? ['rgba(240,248,255,.9)', 2.6] : ['rgba(255,255,255,.2)', 2.2];
     case 'ripple': {
       const a = (0.2 + 0.16 * Math.sin(t * 1.7)).toFixed(3);
-      return [b === 5 ? 'rgba(215,235,190,' + a + ')' : 'rgba(255,255,255,' + a + ')', 1.8];
+      return ['rgba(255,255,255,' + a + ')', 1.8];
     }
     case 'surf':
       return ['rgba(255,255,255,' + (0.16 + 0.1 * Math.sin(t * 1.3)).toFixed(3) + ')', 5];
     case 'wet':
       return ['rgba(80,60,35,.24)', 2.8];
     case 'shore':
-      return b === 4
-        ? ['rgba(255,255,255,.95)', 2.6]
-        : b === 5
-          ? ['rgba(210,230,185,.85)', 3]
-          : b === 6
-            ? ['rgba(228,208,255,.85)', 3]
-            : ['rgba(250,253,255,.95)', 3.4];
+      // white foam everywhere; frozen lakes get a thin icy rim
+      return b === 4 ? ['rgba(255,255,255,.95)', 2.6] : ['rgba(250,253,255,.95)', 3.4];
     case 'grass':
       return [GRASS_EDGE[b], 3];
   }

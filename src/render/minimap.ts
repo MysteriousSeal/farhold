@@ -83,6 +83,9 @@ function bake(g): Snap {
       water.data[k * 4 + 3] = 255;
       neg[k] = -h;
     }
+  // soften biome borders: blend colours with the neighbouring samples (no staircases)
+  softenImg(land, w);
+  softenImg(water, w);
   const c = mkCanvas(S, S),
     x = c.getContext('2d'),
     img = (d: ImageData) => {
@@ -185,6 +188,37 @@ function bake(g): Snap {
     x.restore();
   }
   return { c, x: g.x, y: g.y };
+}
+/** Two passes of a 3×3 box blur over an RGBA image (w×w), in place. */
+function softenImg(img: ImageData, w: number) {
+  const d = img.data,
+    tmp = new Uint8ClampedArray(d.length);
+  for (let pass = 0; pass < 2; pass++) {
+    for (let j = 0; j < w; j++)
+      for (let i = 0; i < w; i++) {
+        let r = 0,
+          g = 0,
+          b = 0,
+          n = 0;
+        for (let dj = -1; dj <= 1; dj++)
+          for (let di = -1; di <= 1; di++) {
+            const x = i + di,
+              y = j + dj;
+            if (x < 0 || y < 0 || x >= w || y >= w) continue;
+            const k = (y * w + x) * 4;
+            r += d[k];
+            g += d[k + 1];
+            b += d[k + 2];
+            n++;
+          }
+        const k = (j * w + i) * 4;
+        tmp[k] = r / n;
+        tmp[k + 1] = g / n;
+        tmp[k + 2] = b / n;
+        tmp[k + 3] = 255;
+      }
+    d.set(tmp);
+  }
 }
 /** Draw the smoothed image again inside the current clip at `alpha` (sample-unit transform). */
 function drawSmoothIn(x, t, stepPx, w, alpha) {
