@@ -594,7 +594,11 @@ function prop(x: Ctx, kind: string, px: number, rnd: () => number) {
 }
 
 /* ---------- models ---------- */
-type Built = { wins: Win[]; smoke: { x: number; y: number } | null };
+type Built = {
+  wins: Win[];
+  smoke: { x: number; y: number } | null;
+  forgeAt?: { x: number; y: number };
+};
 function cottage(x: Ctx, h, rnd: () => number, B: Built) {
   const w = h.w,
     top = -46;
@@ -930,8 +934,152 @@ function hall(x: Ctx, h, rnd: () => number, B: Built) {
   rr(x, -5, top - 96, 10, 16, 2, sh(h.stone, 0.1));
   circ(x, 0, top - 84, 3.5, '#d9a83a');
 }
-const MODELS = { cottage, townhouse, stone: stoneCottage, hut, tower, hall };
-const WALL_TOP = { cottage: -46, townhouse: -76, stone: -40, hut: -32, tower: -98, hall: -70 };
+/**
+ * An anvil silhouette for the smithy sign: a thick flat face with a short tapering horn, a
+ * narrow waist and a wide foot. Spans -8k..11k across and -11k..0 up from (cx, by).
+ */
+function anvil(x: Ctx, cx: number, by: number, k = 1) {
+  const P = (px: number, py: number) => [cx + px * k, by + py * k];
+  x.beginPath();
+  x.moveTo(...(P(-8, -11) as [number, number]));
+  x.lineTo(...(P(5, -11) as [number, number]));
+  x.quadraticCurveTo(...(P(9, -11) as [number, number]), ...(P(11, -9.6) as [number, number]));
+  x.quadraticCurveTo(...(P(8, -8) as [number, number]), ...(P(4.5, -7.6) as [number, number]));
+  x.lineTo(...(P(2.2, -4.2) as [number, number]));
+  x.lineTo(...(P(5.5, 0) as [number, number]));
+  x.lineTo(...(P(-5.5, 0) as [number, number]));
+  x.lineTo(...(P(-2.2, -4.2) as [number, number]));
+  x.lineTo(...(P(-4.8, -7.6) as [number, number]));
+  x.lineTo(...(P(-8, -7.6) as [number, number]));
+  x.closePath();
+  x.fillStyle = '#4a4652';
+  x.fill();
+  x.stroke();
+  x.fillStyle = 'rgba(255,255,255,.35)';
+  x.fillRect(cx - 7 * k, by - 10.2 * k, 11 * k, 1.1 * k);
+}
+/** The village smithy: a stone forge-house with a wide glowing chimney, a heavy double door,
+ * an anvil sign, and an open lean-to with the outdoor forge. */
+function smithy(x: Ctx, h, rnd: () => number, B: Built) {
+  const w = h.w,
+    top = -50,
+    side = -(h.door || 1), // lean-to on the side away from the door
+    lx0 = side * (w / 2),
+    lx1 = side * (w / 2 + 30),
+    col = sh(h.stone, -0.08);
+  // lean-to: back wall, posts and a sloping roof
+  ink(x);
+  const L = Math.min(lx0, lx1),
+    R = Math.max(lx0, lx1);
+  rr(x, L, -34, R - L, 34, 1, sh(col, -0.25));
+  // the outdoor forge glowing under the lean-to
+  const fx = (lx0 + lx1) / 2;
+  rr(x, fx - 11, -16, 22, 16, 2, '#7a6a64');
+  x.fillStyle = '#ff8a2a';
+  x.fillRect(fx - 7, -13, 14, 5);
+  x.fillStyle = '#ffd24a';
+  x.fillRect(fx - 4, -12, 8, 2);
+  B.forgeAt = { x: fx, y: -10 };
+  for (const px of [lx1 - side * 2, lx0 + side * 2]) rr(x, px - 2, -36, 4, 36, 1, WOOD);
+  x.beginPath();
+  x.moveTo(lx0, -46);
+  x.lineTo(lx1 + side * 6, -32);
+  x.lineTo(lx1 + side * 6, -36);
+  x.lineTo(lx0, -52);
+  x.closePath();
+  x.fillStyle = sh(h.slate, -0.05);
+  x.fill();
+  x.stroke();
+  // main stone house
+  stoneWall(x, rnd, -w / 2, top, w, 50, col);
+  foundation(x, w, sh(col, -0.15));
+  eaveShadow(x, w, top, 7);
+  // heavy double door under a stone lintel
+  const dx = h.door * w * DOOR_F;
+  ink(x);
+  rr(x, dx - 17, -34, 34, 5, 1.5, sh(col, 0.12));
+  door(x, dx - 6.5, 12, 29, h.doorCol);
+  door(x, dx + 6.5, 12, 29, h.doorCol);
+  // a small window glowing with forge light
+  const wx = -h.door * w * 0.22;
+  ink(x);
+  rr(x, wx - 9, -33, 18, 14, 2, '#5a5048');
+  const gl = x.createLinearGradient(0, -31, 0, -21);
+  gl.addColorStop(0, '#ffb24a');
+  gl.addColorStop(1, '#e0602a');
+  x.fillStyle = gl;
+  x.fillRect(wx - 6.5, -30.5, 13, 9);
+  x.strokeStyle = '#5a5048';
+  x.lineWidth = 2;
+  x.beginPath();
+  x.moveTo(wx, -30.5);
+  x.lineTo(wx, -21.5);
+  x.stroke();
+  B.wins.push([wx - 6.5, -30.5, 13, 9]);
+  // slate roof
+  slateRoof(
+    x,
+    [
+      [-w / 2 - 9, top + 4],
+      [-w / 2 + 12, top - 40],
+      [w / 2 - 12, top - 40],
+      [w / 2 + 9, top + 4],
+    ],
+    h.slate,
+    top - 40,
+    top + 4,
+    h.snow,
+    rnd,
+    h,
+  );
+  // wide stone chimney over the forge side, glowing at the top
+  const cx = side * (w / 2 - 16);
+  ink(x);
+  rr(x, cx - 11, top - 62, 22, 44, 2, sh(col, -0.05));
+  x.save();
+  x.strokeStyle = 'rgba(40,30,40,.35)';
+  x.lineWidth = 1;
+  x.beginPath();
+  for (let yy = top - 56; yy < top - 20; yy += 7) {
+    x.moveTo(cx - 11, yy);
+    x.lineTo(cx + 11, yy);
+  }
+  x.stroke();
+  x.restore();
+  ink(x);
+  rr(x, cx - 13, top - 66, 26, 6, 1.5, '#5a5048');
+  x.fillStyle = '#ff9a3a';
+  x.fillRect(cx - 9, top - 64, 18, 2.4);
+  B.smoke = { x: cx, y: top - 68 };
+  // hanging sign with an anvil, on an iron bracket with two links
+  const sx = h.door * (w / 2 + 3),
+    bx = sx + h.door * 13,
+    k = 0.78;
+  ink(x, 1.8);
+  x.beginPath();
+  x.moveTo(sx, -47);
+  x.lineTo(sx + h.door * 26, -47);
+  x.moveTo(bx - 8, -47);
+  x.lineTo(bx - 8, -43);
+  x.moveTo(bx + 8, -47);
+  x.lineTo(bx + 8, -43);
+  x.stroke();
+  ink(x);
+  rr(x, bx - 12, -43, 24, 17, 2, '#b8844a');
+  ink(x, 1.1);
+  // the anvil's outline spans -8k..11k across and -11k..0 up: centre it on the plank
+  anvil(x, bx - 1.5 * k, -34.5 + 5.5 * k, k);
+}
+const MODELS = { cottage, townhouse, stone: stoneCottage, hut, tower, hall, smithy };
+const WALL_TOP = {
+  cottage: -46,
+  townhouse: -76,
+  stone: -40,
+  hut: -32,
+  tower: -98,
+  hall: -70,
+  smithy: -50,
+};
 
 /** Ivy climbing a house corner: a wavy stem with leaf pairs. */
 function ivy(x: Ctx, h) {
@@ -1036,18 +1184,20 @@ function paintHouse(c: Ctx, h) {
   c.lineCap = 'round';
   shadow(c, 0, 3, h.w / 2 + 16, 11, 0.3);
   MODELS[kind](c, h, rnd, B);
-  if (kind !== 'hall' && kind !== 'hut' && extra(h, 80) < 0.3) ivy(c, h);
-  if (kind !== 'hall' && kind !== 'tower' && extra(h, 90) < 0.3) garden(c, h);
+  const plain = kind !== 'hall' && kind !== 'smithy';
+  if (plain && kind !== 'hut' && extra(h, 80) < 0.3) ivy(c, h);
+  if (plain && kind !== 'tower' && extra(h, 90) < 0.3) garden(c, h);
   (h.props || []).forEach((pk, i) => {
     const side = i === 0 ? -h.door : h.door,
       px = side * (h.w / 2 + (i === 0 ? 16 : 22));
     prop(c, pk, px, rnd);
   });
-  if (kind !== 'hall' && extra(h, 95) < 0.2) cat(c, h);
+  if (plain && extra(h, 95) < 0.2) cat(c, h);
   c.restore();
   CUR = null;
   h.wins = B.wins;
   h.smokeAt = B.smoke;
+  h.forgeAt = B.forgeAt || null;
 }
 export function drawHouse(c, h, t, dark) {
   paintHouse(c, h);
@@ -1072,6 +1222,34 @@ export function drawHouse(c, h, t, dark) {
     c.restore();
     const w0 = h.wins[0];
     if (w0) addLight(h.x + w0[0] + w0[2] / 2, h.y + w0[1] + 6, 90, 0.6 * dark, '#ffb050');
+  }
+  if (h.forgeAt) {
+    // the lean-to forge: a flickering glow and the odd spark
+    const fx = h.x + h.forgeAt.x,
+      fy = h.y + h.forgeAt.y,
+      fl = 0.8 + Math.sin(t * 9) * 0.1 + Math.sin(t * 23) * 0.06;
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    const g = c.createRadialGradient(fx, fy, 2, fx, fy, 34);
+    g.addColorStop(0, 'rgba(255,150,60,' + ((0.28 + dark * 0.3) * fl).toFixed(3) + ')');
+    g.addColorStop(1, 'rgba(255,120,40,0)');
+    c.fillStyle = g;
+    c.fillRect(fx - 34, fy - 34, 68, 68);
+    c.restore();
+    if (dark > 0.15) addLight(fx, fy, 90, 0.7 * dark, '#ff9a4a');
+    if (Math.random() < 0.05)
+      game.parts.push({
+        x: fx + rand(-5, 5),
+        y: fy - 4,
+        vx: rand(-20, 20),
+        vy: rand(-60, -30),
+        life: 0.6,
+        max: 0.6,
+        col: '#ffd27a',
+        sz: 2,
+        g: 60,
+        glow: 1,
+      });
   }
   if (h.smokeAt && Math.random() < 0.06)
     game.parts.push({

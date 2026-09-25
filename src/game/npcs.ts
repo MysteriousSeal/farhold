@@ -101,7 +101,8 @@ export function drawNpc(c, n, t) {
     c.stroke();
     c.restore();
   }
-  if (n.role === 'smith') {
+  // the hammer only while working at the anvil (facing it, to his right)
+  if (n.role === 'smith' && !(n.dy > 0)) {
     const k = n.ham || 0,
       a = k < 0.25 ? -1.6 + k * 6 : k < 0.35 ? -0.1 : -0.1 - Math.min(1.5, (k - 0.35) * 2);
     const hp = handPos(1, 0, false, 0, t, '');

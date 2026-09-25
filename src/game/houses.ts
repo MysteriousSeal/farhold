@@ -7,7 +7,8 @@ import { zoom } from '../render/render';
 import { IT, genInterior, type Interior } from '../world/interior';
 import { DOOR_F } from '../world/poi';
 import { moveEnt, unstick } from './enemies';
-import { banner, doFade } from './fx';
+import { banner, burst, doFade } from './fx';
+import { openSmith } from '../ui/village';
 import { save } from './save';
 import { game, hero } from './state';
 /* ================= HOUSES: entering, residents, talking ================= */
@@ -103,6 +104,10 @@ export function updateHouse(dt: number) {
   const I = game.HS;
   if (!I) return;
   for (const n of I.npcs) {
+    if (n.role === 'smith') {
+      smithWork(n, dt);
+      continue;
+    }
     if (n.sayT > 0) {
       // walking out of talk range ends the line: the bubble fades out quickly
       if (Math.hypot(game.P.x - n.x, game.P.y - n.y - 6) > TALK_R) n.sayT = Math.min(n.sayT, 0.25);
@@ -151,10 +156,35 @@ export function updateHouse(dt: number) {
     }
   }
 }
+/**
+ * The smith hammers at the anvil beside him (sparks and a clang every beat) and turns to face
+ * the hero when they come to the counter.
+ */
+function smithWork(n, dt: number) {
+  const I = game.HS,
+    near = I.counter && Math.hypot(game.P.x - I.counter.x, game.P.y - I.counter.y) < 120;
+  if (near) {
+    n.dx = game.P.x - n.x;
+    n.dy = Math.max(20, game.P.y - n.y);
+    n.ham = 0;
+    return;
+  }
+  n.dx = 1;
+  n.dy = 0;
+  n.ham = (n.ham || 0) + dt;
+  if (n.ham > 1.3) {
+    n.ham = 0;
+    burst(n.x + 26, n.y - 20, '#ffd27a', 7, 120, 2, 60, 1);
+    SFX.anvil();
+  }
+}
 /** Interaction candidates inside a house: residents to talk to, and the way out. */
 export function houseInteract(cand) {
   const I = game.HS;
-  for (const n of I.npcs) cand(n.x, n.y + 6, TALK_R, 'Talk', () => talkTo(n), n.y - 62);
+  if (I.counter)
+    cand(I.counter.x, I.counter.y, 64, 'Blacksmith', () => openSmith(I.village), I.counter.y - 118);
+  for (const n of I.npcs)
+    if (n.role !== 'smith') cand(n.x, n.y + 6, TALK_R, 'Talk', () => talkTo(n), n.y - 62);
   cand(I.door.x, I.door.y - 6, 50, 'Go outside', () => leaveHouse(), I.door.y - 60);
 }
 /** Door prompts for the houses of a village (outside). */
@@ -165,7 +195,11 @@ export function houseDoors(v, cand) {
       d.x,
       d.y + 12,
       40,
-      h.kind === 'hall' ? 'Enter the hall' : 'Enter house',
+      h.kind === 'hall'
+        ? 'Enter the hall'
+        : h.kind === 'smithy'
+          ? 'Enter the smithy'
+          : 'Enter house',
       () => enterHouse(v, h, idx),
       d.y - 44,
     );

@@ -1,7 +1,7 @@
 import type { Poi } from '../game/types';
 import { TAU, mulberry, strSeed } from '../core/math';
 import { game } from '../game/state';
-import { DOOR_F, houseRoute, makeHouse, placeLamps } from './poi';
+import { DOOR_F, houseRoute, makeHouse, makeSmithy, placeLamps } from './poi';
 import { terr } from './terrain';
 /* ---------- Hearthfire: the walled starting town ---------- */
 // Layout (world units, y grows south): a paved square around the waystone, four cobbled
@@ -97,7 +97,6 @@ export function makeCity(key: string) {
   v.solids.push(
     { e: 1, x: v.way.x, y: v.way.y - 2, rx: 22, ry: 8 },
     { x0: v.stall.x - 34, x1: v.stall.x + 34, y0: v.stall.y - 26, y1: v.stall.y + 2 },
-    { x0: v.forge.x - 36, x1: v.forge.x + 30, y0: v.forge.y - 30, y1: v.forge.y + 2 },
     { x0: v.board.x - 24, x1: v.board.x + 24, y0: v.board.y - 8, y1: v.board.y + 2 },
     { e: 1, x: v.fountain.x, y: v.fountain.y - 7, rx: 42, ry: 22 },
     { e: 1, x: v.well.x, y: v.well.y - 6, rx: 18, ry: 12 },
@@ -174,6 +173,8 @@ export function makeCity(key: string) {
   for (let a = 0; a < TAU; a += 0.035) if (!inGate(a)) v.solids.push({ c: 1, ...wallPt(a), r: 16 });
   for (const tw of towers) v.solids.push({ c: 1, x: tw.x, y: tw.y, r: 26 });
 
+  // the smithy: the townhouse nearest the old forge corner of the square
+  makeSmithy(v, 260, 160);
   // lamps beside the streets and around the square
   placeLamps(
     v,
@@ -221,7 +222,8 @@ export function makeCity(key: string) {
   Object.assign(smith.look, { cloth: '#5a4636', apron: true, hair: 3, beard: true });
   Object.assign(alch.look, { cloth: '#5a3f8a', robe: true, hat: '#3f2a66' });
   Object.assign(jewel.look, { cloth: '#8a2a3a', cape: '#5a1a28', hat: '#c9912c' });
-  v.npcs.push(merchant, smith, alch, jewel);
+  v.npcs.push(merchant, alch, jewel);
+  v.smith = smith; // works inside the smithy
   for (let k = 0; k < 9; k++) {
     const a = rnd() * TAU,
       r = 60 + rnd() * 160;

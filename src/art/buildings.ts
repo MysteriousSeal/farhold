@@ -98,59 +98,6 @@ export function drawStall(c, v, t, pos = v.stall, awning = '#3f7fbf', goods = 'f
   }
   c.restore();
 }
-export function drawForge(c, v, t) {
-  const x0 = v.forge.x,
-    y0 = v.forge.y;
-  c.save();
-  c.translate(x0, y0);
-  c.lineWidth = 2.2;
-  c.strokeStyle = OUT;
-  c.lineJoin = 'round';
-  shadow(c, 0, 2, 40, 9);
-  rr(c, -34, -50, 34, 50, 4, '#8a8278');
-  c.fillStyle = 'rgba(0,0,0,.18)';
-  for (let r = 0; r < 5; r++)
-    for (let k = 0; k < 3; k++) c.fillRect(-32 + k * 11 + (r % 2) * 5, -48 + r * 10, 9, 1.5);
-  rr(c, -28, -26, 22, 18, [10, 10, 2, 2], '#2a1a14');
-  const fl = (s, col, k) => {
-    c.fillStyle = col;
-    c.beginPath();
-    c.moveTo(-26, -8);
-    c.quadraticCurveTo(-24 - 3 * s, -18 * s, -17 + Math.sin(t * 10 + k) * 2, -24 * s);
-    c.quadraticCurveTo(-10 + 3 * s, -18 * s, -8, -8);
-    c.closePath();
-    c.fill();
-  };
-  fl(1, '#e0483e', 0);
-  fl(0.8, '#ff9a2e', 1);
-  fl(0.55, '#ffe27a', 2);
-  rr(c, -32, -56, 30, 8, 2, '#6a625a');
-  rr(c, 6, -18, 24, 8, 3, '#4a4a52');
-  rr(c, 12, -10, 10, 10, 1, '#3a3a42');
-  c.beginPath();
-  c.moveTo(30, -18);
-  c.lineTo(38, -16);
-  c.lineTo(30, -12);
-  c.fillStyle = '#4a4a52';
-  c.fill();
-  c.stroke();
-  rr(c, 24, -40, 14, 20, 2, '#7a5a3a');
-  c.restore();
-  addLight(x0 - 17, y0 - 18, 130, 0.9, '#ff8a3a');
-  if (Math.random() < 0.2)
-    game.parts.push({
-      x: x0 - 17 + rand(-5, 5),
-      y: y0 - 20,
-      vx: rand(-10, 10),
-      vy: rand(-50, -25),
-      life: 0.7,
-      max: 0.7,
-      col: '#ffb13a',
-      sz: 2,
-      g: -10,
-      glow: 1,
-    });
-}
 export function drawBoard(c, v, t, has) {
   const x0 = v.board.x,
     y0 = v.board.y;

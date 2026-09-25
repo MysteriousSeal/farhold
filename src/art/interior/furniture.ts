@@ -581,6 +581,304 @@ function candle(c: Ctx, f: Furn, t: number) {
   }
 }
 
+/* ---------- smithy ---------- */
+const STEEL = '#c8ced8',
+  BRICK = '#9a5a44';
+function bigforge(c: Ctx, f: Furn, t: number) {
+  const { x, y } = f;
+  // hood narrowing up into the wall
+  c.beginPath();
+  c.moveTo(x - 34, y - 52);
+  c.lineTo(x - 14, y - 92);
+  c.lineTo(x + 14, y - 92);
+  c.lineTo(x + 34, y - 52);
+  c.closePath();
+  c.fillStyle = '#6a6470';
+  c.fill();
+  c.stroke();
+  c.fillStyle = 'rgba(0,0,0,.2)';
+  c.fillRect(x + 6, y - 90, 8, 38);
+  // brick hearth
+  rr(c, x - 38, y - 52, 76, 52, 3, BRICK);
+  c.save();
+  c.beginPath();
+  c.rect(x - 38, y - 52, 76, 52);
+  c.clip();
+  c.strokeStyle = 'rgba(40,20,20,.4)';
+  c.lineWidth = 1.2;
+  for (let r = 0; r < 6; r++) {
+    const yy = y - 52 + r * 9;
+    c.beginPath();
+    c.moveTo(x - 38, yy);
+    c.lineTo(x + 38, yy);
+    c.stroke();
+    for (let q = 0; q < 6; q++) {
+      const xx = x - 38 + q * 14 + (r % 2 ? 7 : 0);
+      c.beginPath();
+      c.moveTo(xx, yy);
+      c.lineTo(xx, yy + 9);
+      c.stroke();
+    }
+  }
+  c.restore();
+  c.strokeStyle = OUT;
+  c.lineWidth = 2;
+  c.strokeRect(x - 38, y - 52, 76, 52);
+  // fire bed with glowing coals
+  rr(c, x - 28, y - 30, 56, 20, 4, '#2a1a1c');
+  const fl = 0.85 + Math.sin(t * 8) * 0.1;
+  for (let k = 0; k < 9; k++) {
+    const cx = x - 22 + k * 5.5,
+      cy = y - 16 + Math.sin(k * 2.1) * 2;
+    c.fillStyle = k % 3 === 0 ? '#ffd24a' : k % 3 === 1 ? '#ff8a2a' : '#e0482a';
+    c.globalAlpha = 0.7 + Math.sin(t * 5 + k) * 0.25;
+    c.beginPath();
+    c.arc(cx, cy, 3.2, 0, TAU);
+    c.fill();
+  }
+  c.globalAlpha = 1;
+  flame(c, x - 8, y - 18, 0.9 * fl, t, 1);
+  flame(c, x + 7, y - 18, 1.05 * fl, t, 4);
+  rr(c, x - 40, y - 8, 80, 8, 2, sh(BRICK, -0.2));
+}
+function bellows(c: Ctx, f: Furn, t: number) {
+  const x = f.x,
+    y = f.y - 6,
+    pump = Math.max(0, Math.sin(t * 2.2)) * 4;
+  shadow(c, x, y + 4, 14, 4);
+  c.beginPath();
+  c.moveTo(x - 14, y - 4);
+  c.quadraticCurveTo(x - 8, y - 20 + pump, x + 8, y - 16 + pump);
+  c.lineTo(x + 14, y - 8);
+  c.quadraticCurveTo(x + 4, y + 2, x - 14, y - 4);
+  c.closePath();
+  c.fillStyle = '#8a5a3a';
+  c.fill();
+  c.stroke();
+  c.strokeStyle = 'rgba(40,20,10,.45)';
+  c.lineWidth = 1.2;
+  for (const k of [-6, 0, 6]) {
+    c.beginPath();
+    c.moveTo(x + k - 3, y - 12 + pump * 0.5);
+    c.lineTo(x + k + 2, y - 4);
+    c.stroke();
+  }
+  c.strokeStyle = OUT;
+  c.lineWidth = 2;
+  rr(c, x + 12, y - 11, 10, 4, 1.5, IRON); // nozzle toward the forge
+  rr(c, x - 22, y - 7, 10, 3, 1.5, WOOD_D); // handle
+}
+function trough(c: Ctx, f: Furn, t: number) {
+  const x = f.x,
+    y = f.y - 4;
+  shadow(c, x, y + 2, 17, 4);
+  rr(c, x - 16, y - 16, 32, 16, 3, WOOD);
+  c.fillStyle = '#3a6a9a';
+  c.beginPath();
+  c.ellipse(x, y - 15, 13, 3.4, 0, 0, TAU);
+  c.fill();
+  c.fillStyle = 'rgba(255,255,255,' + (0.35 + Math.sin(t * 2) * 0.1).toFixed(3) + ')';
+  c.fillRect(x - 8, y - 16, 7, 1.2);
+  c.fillStyle = IRON;
+  c.fillRect(x - 16, y - 10, 32, 2.5);
+  c.strokeRect(x - 16, y - 16, 32, 16);
+}
+function anvilPiece(c: Ctx, f: Furn) {
+  const x = f.x,
+    y = f.y - 4;
+  shadow(c, x, y + 2, 15, 4.5);
+  // stump
+  rr(c, x - 10, y - 14, 20, 14, 3, WOOD);
+  ell(c, x, y - 14, 10, 3, WOOD_L);
+  // anvil
+  c.beginPath();
+  c.moveTo(x - 13, y - 26);
+  c.lineTo(x + 8, y - 26);
+  c.quadraticCurveTo(x + 17, y - 26, x + 19, y - 22);
+  c.lineTo(x + 6, y - 20);
+  c.lineTo(x + 4, y - 16);
+  c.lineTo(x + 8, y - 13);
+  c.lineTo(x - 8, y - 13);
+  c.lineTo(x - 4, y - 16);
+  c.lineTo(x - 6, y - 20);
+  c.lineTo(x - 13, y - 21);
+  c.closePath();
+  c.fillStyle = '#4a4652';
+  c.fill();
+  c.stroke();
+  c.fillStyle = 'rgba(255,255,255,.35)';
+  c.fillRect(x - 11, y - 25, 18, 1.4);
+  // a glowing bar on it
+  rr(c, x - 7, y - 29, 13, 3, 1.5, '#ff9a3a');
+}
+function grind(c: Ctx, f: Furn, t: number) {
+  const x = f.x,
+    y = f.y - 4;
+  shadow(c, x, y + 2, 14, 4);
+  rr(c, x - 12, y - 10, 4, 10, 1, WOOD_D);
+  rr(c, x + 8, y - 10, 4, 10, 1, WOOD_D);
+  rr(c, x - 13, y - 14, 26, 5, 2, WOOD);
+  c.save();
+  c.translate(x, y - 24);
+  c.rotate(t * 3);
+  ell(c, 0, 0, 11, 11, '#b8b0a4');
+  c.strokeStyle = 'rgba(60,50,40,.4)';
+  c.lineWidth = 1;
+  for (let k = 0; k < 4; k++) {
+    c.beginPath();
+    c.moveTo(0, 0);
+    c.lineTo(Math.cos((k * TAU) / 4) * 10, Math.sin((k * TAU) / 4) * 10);
+    c.stroke();
+  }
+  c.restore();
+  c.strokeStyle = OUT;
+  c.lineWidth = 2;
+  ell(c, x, y - 24, 3, 3, IRON);
+  rr(c, x + 10, y - 26, 8, 3, 1, WOOD_D); // crank
+}
+function smithbench(c: Ctx, f: Furn) {
+  const { x, y } = f,
+    w = f.cw * IT - 12;
+  for (const lx of [-w / 2 + 4, w / 2 - 8]) rr(c, x + lx, y - 16, 4, 16, 1, WOOD_D);
+  rr(c, x - w / 2, y - 26, w, 12, 2, WOOD);
+  // tools and half-finished pieces
+  c.lineWidth = 1.6;
+  rr(c, x - w / 2 + 6, y - 31, 22, 4, 1.5, STEEL); // blade blank
+  rr(c, x - w / 2 + 26, y - 32, 5, 6, 1, WOOD_D);
+  ell(c, x + 8, y - 28, 7, 3, '#8a8a92'); // a dished helm
+  rr(c, x + 18, y - 33, 3, 8, 1, WOOD_D); // tongs
+  rr(c, x + 21, y - 33, 3, 8, 1, WOOD_D);
+  c.lineWidth = 2;
+}
+function counter(c: Ctx, f: Furn) {
+  const x0 = f.cx * IT,
+    x1 = (f.cx + f.cw) * IT,
+    y = f.y;
+  // top and front panel of a long wooden counter
+  rr(c, x0 + 2, y - 28, x1 - x0 - 4, 10, 2, WOOD_L);
+  rr(c, x0 + 2, y - 18, x1 - x0 - 4, 18, 2, WOOD);
+  c.strokeStyle = 'rgba(40,24,14,.45)';
+  c.lineWidth = 1.2;
+  for (let xx = x0 + IT; xx < x1 - 4; xx += IT) {
+    c.beginPath();
+    c.moveTo(xx, y - 17);
+    c.lineTo(xx, y - 1);
+    c.stroke();
+  }
+  c.strokeStyle = OUT;
+  c.lineWidth = 2;
+  // wares on the counter: a sword, a hammer and a small coin tray
+  const cx = (x0 + x1) / 2;
+  rr(c, cx - 70, y - 27, 34, 3, 1.5, STEEL);
+  rr(c, cx - 38, y - 28.5, 3, 6, 1, GOLD);
+  rr(c, cx + 34, y - 30, 16, 4, 1.5, IRON);
+  rr(c, cx + 40, y - 27, 3, 6, 1, WOOD_D);
+  ell(c, cx + 70, y - 24, 7, 2.6, WOOD_D);
+  c.fillStyle = GOLD;
+  for (const k of [-2, 1.5, 3.5]) {
+    c.beginPath();
+    c.arc(cx + 70 + k, y - 25, 1.4, 0, TAU);
+    c.fill();
+  }
+}
+function wrack(c: Ctx, f: Furn) {
+  const x = f.x,
+    y = f.y - 4;
+  shadow(c, x, y + 2, 14, 4);
+  rr(c, x - 14, y - 8, 28, 5, 1.5, WOOD);
+  rr(c, x - 14, y - 40, 3, 36, 1, WOOD_D);
+  rr(c, x + 11, y - 40, 3, 36, 1, WOOD_D);
+  rr(c, x - 14, y - 36, 28, 3, 1, WOOD);
+  // two swords and an axe standing in the rack
+  for (const [bx, k] of [
+    [-6, 0],
+    [0, 2],
+    [6, 1],
+  ]) {
+    if (k === 2) {
+      rr(c, x + bx - 1, y - 46, 2.4, 40, 1, WOOD_D);
+      c.beginPath();
+      c.moveTo(x + bx + 1, y - 46);
+      c.quadraticCurveTo(x + bx + 9, y - 44, x + bx + 8, y - 36);
+      c.lineTo(x + bx + 1, y - 38);
+      c.closePath();
+      c.fillStyle = STEEL;
+      c.fill();
+      c.stroke();
+      continue;
+    }
+    c.beginPath();
+    c.moveTo(x + bx - 2, y - 12);
+    c.lineTo(x + bx - 2, y - 44);
+    c.lineTo(x + bx, y - 49);
+    c.lineTo(x + bx + 2, y - 44);
+    c.lineTo(x + bx + 2, y - 12);
+    c.closePath();
+    c.fillStyle = STEEL;
+    c.fill();
+    c.stroke();
+    rr(c, x + bx - 4.5, y - 13, 9, 2.5, 1, GOLD);
+  }
+}
+function armour(c: Ctx, f: Furn) {
+  const x = f.x,
+    y = f.y - 4;
+  shadow(c, x, y + 2, 12, 4);
+  rr(c, x - 8, y - 4, 16, 4, 1.5, WOOD_D);
+  rr(c, x - 1.5, y - 44, 3, 40, 1, WOOD_D);
+  // breastplate and pauldrons
+  c.beginPath();
+  c.moveTo(x - 11, y - 38);
+  c.lineTo(x + 11, y - 38);
+  c.lineTo(x + 9, y - 18);
+  c.quadraticCurveTo(x, y - 12, x - 9, y - 18);
+  c.closePath();
+  c.fillStyle = '#a8b0bc';
+  c.fill();
+  c.stroke();
+  for (const sd of [-1, 1]) ell(c, x + sd * 12, y - 37, 5, 4, '#9aa3ad');
+  c.strokeStyle = 'rgba(255,255,255,.5)';
+  c.lineWidth = 1.2;
+  c.beginPath();
+  c.moveTo(x - 6, y - 34);
+  c.lineTo(x - 5, y - 22);
+  c.stroke();
+  c.strokeStyle = OUT;
+  c.lineWidth = 2;
+  // helm on top
+  c.beginPath();
+  c.arc(x, y - 44, 7, Math.PI, 0);
+  c.lineTo(x + 7, y - 40);
+  c.lineTo(x - 7, y - 40);
+  c.closePath();
+  c.fillStyle = '#9aa3ad';
+  c.fill();
+  c.stroke();
+}
+function spears(c: Ctx, f: Furn) {
+  const x = f.x,
+    y = f.y - 4;
+  for (const [k, a] of [
+    [-5, -0.12],
+    [0, 0.02],
+    [5, 0.14],
+  ]) {
+    c.save();
+    c.translate(x + k, y - 12);
+    c.rotate(a);
+    rr(c, -1.2, -38, 2.4, 38, 1, WOOD_D);
+    c.beginPath();
+    c.moveTo(-3, -38);
+    c.lineTo(0, -47);
+    c.lineTo(3, -38);
+    c.closePath();
+    c.fillStyle = STEEL;
+    c.fill();
+    c.stroke();
+    c.restore();
+  }
+  barrel(c, f);
+}
 /** Draw one furniture piece. */
 export function drawFurn(c: Ctx, f: Furn, t: number) {
   c.save();
@@ -654,6 +952,36 @@ export function drawFurn(c: Ctx, f: Furn, t: number) {
       break;
     case 'candle':
       candle(c, f, t);
+      break;
+    case 'bigforge':
+      bigforge(c, f, t);
+      break;
+    case 'bellows':
+      bellows(c, f, t);
+      break;
+    case 'trough':
+      trough(c, f, t);
+      break;
+    case 'anvil':
+      anvilPiece(c, f);
+      break;
+    case 'grind':
+      grind(c, f, t);
+      break;
+    case 'smithbench':
+      smithbench(c, f);
+      break;
+    case 'counter':
+      counter(c, f);
+      break;
+    case 'wrack':
+      wrack(c, f);
+      break;
+    case 'armour':
+      armour(c, f);
+      break;
+    case 'spears':
+      spears(c, f);
       break;
   }
   c.restore();

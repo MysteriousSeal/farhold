@@ -1,4 +1,4 @@
-import { mulberry, strSeed } from '../core/math';
+import { mulberry, sh, strSeed } from '../core/math';
 import { game } from '../game/state';
 import { villagerLook } from './poi';
 /* ================= HOUSE INTERIORS (generation) ================= */
@@ -44,6 +44,9 @@ export type Interior = {
   npcs: any[];
   b: number;
   miniImg?: HTMLCanvasElement;
+  /** the smithy's village (its upgrade screen) and where you stand at its counter */
+  village?: any;
+  counter?: { x: number; y: number };
 };
 
 // interior size (cells) and room count by house model
@@ -54,6 +57,7 @@ const SIZE = {
   townhouse: { w: [9, 11], d: [6, 6], rooms: [2, 3], floor: 'wood' },
   tower: { w: [7, 7], d: [6, 6], rooms: [1, 1], floor: 'stone' },
   hall: { w: [15, 15], d: [8, 8], rooms: [1, 1], floor: 'hall' },
+  smithy: { w: [10, 10], d: [6, 6], rooms: [1, 1], floor: 'stone' },
 };
 const SURNAMES = [
   'Ashby',
@@ -173,7 +177,10 @@ export function genInterior(v, h, idx: number): Interior {
   // palette
   const woodFloors = ['#a8744a', '#b8845a', '#96643e'],
     pal = {
-      wall: kind === 'stone' || kind === 'tower' ? h.stone || '#a49c94' : h.wall || '#e8d8b8',
+      wall:
+        kind === 'stone' || kind === 'tower' || kind === 'smithy'
+          ? h.stone || '#a49c94'
+          : h.wall || '#e8d8b8',
       trim: '#6b4a30',
       floor:
         S.floor === 'stone'
@@ -216,13 +223,21 @@ export function genInterior(v, h, idx: number): Interior {
         : kind === 'tower'
           ? sur + "'s tower"
           : 'The ' + sur + ' house';
-  furnish(I, rnd);
-  addResidents(I, rnd, kind === 'hall');
+  if (kind === 'smithy') {
+    I.name = sur + "'s Smithy";
+    I.pal.wall = sh(I.pal.wall, -0.12);
+    I.pal.floor = '#7a746e';
+    I.village = v;
+    furnishSmithy(I, v);
+  } else {
+    furnish(I, rnd);
+    addResidents(I, rnd, kind === 'hall');
+  }
   return I;
 }
 
 /** Tall pieces that stand flush against the back wall, and how deep they reach into the room. */
-const WALL_TALL = new Set(['hearth', 'shelf', 'cupboard', 'stove']),
+const WALL_TALL = new Set(['hearth', 'shelf', 'cupboard', 'stove', 'bigforge', 'smithbench']),
   WALL_DEPTH = 18;
 /* ---------- furnishing ---------- */
 function furnish(I: Interior, rnd: () => number) {
@@ -445,6 +460,10 @@ function furnish(I: Interior, rnd: () => number) {
     I.deco.push({ k, x: (i + 0.5) * IT, w: IT, s: rnd(), col: pick(blankets) });
     i++; // leave a gap between wall pieces
   }
+  buildSolids(I);
+}
+/** Flush tall wall pieces against the back wall and give every solid piece its collision box. */
+function buildSolids(I: Interior) {
   // tall pieces stand with their backs flush against the back wall
   for (const f of I.furn) if (WALL_TALL.has(f.k) && f.cy === 1) f.y = IT + WALL_DEPTH;
   // collision boxes for the furniture (flat pieces stay walkable)
@@ -467,6 +486,73 @@ function furnish(I: Interior, rnd: () => number) {
       I.solids.push({ e: 1, x: f.x, y: y1 - 10, rx: 13, ry: 9 });
     else I.solids.push({ x0, x1, y0, y1 });
   }
+}
+
+/* ---------- the smithy ---------- */
+// A counter runs across the room near the entrance; behind it the smith works at his anvil,
+// with the forge and bellows, quench trough, grindstone and workbench further back. The
+// customer side has weapon racks, an armour stand and a barrel of spears.
+function furnishSmithy(I: Interior, v) {
+  const w = I.GW - 2,
+    d = I.GH - 2,
+    dc = I.door.cx,
+    cy = d - 2, // counter row
+    put = (k: string, cx: number, cyy: number, cw = 1, ch = 1, extra: Partial<Furn> = {}) =>
+      I.furn.push({
+        k,
+        cx,
+        cy: cyy,
+        cw,
+        ch,
+        x: (cx + cw / 2) * IT,
+        y: (cyy + ch) * IT - 4,
+        s: ((cx * 7 + cyy * 13) % 10) / 10,
+        ...extra,
+      });
+  // the smith stands in line with the door, the anvil at his right
+  const sx = Math.min(Math.max(dc, 2), w - 2);
+  put('counter', 1, cy, w, 1);
+  put('anvil', sx + 1, cy - 1);
+  // forge against the back wall on the far side from the smith, bellows and trough beside it
+  const left = sx > w / 2,
+    fx = left ? 1 : w - 2;
+  put('bigforge', fx, 1, 2, 1);
+  put('bellows', left ? 3 : w - 3, 1);
+  put('trough', left ? 3 : w - 3, 2);
+  put('smithbench', left ? w - 2 : 1, 1, 2, 1);
+  put('grind', left ? w - 1 : 2, 2);
+  // customer side: racks along the side walls, a barrel of spears by the door
+  put('wrack', 1, d - 1);
+  put('wrack', w, d - 1);
+  put('armour', dc > w / 2 ? 2 : w - 1, d);
+  put('spears', dc > w / 2 ? 3 : w - 2, d);
+  // wall: tool racks and shields
+  for (let i = 1; i <= w; i++) {
+    const busy = I.furn.some((f) => f.cy === 1 && i >= f.cx && i < f.cx + f.cw);
+    if (busy) continue;
+    I.deco.push({ k: i % 2 ? 'tools' : 'shield', x: (i + 0.5) * IT, w: IT, s: i / w });
+  }
+  buildSolids(I);
+  const smith = v.smith || { look: villagerLook(() => 0.5) };
+  I.npcs.push({
+    role: 'smith',
+    x: (sx + 0.5) * IT,
+    y: (cy - 0.25) * IT,
+    hx: (sx + 0.5) * IT,
+    hy: (cy - 0.25) * IT,
+    dx: 1,
+    dy: 0,
+    walk: 0,
+    moving: false,
+    wt: 0,
+    ham: 0,
+    look: smith.look,
+    lines: [],
+    line: 0,
+    say: null,
+    sayT: 0,
+  });
+  I.counter = { x: (sx + 0.5) * IT, y: (cy + 1) * IT + 4 };
 }
 
 /* ---------- residents ---------- */

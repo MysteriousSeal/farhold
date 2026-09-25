@@ -153,7 +153,7 @@ function backWall(c: Ctx, I: Interior) {
   const x0 = IT - 12,
     x1 = (I.GW - 1) * IT + 12,
     top = IT - WALL_H,
-    stone = I.kind === 'stone' || I.kind === 'tower' || I.kind === 'hall',
+    stone = I.kind === 'stone' || I.kind === 'tower' || I.kind === 'hall' || I.kind === 'smithy',
     col = I.pal.wall;
   c.fillStyle = col;
   c.fillRect(x0, top, x1 - x0, WALL_H);
@@ -337,6 +337,60 @@ function banner(c: Ctx, x: number, top: number, col: string) {
   c.quadraticCurveTo(x - 6, top + 22, x, top + 14);
   c.fill();
 }
+/** Smithy wall: a plank with hanging tongs, hammers and a file. */
+function toolRack(c: Ctx, x: number, y: number) {
+  c.strokeStyle = OUT;
+  c.lineWidth = 2;
+  rr(c, x - 17, y - 14, 34, 5, 1.5, '#6b4a30');
+  const iron = '#4a4652';
+  // tongs
+  c.lineWidth = 1.6;
+  c.beginPath();
+  c.moveTo(x - 12, y - 9);
+  c.lineTo(x - 14, y + 12);
+  c.moveTo(x - 10, y - 9);
+  c.lineTo(x - 8, y + 12);
+  c.strokeStyle = OUT;
+  c.lineWidth = 3;
+  c.stroke();
+  c.strokeStyle = iron;
+  c.lineWidth = 1.6;
+  c.stroke();
+  // two hammers
+  c.lineWidth = 2;
+  c.strokeStyle = OUT;
+  for (const hx of [-1, 7]) {
+    rr(c, x + hx - 1.2, y - 9, 2.4, 18, 1, '#8a5a36');
+    rr(c, x + hx - 4, y + 7, 8, 5, 1, iron);
+  }
+  // a file
+  rr(c, x + 13, y - 9, 2.6, 16, 1, '#8a8a92');
+}
+/** A round shield hung on the wall. */
+function wallShield(c: Ctx, x: number, y: number, s: number) {
+  const cols = ['#8e2a30', '#3f6fa0', '#4f7a3a', '#c9912c'];
+  c.strokeStyle = OUT;
+  c.lineWidth = 2;
+  c.fillStyle = '#8a5a36';
+  c.beginPath();
+  c.arc(x, y, 12, 0, TAU);
+  c.fill();
+  c.stroke();
+  c.fillStyle = cols[Math.floor(s * 4) % 4];
+  c.beginPath();
+  c.arc(x, y, 9, 0, TAU);
+  c.fill();
+  c.fillStyle = '#c8ced8';
+  c.beginPath();
+  c.arc(x, y, 3.4, 0, TAU);
+  c.fill();
+  c.stroke();
+  c.strokeStyle = 'rgba(255,255,255,.3)';
+  c.lineWidth = 1.2;
+  c.beginPath();
+  c.arc(x, y, 10.5, 3.6, 4.6);
+  c.stroke();
+}
 function decorations(c: Ctx, I: Interior) {
   const night = nightOut(),
     y = IT - WALL_H / 2 - 4;
@@ -346,6 +400,8 @@ function decorations(c: Ctx, I: Interior) {
     else if (d.k === 'wshelf') wallShelf(c, d.x, y + 2, d.s);
     else if (d.k === 'wreath') wreath(c, d.x, y);
     else if (d.k === 'banner') banner(c, d.x, IT - WALL_H, d.col || '#8e2a30');
+    else if (d.k === 'tools') toolRack(c, d.x, y);
+    else if (d.k === 'shield') wallShield(c, d.x, y, d.s);
   }
 }
 

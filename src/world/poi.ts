@@ -146,6 +146,7 @@ export const HOUSE_HEIGHT = {
   hut: 90,
   tower: 196,
   hall: 172,
+  smithy: 120,
 };
 export const HOUSE_PROPS = ['barrel', 'crate', 'wood', 'pot', 'bench', 'fence'];
 // model weights per biome: cottage, townhouse, stone, hut, tower
@@ -239,7 +240,6 @@ function makeVillage(x, y, key, home?) {
   v.solids.push(
     { e: 1, x: v.way.x, y: v.way.y - 2, rx: 22, ry: 8 },
     { x0: v.stall.x - 34, x1: v.stall.x + 34, y0: v.stall.y - 26, y1: v.stall.y + 2 },
-    { x0: v.forge.x - 36, x1: v.forge.x + 30, y0: v.forge.y - 30, y1: v.forge.y + 2 },
     { x0: v.board.x - 24, x1: v.board.x + 24, y0: v.board.y - 8, y1: v.board.y + 2 },
   );
   const n = home ? 5 : 4 + ((rnd() * 3) | 0),
@@ -262,6 +262,7 @@ function makeVillage(x, y, key, home?) {
     v.houses.push(h);
     v.solids.push({ x0: hx - h.w / 2, x1: hx + h.w / 2, y0: hy - 40, y1: hy });
   }
+  makeSmithy(v, x + 160, y + 20);
   placeLamps(
     v,
     [], // no road leaves the village: lamps ring the plaza and line the house lanes
@@ -281,24 +282,43 @@ function makeVillage(x, y, key, home?) {
     wt: rnd() * 3,
     look: villagerLook(rnd),
   });
-  v.npcs.push(
-    Object.assign(mk('merchant', v.stall.x, v.stall.y - 14), {}),
-    Object.assign(mk('smith', v.forge.x - 4, v.forge.y + 14), {}),
-  );
-  v.npcs[0].look.cloth = '#3f7fbf';
-  v.npcs[0].look.hat = '#c8523f';
-  v.npcs[1].look.cloth = '#5a4636';
-  v.npcs[1].look.apron = true;
-  v.npcs[1].look.hair = 3;
-  v.npcs[1].look.beard = true;
+  const merchant = mk('merchant', v.stall.x, v.stall.y - 14),
+    smith = mk('smith', 0, 0); // works inside the smithy (see world/interior.ts)
+  v.npcs.push(merchant);
+  merchant.look.cloth = '#3f7fbf';
+  merchant.look.hat = '#c8523f';
+  Object.assign(smith.look, { cloth: '#5a4636', apron: true, hair: 3, beard: true });
+  v.smith = smith;
   for (let k = 0; k < (home ? 3 : 2 + ((rnd() * 3) | 0)); k++) {
     const a = rnd() * TAU;
     v.npcs.push(mk('villager', x + Math.cos(a) * 80, y + Math.sin(a) * 60 + 40));
   }
   return v;
 }
+/**
+ * Turn the house nearest to (tx, ty) into the village smithy (not a tower or the hall): the
+ * blacksmith works inside it, behind his counter.
+ */
+export function makeSmithy(v, tx: number, ty: number) {
+  let best = null,
+    bd = 1e9;
+  for (const h of v.houses) {
+    if (h.kind === 'tower' || h.kind === 'hall') continue;
+    const d = Math.hypot(h.x - tx, h.y - ty);
+    if (d < bd) {
+      bd = d;
+      best = h;
+    }
+  }
+  if (!best) return;
+  best.kind = 'smithy';
+  best.props = [];
+  best.chim = true;
+  best.sign = true;
+  v.smithy = best;
+}
 /** A random villager's looks (skin, hair and clothes) from the seeded `rnd`. */
-export function villagerLook(rnd: () => number) {
+export function villagerLook(rnd: () => number): Record<string, any> {
   const skins = ['#f7d4b2', '#e6b187', '#c4895c', '#8a5838'],
     hairs = ['#2b1d14', '#6b3e1f', '#c9803a', '#f0d27a', '#e4e4e4'],
     cl = ['#8a6a4a', '#5a7a9a', '#9a5a5a', '#6a8a5a', '#a08050', '#7a6a9a'];

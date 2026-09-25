@@ -17,7 +17,6 @@ import {
   drawCave,
   drawChest,
   drawDPillar,
-  drawForge,
   drawLamp,
   drawPillar,
   drawProp,
@@ -394,7 +393,6 @@ export function render() {
           if (vis(h.x, h.y)) list.push({ y: h.y, f: (c) => drawHouse(c, h, game.time, game.dark) });
         list.push(
           { y: p.stall.y, f: (c) => drawStall(c, p, game.time) },
-          { y: p.forge.y, f: (c) => drawForge(c, p, game.time) },
           {
             y: p.board.y,
             f: (c) =>

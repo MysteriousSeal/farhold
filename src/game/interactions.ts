@@ -7,7 +7,7 @@ import { banner, burst } from './fx';
 import { save } from './save';
 import { houseDoors, houseInteract } from './houses';
 import { game, hero } from './state';
-import { openBoard, openPotions, openShop, openSmith, openTravel } from '../ui/village';
+import { openBoard, openPotions, openShop, openTravel } from '../ui/village';
 /* ================= INTERACTIONS ================= */
 /**
  * The interaction in reach, if any. `tx`/`ty` is the world point the floating prompt hovers
@@ -41,7 +41,6 @@ export function findInteract() {
     if (p.kind === 'village') {
       houseDoors(p, cand);
       cand(p.stall.x, p.stall.y + 22, 66, 'Trade', () => openShop(p), p.stall.y - 66);
-      cand(p.forge.x, p.forge.y + 22, 70, 'Blacksmith', () => openSmith(p), p.forge.y - 66);
       cand(p.board.x, p.board.y + 18, 62, 'Bounties', () => openBoard(p), p.board.y - 76);
       cand(p.way.x, p.way.y + 16, 60, 'Waystone', () => openTravel(p), p.way.y - 82);
       for (const s of p.shops || [])
