@@ -19,14 +19,21 @@ export function hField(x, y, d) {
   if (k > 0) h = lerp(h, clamp(h, 0.47, 0.64), k);
   return h;
 }
-export function classify(h, m, tp, c, bl, sw) {
-  let b;
-  if (c > 0.35 && bl + c * 0.5 > 0.72) b = 6;
-  else if (tp < 0.39) b = 4;
-  else if (tp > 0.605 && m < 0.49) b = 3;
-  else if (m > 0.59 && tp > 0.43) b = 5;
-  else if (m > 0.53) b = tp > 0.5 && tp < 0.585 ? 2 : 1;
-  else b = 0;
+/** The biome the fields give (before small patches are absorbed, see biomeMix). */
+export function rawBiome(m, tp, c, bl) {
+  if (c > 0.35 && bl + c * 0.5 > 0.72) return 6;
+  if (tp < 0.39) return 4;
+  if (tp > 0.605 && m < 0.49) return 3;
+  if (m > 0.59 && tp > 0.43) return 5;
+  if (m > 0.53) return tp > 0.5 && tp < 0.585 ? 2 : 1;
+  return 0;
+}
+/** Terrain type × 8 + biome. `bForce` (the absorbed biome at that place) replaces the fields'. */
+export function classify(h, m, tp, c, bl, sw, bForce?: number) {
+  let b = bForce ?? rawBiome(m, tp, c, bl);
+  if (bForce == null) {
+    b = rawBiome(m, tp, c, bl);
+  }
   let t;
   if (h < 0.36) t = 0;
   else if (h < 0.4) t = 1;
@@ -41,14 +48,174 @@ export function terr(x, y) {
   const d = Math.hypot(x, y);
   const h = hField(x, y, d);
   const k = clamp((d - 350) / 1300, 0, 1);
-  const m = lerp(0.47, fbm(x * 0.0015 + 40, y * 0.0015, 3, 9), k),
-    tp = lerp(0.5, fbm(x * 0.00052 - 90, y * 0.00052 + 30, 3, 17), k),
+  // biome fields keep only their large-scale noise (one octave for moisture and blight), so
+  // no biome region is smaller than about a screen across; world/chunks.ts must match
+  const m = lerp(0.47, fbm(x * 0.0015 + 40, y * 0.0015, 1, 9), k),
+    tp = lerp(0.5, fbm(x * 0.00052 - 90, y * 0.00052 + 30, 2, 17), k),
     c = corr(d);
-  const bl = c > 0.35 ? fbm(x * 0.0009, y * 0.0009, 2, 41) : 0,
+  const bl = c > 0.35 ? fbm(x * 0.0009, y * 0.0009, 1, 41) : 0,
     sw = vn(x * 0.009, y * 0.009, 23),
-    q = classify(h, m, tp, c, bl, sw);
+    q = classify(h, m, tp, c, bl, sw, biomeMix(x, y));
   return { h, m, tp, d, t: q >> 3, b: q & 7, c };
 }
+/* ---------- biome patches: nothing smaller than about a screen across ---------- */
+// Biomes come from smooth fields crossing thresholds; where a field only just dips past one, a
+// small patch of another biome appears. On a coarse lattice, each connected patch is measured
+// (flood fill, capped); a patch smaller than PATCH_MAX cells takes the biome that surrounds it
+// most. Pure function of position, so chunks, the minimap and gameplay agree, and the edges of
+// large regions stay exactly where the fields put them.
+const LAT = 80, // lattice spacing (world units)
+  PATCH_MAX = 90, // cells: about 750 units across
+  rawMemo = new Map<number, number>(),
+  patchMemo = new Map<number, number>(); // cell -> final biome of its patch
+const key = (i: number, j: number) => (i + 40000) * 80000 + (j + 40000);
+/** The fields' biome at lattice point (i, j), memoized. */
+function latRaw(i: number, j: number) {
+  const k = key(i, j);
+  let b = rawMemo.get(k);
+  if (b === undefined) {
+    if (rawMemo.size > 400000) rawMemo.clear();
+    const x = i * LAT,
+      y = j * LAT,
+      d = Math.hypot(x, y),
+      kk = clamp((d - 350) / 1300, 0, 1),
+      m = lerp(0.47, fbm(x * 0.0015 + 40, y * 0.0015, 1, 9), kk),
+      tp = lerp(0.5, fbm(x * 0.00052 - 90, y * 0.00052 + 30, 2, 17), kk),
+      c = corr(d),
+      bl = c > 0.35 ? fbm(x * 0.0009, y * 0.0009, 1, 41) : 0;
+    rawMemo.set(k, (b = rawBiome(m, tp, c, bl)));
+  }
+  return b;
+}
+const smoothMemo = [new Map<number, number>(), new Map<number, number>()];
+/**
+ * Lattice biome thinned (two passes, before patches are measured): a cell with at most 2 of
+ * its 3×3 neighbourhood in its own biome (a band one cell wide) takes the majority.
+ */
+function latSmooth(i: number, j: number, pass = 1): number {
+  const memo = smoothMemo[pass],
+    k = key(i, j);
+  let b = memo.get(k);
+  if (b === undefined) {
+    if (memo.size > 400000) memo.clear();
+    const at = (a: number, c: number) => (pass === 0 ? latRaw(a, c) : latSmooth(a, c, 0)),
+      cnt = new Int8Array(8);
+    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) cnt[at(i + di, j + dj)]++;
+    b = at(i, j);
+    if (cnt[b] <= 2) {
+      let best = -1;
+      for (let q = 0; q < 8; q++)
+        if (cnt[q] > best) {
+          best = cnt[q];
+          b = q;
+        }
+    }
+    memo.set(k, b);
+  }
+  return b;
+}
+const sizeMemo = new Map<number, number>(); // cell -> patch size (capped at PATCH_MAX + 1)
+/** Flood fill the raw patch of (i, j), capped: its cells and the neighbouring cells outside. */
+function flood(i: number, j: number) {
+  const b = latSmooth(i, j),
+    cells: number[][] = [[i, j]],
+    seen = new Set<number>([key(i, j)]),
+    edge: number[][] = [];
+  for (let n = 0; n < cells.length && cells.length <= PATCH_MAX; n++) {
+    const [ci, cj] = cells[n];
+    for (const [di, dj] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ]) {
+      const ni = ci + di,
+        nj = cj + dj,
+        k = key(ni, nj);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      if (latSmooth(ni, nj) === b) cells.push([ni, nj]);
+      else edge.push([ni, nj]);
+    }
+  }
+  return { cells, edge, small: cells.length <= PATCH_MAX };
+}
+/** Is the raw patch of lattice cell (i, j) large (at least PATCH_MAX cells)? */
+function isLarge(i: number, j: number) {
+  const k = key(i, j);
+  let n = sizeMemo.get(k);
+  if (n === undefined) {
+    if (sizeMemo.size > 400000) sizeMemo.clear();
+    const f = flood(i, j);
+    n = f.small ? f.cells.length : PATCH_MAX + 1;
+    if (f.small) for (const [ci, cj] of f.cells) sizeMemo.set(key(ci, cj), n);
+    else sizeMemo.set(k, n);
+  }
+  return n > PATCH_MAX;
+}
+/**
+ * Final biome of the patch containing lattice cell (i, j): a small patch takes the biome of the
+ * large region it touches most (never another small patch, so absorbed patches can't chain).
+ */
+function latFinal(i: number, j: number) {
+  const k0 = key(i, j),
+    hit = patchMemo.get(k0);
+  if (hit !== undefined) return hit;
+  if (patchMemo.size > 400000) patchMemo.clear();
+  const b = latSmooth(i, j);
+  if (isLarge(i, j)) {
+    patchMemo.set(k0, b);
+    return b;
+  }
+  const f = flood(i, j),
+    around = new Int32Array(8),
+    anyAround = new Int32Array(8);
+  for (const [ei, ej] of f.edge) {
+    const nb = latSmooth(ei, ej);
+    anyAround[nb]++;
+    if (isLarge(ei, ej)) around[nb]++;
+  }
+  const votes = around.some((n) => n > 0) ? around : anyAround;
+  let fin = b,
+    best = -1;
+  for (let q = 0; q < 8; q++)
+    if (votes[q] > best) {
+      best = votes[q];
+      fin = q;
+    }
+  for (const [ci, cj] of f.cells) patchMemo.set(key(ci, cj), fin);
+  return fin;
+}
+const _bw = new Float64Array(8);
+/**
+ * Biome at (x, y) from the final biomes of the four surrounding lattice cells, bilinearly
+ * weighted and sharpened, so a border is a smooth curve with a short soft transition. Also
+ * fills the per-biome colour weights (biomeWeights, summing to 1).
+ */
+export function biomeMix(x: number, y: number) {
+  const fi = x / LAT,
+    fj = y / LAT,
+    i0 = Math.floor(fi),
+    j0 = Math.floor(fj),
+    u = fi - i0,
+    v = fj - j0;
+  _bw.fill(0);
+  _bw[latFinal(i0, j0)] += (1 - u) * (1 - v);
+  _bw[latFinal(i0 + 1, j0)] += u * (1 - v);
+  _bw[latFinal(i0, j0 + 1)] += (1 - u) * v;
+  _bw[latFinal(i0 + 1, j0 + 1)] += u * v;
+  let best = 0,
+    sum = 0;
+  for (let b = 0; b < 8; b++) {
+    if (_bw[b] > _bw[best]) best = b;
+    _bw[b] = _bw[b] ** 5; // sharpen: the transition spans about a third of a cell
+    sum += _bw[b];
+  }
+  for (let b = 0; b < 8; b++) _bw[b] /= sum;
+  return best;
+}
+/** Per-biome colour weights from the last biomeMix call (index = biome). */
+export const biomeWeights = () => _bw;
 /** Swamp pools: shallow marsh water (not lakes) that can be waded through, slowly. */
 export const isPool = (T) => T.t === 1 && T.b === 5 && T.h >= 0.425;
 /** Speed factor while wading through a swamp pool. */

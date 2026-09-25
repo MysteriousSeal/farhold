@@ -9,7 +9,19 @@ import { roadHit, roadsOf } from './roads';
 import { IT } from './interior';
 import { genDungeonChunk } from './dungeon';
 import { poiSolid, poisNear } from './poi';
-import { CH, PEAK_H, classify, corr, groundF, hField, peakF, terr, walkT } from './terrain';
+import {
+  CH,
+  PEAK_H,
+  biomeMix,
+  biomeWeights,
+  classify,
+  corr,
+  groundF,
+  hField,
+  peakF,
+  terr,
+  walkT,
+} from './terrain';
 /* ---------- World chunks ---------- */
 export const WCH = new Map();
 export function chunkRng(cx, cy) {
@@ -40,68 +52,8 @@ function startGen(cx, cy) {
 export const inPlace = (pois, x: number, y: number) =>
   pois.some((p) => Math.hypot(x - p.x, (y - p.y) * 1.15) < p.r + 20);
 /** How far (world units) a biome border blends into its neighbour on either side. */
-const BLEND_W = 12,
-  BLEND_WATER = 20; // water is a big uniform surface: a longer fade looks natural
-const _soft = [0, 0, 0];
-/**
- * Soft biome borders on land: where another biome is within BLEND_W (judged from the local
- * gradients of moisture, temperature and blight, which are continuous across chunks), the
- * colour is a tent-weighted average of the biomes around, instead of a pixel staircase.
- */
-function softBorder(F, a, b2, c2, h, c, v, t, b, col, W = BLEND_W) {
-  const gm = Math.hypot(F[b2 + 1] - F[a + 1], F[c2 + 1] - F[a + 1]) / GS,
-    gt = Math.hypot(F[b2 + 2] - F[a + 2], F[c2 + 2] - F[a + 2]) / GS,
-    gb = Math.hypot(F[b2 + 3] - F[a + 3], F[c2 + 3] - F[a + 3]) / GS,
-    dm = gm * W,
-    dt = gt * W,
-    db = gb * W,
-    // the blight corridor grows with distance from the centre (corr): vary it too
-    dc = c > 0 && c < 1 ? W / 7000 : 0;
-  let near = false;
-  for (const [sx, sy] of [
-    [1, 1],
-    [1, -1],
-    [-1, 1],
-    [-1, -1],
-  ])
-    if (
-      (classify(h, v[1] + sx * dm, v[2] + sy * dt, c + sy * dc, v[3] + sx * db, v[4]) & 7) !==
-      b
-    ) {
-      near = true;
-      break;
-    }
-  if (!near) return col;
-  const r0 = col[0],
-    g0 = col[1],
-    b0 = col[2];
-  let sr = 0,
-    sg = 0,
-    sb = 0,
-    ws = 0;
-  for (let i = -2; i <= 2; i++)
-    for (let k = -2; k <= 2; k++) {
-      const q2 = classify(
-        h,
-        v[1] + (i / 2) * dm,
-        v[2] + (k / 2) * dt,
-        c + (k / 2) * dc,
-        v[3] + (i / 2) * db,
-        v[4],
-      );
-      if (q2 >> 3 !== t) continue;
-      const w = (3 - Math.abs(i)) * (3 - Math.abs(k)),
-        cc = (q2 & 7) === b ? null : groundF(t, q2 & 7, h, c, v[5], v[6], v[7], v[8], v[9], v[4]);
-      sr += (cc ? cc[0] : r0) * w;
-      sg += (cc ? cc[1] : g0) * w;
-      sb += (cc ? cc[2] : b0) * w;
-      ws += w;
-    }
-  _soft[0] = sr / ws;
-  _soft[1] = sg / ws;
-  _soft[2] = sb / ws;
-  return _soft;
-}
+const BLEND_W = 12;
+const _mix = [0, 0, 0];
 const _sand = [0, 0, 0];
 /**
  * In the desert, beach sand and desert ground meet without an outline (sand on sand): blend
@@ -147,9 +99,9 @@ function stepGen(G, steps) {
             c = corr(d),
             o = (j * GN + i) * NF;
           F[o] = hField(x, y, d);
-          F[o + 1] = lerp(0.47, fbm(x * 0.0015 + 40, y * 0.0015, 3, 9), k);
-          F[o + 2] = lerp(0.5, fbm(x * 0.00052 - 90, y * 0.00052 + 30, 3, 17), k);
-          F[o + 3] = c > 0.3 ? fbm(x * 0.0009, y * 0.0009, 2, 41) : 0;
+          F[o + 1] = lerp(0.47, fbm(x * 0.0015 + 40, y * 0.0015, 1, 9), k);
+          F[o + 2] = lerp(0.5, fbm(x * 0.00052 - 90, y * 0.00052 + 30, 2, 17), k);
+          F[o + 3] = c > 0.3 ? fbm(x * 0.0009, y * 0.0009, 1, 41) : 0;
           F[o + 4] = vn(x * 0.009, y * 0.009, 23);
           F[o + 5] = vn(x * 0.017, y * 0.017, 5);
           F[o + 6] = vn(x * 0.02, y * 0.02, 8);
@@ -188,15 +140,33 @@ function stepGen(G, steps) {
             v[k] = F[a + k] * w00 + F[b2 + k] * w10 + F[c2 + k] * w01 + F[d2 + k] * w11;
           const c = corr(Math.hypot(wx, wy)),
             h = v[0],
-            q = classify(h, v[1], v[2], c, v[3], v[4]),
+            bF = biomeMix(wx, wy), // lattice biome: no small patches, soft borders
+            q = classify(h, v[1], v[2], c, v[3], v[4], bF),
             b = q & 7,
             // a swamp pool inside a place is plain ground instead
             t = q >> 3 === 1 && b === 5 && h >= 0.425 && inPlace(G.pois, wx, wy) ? 3 : q >> 3,
             p = j * FN + i,
             o = p * 4;
           let col = groundF(t, b, h, c, v[5], v[6], v[7], v[8], v[9], v[4]);
-          // soft biome borders: on land, and wider across open water
-          col = softBorder(F, a, b2, c2, h, c, v, t, b, col, t <= 1 ? BLEND_WATER : BLEND_W);
+          // soft biome borders: mix the neighbouring biomes' colours by their lattice weights
+          const bw = biomeWeights();
+          if (bw[b] < 0.995) {
+            let r0 = 0,
+              g0 = 0,
+              b0 = 0;
+            for (let q2 = 0; q2 < 8; q2++) {
+              const wq = bw[q2];
+              if (wq < 0.004) continue;
+              const cq = q2 === b ? col : groundF(t, q2, h, c, v[5], v[6], v[7], v[8], v[9], v[4]);
+              r0 += cq[0] * wq;
+              g0 += cq[1] * wq;
+              b0 += cq[2] * wq;
+            }
+            _mix[0] = r0;
+            _mix[1] = g0;
+            _mix[2] = b0;
+            col = _mix;
+          }
           if (b === 3 && (t === 2 || t === 3)) col = desertSand(F, a, b2, c2, h, c, v, col);
           if (h > PEAK_H - 0.012) {
             const e = 3,
@@ -217,7 +187,7 @@ function stepGen(G, steps) {
             const dd = h - HT[n];
             if (dd > -AE && dd < AE) {
               const h2 = dd < 0 ? HT[n] + AE : HT[n] - AE,
-                q2 = classify(h2, v[1], v[2], c, v[3], v[4]),
+                q2 = classify(h2, v[1], v[2], c, v[3], v[4], bF),
                 c2 = groundF(q2 >> 3, q2 & 7, h2, c, v[5], v[6], v[7], v[8], v[9], v[4]),
                 f = 0.5 - (Math.abs(dd) / AE) * 0.5;
               r += (c2[0] - r) * f;
