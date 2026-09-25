@@ -4,8 +4,8 @@ import { makeEnemy } from '../game/enemies';
 import { game } from '../game/state';
 import { solidAt } from '../world/chunks';
 /* ================= CHEATS (dev builds only, loaded from main.ts) ================= */
-// A button in the bottom-left corner opens a panel to spawn any regular enemy, level 1,
-// right next to the hero.
+// A button in the bottom-left corner opens a panel to spawn any regular enemy, at the
+// hero's level, right next to the hero.
 
 /** A free spot 70–110 units from the hero, or the hero's own position as a fallback. */
 function spotNearHero() {
@@ -21,7 +21,7 @@ function spotNearHero() {
 function spawn(type: string) {
   if (game.state !== 'play' || !game.P) return;
   const { x, y } = spotNearHero();
-  game.enemies.push(makeEnemy(type, 1, x, y));
+  game.enemies.push(makeEnemy(type, game.P.lvl, x, y));
 }
 
 const css = document.createElement('style');
@@ -45,7 +45,7 @@ const btn = document.createElement('button'),
 btn.id = 'cheatBtn';
 btn.textContent = 'Cheats';
 panel.id = 'cheatPanel';
-panel.innerHTML = '<h3>Spawn enemy (Lv 1)</h3><div class="grid"></div>';
+panel.innerHTML = '<h3>Spawn enemy (your level)</h3><div class="grid"></div>';
 const grid = panel.querySelector('.grid');
 for (const [type, D] of Object.entries(ET) as [string, { n: string }][]) {
   const b = document.createElement('button');
