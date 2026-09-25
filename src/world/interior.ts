@@ -1,5 +1,6 @@
 import { mulberry, sh, strSeed } from '../core/math';
 import { game } from '../game/state';
+import { BIOME_LINES, HALL_LINES, LINES } from '../data/dialogue';
 import { villagerLook } from './poi';
 /* ================= HOUSE INTERIORS (generation) ================= */
 // Every village house (and Hearthfire's hall) has a seeded interior: a grid of floor cells
@@ -89,60 +90,6 @@ const SURNAMES = [
   'Finch',
   'Holt',
   'Mercer',
-];
-const LINES = [
-  'Mind the mud on your boots, traveller.',
-  'The roads grow wilder every season.',
-  'Stay for the fire a while. It keeps the dark out.',
-  'My grandmother swore the waystones hum at night.',
-  "If you're heading out, take a potion or three.",
-  'Wolves took two of our sheep last week.',
-  'The blacksmith can make old steel sing again.',
-  "I'd not wander into caves alone, if I were you.",
-  'Bounties pay well, but the dead spend nothing.',
-  "Farther from Hearthfire, the beasts grow meaner. That's the old saying.",
-  'Wipe your feet! Oh... never mind.',
-  'Is it raining again? It always rains when the stew is ready.',
-  'They say a warlord sleeps in a lair not far from here.',
-  'Heroes come and go. Most go.',
-  'Care for some bread? It is only a little stale.',
-  "I heard the market's got new wares today.",
-  'The nights have been restless. Something howls in the hills.',
-  'Close the door behind you, the draught is terrible.',
-  'My late husband carved that chair. It still creaks when I miss him.',
-  "Don't mind the mess. The cat thinks the shelves are hers.",
-  'I once saw a dragon over the hills. Or a very large crow.',
-  'The well water tastes of iron lately. The smith says that is good for you.',
-  'If you find my goat out there, tell her to come home.',
-  'We keep a candle in the window for travellers who lose their way.',
-  'My son wants to be a hero like you. I pray he becomes a baker.',
-  'Every winter the roof leaks in the same spot. Every spring I forget.',
-  'The waystone glowed blue the night you arrived. Folk noticed.',
-  "Mind the third floorboard, it's been loose since my grandfather's day.",
-  'I trade eggs for news. Got any news?',
-  'The old tower on the ridge has been dark for years. Nobody goes near it.',
-  "Bandits took the miller's cart last week. Keep your purse close.",
-  'I knit these socks myself. Warmest in the village, I swear it.',
-  'Stars were strange last night. Grandmother says that means change.',
-  'We had a bard stay once. He ate everything and sang nothing.',
-  "Skeletons don't sleep, they say. That is why the caves are never quiet.",
-  'Take an apple for the road. Go on, I have too many.',
-  'The market prices went up again. Everything costs a wolf pelt these days.',
-  'Rest here as long as you need. No harm comes through that door.',
-];
-const BIOME_LINES = [
-  ['The meadows are lovely this time of year.', 'Good soil here. Good people too.'],
-  ['The forest listens. Speak softly among the trees.', 'Spiders the size of dogs, deeper in.'],
-  ['The leaves turn gold and the wolves turn bold.', 'Autumn smells of smoke and apples.'],
-  ['Water is worth more than gold out in the dunes.', 'Scorpions hide in boots. Check yours.'],
-  ['Keep the fire fed, or the cold creeps in.', 'Yetis come down from the peaks in winter.'],
-  ['Watch your step in the bog. It swallows the careless.', 'The marsh lights lure folk away.'],
-  ['The blight spreads a little further every year.', "Don't drink the water near the rot."],
-];
-const HALL_LINES = [
-  'Welcome to the hall. The council meets here at dusk.',
-  "Hearthfire's walls have never fallen. Not yet.",
-  'Mind the banners, they were stitched by the elders.',
 ];
 
 /** Deterministic interior for house `h` (index `idx`) of village `v`. */
