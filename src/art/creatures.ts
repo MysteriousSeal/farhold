@@ -10,6 +10,7 @@ import {
 import { circ, ell, rr, shadow } from '../core/dom';
 import { OUT, TAU, clamp, mixCol, sh } from '../core/math';
 import { ET } from '../data/enemies';
+import { drawWolf } from './wolf';
 import { game } from '../game/state';
 /* ================= ART: creatures ================= */
 function fcol(e, col) {
@@ -72,6 +73,7 @@ function drawSlime(c, e, t) {
   c.restore();
 }
 function drawQuad(c, e, t, v) {
+  if (v !== 'boar') return drawWolf(c, e, t, v, fcol(e, e.col));
   const flip = e.dx < 0,
     sw = Math.sin(e.walk) * (e.moving ? 1 : 0),
     s = e.sc;
@@ -129,58 +131,6 @@ function drawQuad(c, e, t, v) {
     c.beginPath();
     c.arc(16, -17, 1.7, 0, TAU);
     c.fill();
-  } else {
-    c.beginPath();
-    c.moveTo(-16, -14);
-    c.quadraticCurveTo(-27, -20 - sw * 2, -23, -9);
-    c.fillStyle = col;
-    c.fill();
-    c.stroke();
-    ell(c, 0, -15, 16, 8, col);
-    c.fillStyle = sh(col, 0.35);
-    c.beginPath();
-    c.ellipse(2, -12, 10, 4, 0, 0, TAU);
-    c.fill();
-    if (v === 'icewolf') {
-      c.fillStyle = '#fff';
-      for (let i = 0; i < 4; i++) {
-        c.beginPath();
-        c.moveTo(-8 + i * 5, -22);
-        c.lineTo(-6 + i * 5, -27);
-        c.lineTo(-4 + i * 5, -22);
-        c.fill();
-      }
-    }
-    c.beginPath();
-    c.moveTo(12, -26);
-    c.lineTo(15, -34);
-    c.lineTo(18, -25);
-    c.fillStyle = col;
-    c.fill();
-    c.stroke();
-    ell(c, 17, -21, 8, 7, col);
-    c.beginPath();
-    c.moveTo(22, -22);
-    c.lineTo(31, -18);
-    c.lineTo(22, -15);
-    c.fill();
-    c.stroke();
-    c.fillStyle = OUT;
-    c.beginPath();
-    c.arc(30, -18.5, 1.6, 0, TAU);
-    c.fill();
-    c.fillStyle = v === 'icewolf' ? '#7ef0ff' : '#ffd23a';
-    c.beginPath();
-    c.arc(19, -23, 1.8, 0, TAU);
-    c.fill();
-    if (e.wind > 0) {
-      c.fillStyle = '#fff';
-      c.beginPath();
-      c.moveTo(24, -17);
-      c.lineTo(25, -14);
-      c.lineTo(27, -17);
-      c.fill();
-    }
   }
   c.restore();
 }
