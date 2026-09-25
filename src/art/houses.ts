@@ -1182,7 +1182,11 @@ function paintHouse(c: Ctx, h) {
   c.translate(h.x, h.y);
   c.lineJoin = 'round';
   c.lineCap = 'round';
-  shadow(c, 0, 3, h.w / 2 + 16, 11, 0.3);
+  if (kind === 'smithy') {
+    // cover the house and its lean-to (on the side away from the door)
+    const side = -(h.door || 1);
+    shadow(c, side * 15, 2, h.w / 2 + 24, 8, 0.28);
+  } else shadow(c, 0, 3, h.w / 2 + 16, 11, 0.3);
   MODELS[kind](c, h, rnd, B);
   const plain = kind !== 'hall' && kind !== 'smithy';
   if (plain && kind !== 'hut' && extra(h, 80) < 0.3) ivy(c, h);
