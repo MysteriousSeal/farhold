@@ -224,3 +224,24 @@
   font-size: 13px;
   margin-bottom: 8px;
 }
+/* restock countdown under the wares */
+.restock {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 2px 10px;
+  padding: 3px 10px 3px 5px;
+  border-radius: 999px;
+  background: #141934;
+  border: 1.5px solid #3b4478;
+  font-size: 13px;
+}
+.restock svg {
+  width: 17px;
+  height: 17px;
+}
+.restock b {
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+  min-width: 34px;
+}

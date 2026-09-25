@@ -18,7 +18,6 @@ import { calcStats, lookOfPlayer } from '../game/stats';
 import { isTouch } from '../input/input';
 import { setHud } from './hud';
 import { refreshMenu } from './menus';
-import { shopStock } from './village';
 import { WCH, getChunk } from '../world/chunks';
 import { poiCache, poisNear } from '../world/poi';
 import { CH } from '../world/terrain';
@@ -329,7 +328,6 @@ function startGame(p, fresh?) {
   backfillBossChests();
   refreshQuestTargets();
   offers.clear();
-  shopStock.clear();
   game.mode = 'world';
   game.DG = null;
   game.HS = null;

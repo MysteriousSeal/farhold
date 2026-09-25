@@ -8,28 +8,44 @@ import { unstick } from '../game/enemies';
 import { doFade, toast } from '../game/fx';
 import { equipSlot, genItem, itemName, upCost } from '../game/items';
 import { QMAX, abandonQuest, acceptQuest, genOffers, offers } from '../game/quests';
+import { save } from '../game/save';
 import { game } from '../game/state';
 import { calcStats } from '../game/stats';
 import { btn, goldPill, hdr, itemCard, iconCanvas, openModal, statLines, wireClose } from './modal';
 import { closeAll } from './screens';
 import { poisNear } from '../world/poi';
 /* shop */
-export const shopStock = new Map();
-/** Open a village market; `fine` is Hearthfire's fine-goods shop (Rare+ stock, pricier). */
-export function openShop(v, fine = false) {
-  shopKey = v.key + (fine ? ':fine' : '');
-  shopFine = fine;
-  let s = shopStock.get(shopKey);
-  if (!s || game.time - s.t > 300) {
+/** Each stall restocks its whole list every 10 real minutes, even while the game is closed. */
+export const RESTOCK_MS = 10 * 60 * 1000;
+/**
+ * A stall's stock, kept in the save (P.shops[key] = { t: restock time in ms, items }).
+ * Rolls a fresh list when there is none yet or the last one is 10+ minutes old.
+ */
+function stockFor(v, fine: boolean) {
+  const shops = (game.P.shops = game.P.shops || {}),
+    key = v.key + (fine ? ':fine' : '');
+  let s = shops[key];
+  if (!s || !(Date.now() - s.t < RESTOCK_MS)) {
     const lvl = Math.max(1, Math.max(v.lvl, game.P.lvl - 1));
-    s = {
-      t: game.time,
+    s = shops[key] = {
+      t: Date.now(),
       items: fine
         ? Array.from({ length: 4 }, () => genItem(lvl + 1, 0.3, null, 2))
         : Array.from({ length: 5 }, () => genItem(lvl, 0.08)),
     };
-    shopStock.set(shopKey, s);
+    save(); // so a reload shows the same list
   }
+  return s;
+}
+const mmss = (ms: number) => {
+  const t = Math.max(0, Math.ceil(ms / 1000));
+  return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+};
+/** Live restock countdown in the buy tab; rerolls and redraws the shop when it runs out. */
+let restockTick = 0;
+/** Open a village market; `fine` is Hearthfire's fine-goods shop (Rare+ stock, pricier). */
+export function openShop(v, fine = false) {
+  shopFine = fine;
   shopTab = 'buy';
   renderShop(v);
 }
@@ -74,11 +90,11 @@ export function openPotions(v) {
 }
 let shopTab = 'buy',
   shopSel = null,
-  shopKey = '',
   shopFine = false;
 function renderShop(v) {
-  const s = shopStock.get(shopKey),
+  const s = stockFor(v, shopFine),
     pp = 12 + v.lvl * 5;
+  clearInterval(restockTick);
   openModal(
     hdr(v.name + (shopFine ? ' fine goods' : ' market'), goldPill(game.P.gold)) +
       '<div class="tabs"><button class="chip' +
@@ -103,6 +119,8 @@ function renderShop(v) {
 }
 
 /* ---------- buy tab: potions on top, the stock as a grid, details + buy on the right ---------- */
+const ICO_CLOCK =
+  '<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#e8f2ff" stroke="#241a2e" stroke-width="1.8"/><path d="M10 5.5 V10 L13 12" fill="none" stroke="#241a2e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const ICO_POT =
   '<svg viewBox="0 0 20 20"><path d="M7.6 2.6 H12.4 V6.6 L16 13.4 Q17 17.4 13 17.6 H7 Q3 17.4 4 13.4 L7.6 6.6 Z" fill="#e8f2ff" stroke="#241a2e" stroke-width="1.8" stroke-linejoin="round"/><path d="M5.6 12 H14.4 L15.3 13.8 Q16 16.2 13 16.3 H7 Q4 16.2 4.7 13.8 Z" fill="#e0443a"/><rect x="7" y="1.6" width="6" height="2.4" rx="1" fill="#9a6a3a" stroke="#241a2e" stroke-width="1.4"/><circle cx="8.6" cy="13.8" r="1" fill="#ffb0a0"/></svg>';
 let buySel = null;
@@ -126,9 +144,21 @@ function renderBuy(v, body, s, pp) {
     game.P.inv.length +
     '/' +
     BAGMAX +
-    ' · new stock in ' +
-    Math.max(1, Math.ceil((300 - (game.time - s.t)) / 60)) +
-    ' min</span></div><div class="sellgrid" id="bGrid"></div></div><div class="selldet" id="bDet"></div></div>';
+    '</span></div><div class="restock" title="Every stall restocks every 10 minutes">' +
+    ICO_CLOCK +
+    'New stock in <b id="bTimer">' +
+    mmss(s.t + RESTOCK_MS - Date.now()) +
+    '</b></div><div class="sellgrid" id="bGrid"></div></div><div class="selldet" id="bDet"></div></div>';
+  restockTick = window.setInterval(() => {
+    const el = document.getElementById('bTimer');
+    if (!el) return clearInterval(restockTick); // shop closed or switched to the sell tab
+    const left = s.t + RESTOCK_MS - Date.now();
+    if (left <= 0) {
+      buySel = null;
+      renderShop(v); // stockFor rolls the new list
+      toast('New stock has arrived');
+    } else el.textContent = mmss(left);
+  }, 1000);
   const pb = body.querySelector('.pbtns');
   for (const n of [1, 5]) {
     const cost = pp * n;
@@ -161,7 +191,7 @@ function renderBuy(v, body, s, pp) {
     grid.innerHTML =
       '<div class="sempty">' +
       ICO_BAG +
-      '<b>Sold out</b><small>New stock arrives in a few minutes.</small></div>';
+      '<b>Sold out</b><small>New stock arrives when the timer runs out.</small></div>';
   const det = body.querySelector('#bDet');
   if (!buySel) {
     det.innerHTML = '<div class="desc" style="opacity:.75">Come back later for new wares.</div>';
@@ -200,6 +230,7 @@ function renderBuy(v, body, s, pp) {
         game.P.inv.push(it);
         s.items.splice(s.items.indexOf(it), 1);
         buySel = null;
+        save();
         SFX.buy();
         toast('Bought ' + itemName(it));
         renderShop(v);
