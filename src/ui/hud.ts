@@ -8,6 +8,8 @@ import { game, hero } from '../game/state';
 import { xpNeed } from '../game/stats';
 import { isTouch } from '../input/input';
 import { mini } from '../render/minimap';
+import { QMAX, activeQuests, trackedQuests } from '../game/quests';
+import { QICON, questProgress } from './questUi';
 import { dangerAt } from '../world/terrain';
 /* ================= HUD ================= */
 const fmt = (n: number) => n.toLocaleString('en-US');
@@ -124,18 +126,31 @@ export function updHud() {
   const q = $('#quests');
   q.style.top =
     bars && W <= 640 ? 'calc(env(safe-area-inset-top) + ' + (154 + bars * 50) + 'px)' : '';
-  q.innerHTML = game.P.quests
-    .map(
-      (o) =>
-        '<div class="' +
-        (o.done ? 'qd' : '') +
-        '">' +
-        (o.done ? '✓ ' : '★ ') +
-        o.name +
-        (o.type === 'kill' ? ' <b>' + Math.min(o.have, o.need) + '/' + o.need + '</b>' : '') +
-        '</div>',
-    )
-    .join('');
+  const tracked = trackedQuests(),
+    active = activeQuests().length;
+  q.innerHTML = tracked.length
+    ? '<div class="qhdr">Quests <small>' +
+      active +
+      '/' +
+      QMAX +
+      ' · L</small></div>' +
+      tracked
+        .map(
+          (o) =>
+            '<div class="qt' +
+            (o.done ? ' qd' : '') +
+            '"><div class="qh"><span class="qi">' +
+            (o.done ? '✓' : QICON[o.type] || QICON.kill) +
+            '</span><span class="qn">' +
+            o.name +
+            '</span></div>' +
+            (o.done ? '' : questProgress(o)) +
+            '</div>',
+        )
+        .join('')
+    : active
+      ? '<div class="qhdr">Quests <small>' + active + ' untracked · L</small></div>'
+      : '';
   $('#skillsBtn').classList.toggle('pulse', pointsFree() > 0);
 }
 

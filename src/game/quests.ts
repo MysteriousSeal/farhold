@@ -11,7 +11,35 @@ import { save } from './save';
 import { game } from './state';
 import { PC, poiAt } from '../world/poi';
 /* ================= QUESTS ================= */
+/** Most bounties the journal holds, and most tracked on screen (left side and minimap). */
+export const QMAX = 20,
+  TRACK_MAX = 5,
+  LOG_MAX = 20; // completed bounties remembered in the journal
 export const offers = new Map();
+export const activeQuests = () => game.P.quests.filter((q) => !q.done);
+export const trackedQuests = () => game.P.quests.filter((q) => q.tracked).slice(0, TRACK_MAX);
+/** Track or untrack a bounty; returns false when the tracker is already full. */
+export function setTracked(q, on: boolean) {
+  if (on && !q.tracked && activeQuests().filter((o) => o.tracked).length >= TRACK_MAX) return false;
+  q.tracked = on;
+  save();
+  return true;
+}
+/** Take a bounty from a board: tracked automatically while there is room on the tracker. */
+export function acceptQuest(q) {
+  if (activeQuests().length >= QMAX) {
+    toast('Your journal is full (' + QMAX + ' bounties)');
+    return false;
+  }
+  q.tracked = activeQuests().filter((o) => o.tracked).length < TRACK_MAX;
+  game.P.quests.push(q);
+  save();
+  return true;
+}
+export function abandonQuest(q) {
+  game.P.quests = game.P.quests.filter((o) => o !== q);
+  save();
+}
 function nearestUncleared(kind, x, y) {
   let best = null,
     bd = 1e9;
@@ -129,8 +157,21 @@ function completeQuest(q) {
       toast('Reward: ' + it.name);
     } else dropAt(game.P.x, game.P.y, { kind: 'item', item: it });
   }
+  game.P.questLog.unshift({
+    name: q.name,
+    type: q.type,
+    gold: q.gold,
+    xp: q.xp,
+    item: q.item || 0,
+    at: Date.now(),
+  });
+  game.P.questLog.length = Math.min(game.P.questLog.length, LOG_MAX);
+  // stays on the tracker a moment, ticked, then leaves the journal's active list
   setTimeout(() => {
     game.P.quests = game.P.quests.filter((o) => o !== q);
+    // the freed tracker slot goes to the oldest untracked bounty
+    const next = activeQuests().find((o) => !o.tracked);
+    if (next && activeQuests().filter((o) => o.tracked).length < TRACK_MAX) next.tracked = true;
   }, 4000);
   save();
 }

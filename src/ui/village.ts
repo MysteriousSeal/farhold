@@ -6,7 +6,7 @@ import { BAGMAX } from '../game/drops';
 import { unstick } from '../game/enemies';
 import { doFade, toast } from '../game/fx';
 import { equipSlot, genItem, itemName, upCost } from '../game/items';
-import { genOffers, offers } from '../game/quests';
+import { QMAX, abandonQuest, acceptQuest, genOffers, offers } from '../game/quests';
 import { game } from '../game/state';
 import { calcStats } from '../game/stats';
 import { btn, hdr, iconCanvas, openModal, statLines, wireClose } from './modal';
@@ -308,8 +308,10 @@ export function openBoard(v) {
 function renderBoard(v) {
   const of = offers.get(v.key);
   openModal(
-    hdr(v.name + ' bounties', 'Up to 3 active bounties. Rewards are paid when done.') +
-      '<h3>Posted</h3><div id="bo"></div><h3>Active</h3><div id="ba"></div>',
+    hdr(
+      v.name + ' bounties',
+      'Up to ' + QMAX + ' bounties in your journal (L). Rewards are paid when done.',
+    ) + '<h3>Posted</h3><div id="bo"></div><h3>Active</h3><div id="ba"></div>',
   );
   wireClose();
   const bo = $('#bo'),
@@ -333,11 +335,7 @@ function renderBoard(v) {
       '</div></div>';
     r2.appendChild(
       btn('Accept', () => {
-        if (game.P.quests.filter((o) => !o.done).length >= 3) {
-          toast('You already have 3 bounties');
-          return;
-        }
-        game.P.quests.push(q);
+        if (!acceptQuest(q)) return;
         of.splice(of.indexOf(q), 1);
         SFX.pick();
         if (!of.length) offers.set(v.key, genOffers(v));
@@ -361,7 +359,7 @@ function renderBoard(v) {
       btn(
         'Abandon',
         () => {
-          game.P.quests.splice(game.P.quests.indexOf(q), 1);
+          abandonQuest(q);
           renderBoard(v);
         },
         'alt',

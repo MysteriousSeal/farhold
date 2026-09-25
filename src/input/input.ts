@@ -3,6 +3,7 @@ import { $, W, cv } from '../core/dom';
 import { drinkPot, heroRoll, useSkill } from '../game/combat';
 import { game } from '../game/state';
 import { toggleBags, toggleChar } from '../ui/inventory';
+import { openJournal } from '../ui/journal';
 import { openPause, openSkills } from '../ui/menus';
 import { closeAll } from '../ui/screens';
 /* ================= INPUT ================= */
@@ -32,6 +33,7 @@ addEventListener('keydown', (e) => {
     }
     if (e.code === 'KeyC') toggleChar();
     if (e.code === 'KeyK' || e.code === 'KeyT') openSkills();
+    if (e.code === 'KeyL') openJournal();
     if (e.code === 'Escape') openPause();
   } else if (game.state === 'inv' && ['KeyB', 'KeyI', 'Tab', 'KeyC'].includes(e.code)) {
     // bags and character sheet toggle independently while either is open
@@ -40,7 +42,7 @@ addEventListener('keydown', (e) => {
     else toggleBags();
   } else if (
     (game.state === 'inv' || game.state === 'modal') &&
-    ['Escape', 'KeyB', 'KeyI', 'Tab', 'KeyC', 'KeyK', 'KeyT'].includes(e.code)
+    ['Escape', 'KeyB', 'KeyI', 'Tab', 'KeyC', 'KeyK', 'KeyT', 'KeyL'].includes(e.code)
   ) {
     e.preventDefault();
     closeAll();
@@ -140,4 +142,5 @@ tbtn('#bAct', () => {
 $('#bagBtn').onclick = () => toggleBags();
 $('#charBtn').onclick = () => toggleChar();
 $('#skillsBtn').onclick = () => openSkills();
+$('#questBtn').onclick = () => openJournal();
 $('#menuBtn').onclick = () => openPause();

@@ -8,6 +8,11 @@ export function migrate(p) {
   p.wpInfo = p.wpInfo || { 'v0,0': { name: 'Hearthfire', x: 0, y: 0, lvl: 1 } };
   p.home = p.home || 'v0,0';
   p.quests = p.quests || [];
+  p.questLog = p.questLog || [];
+  // bounties from before the journal: finished ones are gone, the first five are tracked
+  p.quests = p.quests.filter((q) => !q.done);
+  if (p.quests.every((q) => q.tracked === undefined))
+    p.quests.forEach((q, i) => (q.tracked = i < 5));
   p.cleared = p.cleared || {};
   p.chests = p.chests || {};
   p.dgClear = p.dgClear || {};

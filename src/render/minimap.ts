@@ -309,7 +309,7 @@ export function drawMini(dt) {
       else caveIcon(x, y, !!game.P.cleared[p.key]);
     }
     for (const q of game.P.quests) {
-      if (q.x == null || q.done) continue;
+      if (q.x == null || q.done || !q.tracked) continue;
       const [x, y] = clampRim(q.x, q.y, sc, C - FRAME - 12);
       star(mc, x, y, 9, '#ffd23a');
     }
