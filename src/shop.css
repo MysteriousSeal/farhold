@@ -245,3 +245,100 @@
   font-variant-numeric: tabular-nums;
   min-width: 34px;
 }
+/* ---------- tavern: the barmaid's menu (ui/tavern.ts) ---------- */
+.tvquote {
+  margin: 10px 0 14px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--gold);
+  background: #141934;
+  border-radius: 0 10px 10px 0;
+  font-style: italic;
+  font-size: 15px;
+}
+.tvsec {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 4px 2px 8px;
+  font: 600 15px var(--f);
+}
+.tvsec .desc {
+  font: 400 12px var(--f);
+}
+.tvdrinks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+@media (max-width: 560px) {
+  .tvdrinks {
+    grid-template-columns: 1fr;
+  }
+}
+.tvcard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 10px;
+  background: #141934;
+  border: 2px solid #3b4478;
+  border-radius: 12px;
+  text-align: center;
+}
+.tvcard.on {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(245, 196, 81, 0.25);
+}
+.tvcard svg {
+  width: 42px;
+  height: 42px;
+}
+.tvcard b {
+  font: 600 15px var(--f);
+}
+.tvcard .desc {
+  font-size: 13px;
+}
+.tvcard .tvon {
+  font-size: 12px;
+  color: var(--gold);
+}
+.tvcard .btn {
+  margin-top: 6px;
+  width: 100%;
+}
+.tvrows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tvrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #141934;
+  border: 2px solid #3b4478;
+  border-radius: 12px;
+}
+.tvrow > svg {
+  width: 34px;
+  height: 34px;
+  flex: none;
+}
+.tvinf {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tvinf .desc {
+  font-size: 13px;
+}
+/* the active drink on the HUD */
+.buffchip svg {
+  width: 18px;
+  height: 18px;
+}

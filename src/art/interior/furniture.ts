@@ -1,6 +1,7 @@
 import { ell, rr, shadow } from '../../core/dom';
 import { OUT, TAU, sh } from '../../core/math';
 import { IT, type Furn } from '../../world/interior';
+import { bar, bottles, kegs, ttable } from './tavern';
 /* ================= ART: house interiors — furniture ================= */
 // One outlined, full-colour drawing per piece. Anchor (f.x, f.y) is the piece's centre at its
 // front edge on the floor; pieces against the back wall rise over the wall face.
@@ -1032,6 +1033,18 @@ export function drawFurn(c: Ctx, f: Furn, t: number) {
       break;
     case 'spears':
       spears(c, f);
+      break;
+    case 'bar':
+      bar(c, f);
+      break;
+    case 'kegs':
+      kegs(c, f);
+      break;
+    case 'bottles':
+      bottles(c, f);
+      break;
+    case 'ttable':
+      ttable(c, f, flame, t);
       break;
   }
   c.restore();

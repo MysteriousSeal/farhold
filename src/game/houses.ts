@@ -4,10 +4,12 @@ import { H, W } from '../core/dom';
 import { clamp } from '../core/math';
 import { TAU, rand } from '../core/math';
 import { zoom } from '../render/render';
-import { IT, genInterior, type Interior } from '../world/interior';
+import { BARMAID_LINES } from '../data/tavern';
+import { BAR_ROW, IT, genInterior, type Interior } from '../world/interior';
 import { DOOR_F } from '../world/poi';
 import { moveEnt, unstick } from './enemies';
 import { banner, burst, doFade } from './fx';
+import { openTavern } from '../ui/tavern';
 import { openSmith } from '../ui/village';
 import { save } from './save';
 import { game, hero } from './state';
@@ -108,13 +110,21 @@ export function updateHouse(dt: number) {
       smithWork(n, dt);
       continue;
     }
+    if (n.role === 'barmaid') {
+      barmaidWork(n, dt);
+      continue;
+    }
     if (n.sayT > 0) {
       // walking out of talk range ends the line: the bubble fades out quickly
       if (Math.hypot(game.P.x - n.x, game.P.y - n.y - 6) > TALK_R) n.sayT = Math.min(n.sayT, 0.25);
       n.sayT -= dt;
       if (n.sayT <= 0) n.say = null;
       n.dx = game.P.x - n.x;
-      n.dy = game.P.y - n.y;
+      n.dy = n.seated ? Math.max(20, game.P.y - n.y) : game.P.y - n.y;
+      continue;
+    }
+    if (n.role === 'patron') {
+      patronWork(n, dt);
       continue;
     }
     n.wt -= dt;
@@ -178,13 +188,141 @@ function smithWork(n, dt: number) {
     SFX.anvil();
   }
 }
+/* ---------- the tavern ---------- */
+/** Walk `n` toward the next waypoint of `n.path`; true once the path is used up. */
+function walkPath(n, dt: number, speed = 38) {
+  const q = n.path[0];
+  if (!q) return true;
+  const dx = q.x - n.x,
+    dy = q.y - n.y,
+    d = Math.hypot(dx, dy),
+    step = speed * dt;
+  n.moving = true;
+  n.walk += dt * 7;
+  n.dx = dx;
+  n.dy = dy;
+  if (d <= step) {
+    n.x = q.x;
+    n.y = q.y;
+    n.path.shift();
+  } else {
+    n.x += (dx / d) * step;
+    n.y += (dy / d) * step;
+  }
+  return !n.path.length;
+}
+/**
+ * Patrons sit at their table (sunk behind it) and now and then get up, walk to the bar by the
+ * clear rows and the aisle, wait for a refill and go back. One patron at the bar at a time.
+ */
+function patronWork(n, dt: number) {
+  const I = game.HS,
+    front = (BAR_ROW + 1.5) * IT;
+  if (!n.st || n.st === 'sit') {
+    n.seated = true;
+    n.moving = false;
+    n.x = n.seat.x;
+    n.y = n.seat.y;
+    const hx = game.P.x - n.x;
+    n.dx = Math.abs(hx) < 140 ? hx : 0;
+    n.dy = 30;
+    n.wt -= dt;
+    if (n.wt <= 0) {
+      if (I.npcs.some((o) => o.role === 'patron' && o.st && o.st !== 'sit')) {
+        n.wt = rand(4, 10);
+        return;
+      }
+      const barX = clamp(I.bar.x + rand(-60, 60), IT * 1.5, (I.GW - 1.5) * IT),
+        aisle = (I.door.cx + 0.5) * IT,
+        up = (n.seat.row - 0.5) * IT; // the clear row just above the patron's chair row
+      n.route =
+        n.seat.row <= BAR_ROW + 2
+          ? [
+              { x: n.seat.x, y: front },
+              { x: barX, y: front },
+            ]
+          : [
+              { x: n.seat.x, y: up },
+              { x: aisle, y: up },
+              { x: aisle, y: front },
+              { x: barX, y: front },
+            ];
+      n.path = n.route.slice();
+      n.st = 'go';
+      n.seated = false;
+    }
+    return;
+  }
+  if (n.st === 'go') {
+    if (walkPath(n, dt)) {
+      n.st = 'bar';
+      n.wt = rand(3, 6);
+      n.moving = false;
+      n.dx = 0;
+      n.dy = -1;
+    }
+  } else if (n.st === 'bar') {
+    n.wt -= dt;
+    if (n.wt <= 0) {
+      n.path = [...n.route.slice(0, -1).reverse(), { x: n.seat.x, y: n.seat.y }];
+      n.st = 'back';
+    }
+  } else if (walkPath(n, dt)) {
+    n.st = 'sit';
+    n.wt = rand(15, 40);
+  }
+}
+/** The barmaid works along the bar, and greets the hero and faces them when they come near. */
+function barmaidWork(n, dt: number) {
+  const I = game.HS,
+    dh = Math.hypot(game.P.x - I.bar.x, game.P.y - I.bar.y);
+  n.seated = true; // the bar hides her legs
+  if (n.sayT > 0) {
+    n.sayT -= dt;
+    if (n.sayT <= 0) n.say = null;
+  }
+  if (dh > 220) n.greeted = false;
+  if (dh < 110) {
+    if (!n.greeted) {
+      n.greeted = true;
+      n.say = BARMAID_LINES[Math.floor(Math.random() * BARMAID_LINES.length)];
+      n.sayT = 4;
+    }
+    n.moving = false;
+    n.dx = game.P.x - n.x;
+    n.dy = 30;
+    return;
+  }
+  n.wt -= dt;
+  if (n.wt <= 0) {
+    n.wt = rand(3, 7);
+    n.tx = rand(n.x0, n.x1);
+  }
+  if (n.tx != null) {
+    const dx = n.tx - n.x;
+    if (Math.abs(dx) < 2) {
+      n.tx = null;
+      n.moving = false;
+      n.dx = 0;
+      n.dy = -1; // back to the kegs and bottles
+    } else {
+      n.x += Math.sign(dx) * Math.min(Math.abs(dx), 30 * dt);
+      n.dx = dx;
+      n.dy = 0;
+      n.moving = true;
+      n.walk += dt * 7;
+    }
+  }
+}
 /** Interaction candidates inside a house: residents to talk to, and the way out. */
 export function houseInteract(cand) {
   const I = game.HS;
   if (I.counter)
     cand(I.counter.x, I.counter.y, 64, 'Blacksmith', () => openSmith(I.village), I.counter.y - 118);
+  if (I.bar) cand(I.bar.x, I.bar.y, 64, 'Barmaid', () => openTavern(I), I.bar.y - 150);
   for (const n of I.npcs)
-    if (n.role !== 'smith') cand(n.x, n.y + 6, TALK_R, 'Talk', () => talkTo(n), n.y - 62);
+    if (n.role !== 'smith' && n.role !== 'barmaid')
+      cand(n.x, n.y + 6, TALK_R, 'Talk', () => talkTo(n), n.y - 62);
   cand(I.door.x, I.door.y - 6, 50, 'Go outside', () => leaveHouse(), I.door.y - 60);
 }
 /** Door prompts for the houses of a village (outside). */
@@ -199,7 +337,9 @@ export function houseDoors(v, cand) {
         ? 'Enter the hall'
         : h.kind === 'smithy'
           ? 'Enter the smithy'
-          : 'Enter house',
+          : h.kind === 'tavern'
+            ? 'Enter ' + h.name
+            : 'Enter house',
       () => enterHouse(v, h, idx),
       d.y - 44,
     );

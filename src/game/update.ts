@@ -10,7 +10,9 @@ import { rank } from '../data/skills';
 import { damageEnemy, heroAttack } from './combat';
 import { updateDrops } from './drops';
 import { DENS, inVillage, moveEnt, spawnEnemies, unstick, updateEnemies } from './enemies';
-import { banner, burst, ring } from './fx';
+import { banner, burst, ring, toast } from './fx';
+import { calcStats } from './stats';
+import { DRINKS } from '../data/tavern';
 import { findInteract, visitPois } from './interactions';
 import { houseCam, updateHouse } from './houses';
 import { updateNpcs } from './npcs';
@@ -183,6 +185,20 @@ function updateHero(dt) {
         sz: 2.5,
         g: 0,
       });
+    }
+  }
+  // the tavern drink wears off after its time (counted in play time)
+  const bf = game.P.buff;
+  if (bf) {
+    bf.t -= dt;
+    if (bf.t <= 0) {
+      game.P.buff = null;
+      calcStats();
+      toast(
+        'Your ' +
+          (DRINKS.find((d) => d.k === bf.k) || { n: 'drink' }).n.toLowerCase() +
+          ' wears off',
+      );
     }
   }
   hero.regen += dt;

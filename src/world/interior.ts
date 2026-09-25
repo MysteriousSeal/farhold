@@ -1,6 +1,7 @@
 import { mulberry, sh, strSeed } from '../core/math';
 import { game } from '../game/state';
 import { BIOME_LINES, HALL_LINES, LINES } from '../data/dialogue';
+import { TAVERN_LINES } from '../data/tavern';
 import { villagerLook } from './poi';
 /* ================= HOUSE INTERIORS (generation) ================= */
 // Every village house (and Hearthfire's hall) has a seeded interior: a grid of floor cells
@@ -48,6 +49,8 @@ export type Interior = {
   /** the smithy's village (its upgrade screen) and where you stand at its counter */
   village?: any;
   counter?: { x: number; y: number };
+  /** the tavern: where you stand at the bar to order from the barmaid */
+  bar?: { x: number; y: number };
 };
 
 // interior size (cells) and room count by house model
@@ -59,6 +62,8 @@ const SIZE = {
   tower: { w: [7, 7], d: [6, 6], rooms: [1, 1], floor: 'stone' },
   hall: { w: [15, 15], d: [8, 8], rooms: [1, 1], floor: 'hall' },
   smithy: { w: [8, 8], d: [5, 5], rooms: [1, 1], floor: 'stone' },
+  tavern: { w: [11, 11], d: [8, 8], rooms: [1, 1], floor: 'wood' },
+  tavernL: { w: [15, 15], d: [9, 9], rooms: [1, 1], floor: 'wood' }, // Hearthfire's
 };
 const SURNAMES = [
   'Ashby',
@@ -98,7 +103,7 @@ export function genInterior(v, h, idx: number): Interior {
     rnd = mulberry((strSeed(key + ':in') ^ game.SEED) >>> 0),
     ri = (a: number, b: number) => a + Math.floor(rnd() * (b - a + 1)),
     kind = h.kind === 'hall' ? 'hall' : SIZE[h.kind] ? h.kind : 'cottage',
-    S = SIZE[kind],
+    S = kind === 'tavern' && h.big ? SIZE.tavernL : SIZE[kind],
     w = ri(S.w[0], S.w[1]),
     d = ri(S.d[0], S.d[1]),
     GW = w + 2,
@@ -113,7 +118,7 @@ export function genInterior(v, h, idx: number): Interior {
   );
   // the doorway stays solid: the door is closed, you leave with 'Go outside' on the doormat
   // rooms: partition walls with 2-row doorways
-  const nRooms = kind === 'hall' ? 1 : ri(S.rooms[0], S.rooms[1]),
+  const nRooms = kind === 'hall' || kind === 'tavern' ? 1 : ri(S.rooms[0], S.rooms[1]),
     parts: number[] = [],
     gaps: Record<number, number> = {};
   if (nRooms > 1) {
@@ -190,7 +195,12 @@ export function genInterior(v, h, idx: number): Interior {
         : kind === 'tower'
           ? sur + "'s tower"
           : 'The ' + sur + ' house';
-  if (kind === 'smithy') {
+  if (kind === 'tavern') {
+    I.name = h.name || 'The Tavern';
+    I.pal.floor = '#9a6a42';
+    I.village = v;
+    furnishTavern(I, rnd, !!h.big);
+  } else if (kind === 'smithy') {
     I.name = sur + "'s Smithy";
     I.pal.wall = sh(I.pal.wall, -0.12);
     I.pal.floor = '#7a746e';
@@ -212,8 +222,12 @@ const WALL_TALL = new Set([
     'bigforge',
     'smithbench',
     'bellows',
+    'kegs',
+    'bottles',
   ]),
   WALL_DEPTH = 18;
+/** How far behind a table's front edge its back chairs stand: the seat tucks under the top. */
+const CHAIR_IN = 22;
 /* ---------- furnishing ---------- */
 function furnish(I: Interior, rnd: () => number) {
   const { GW, GH, grid } = I,
@@ -369,7 +383,7 @@ function furnish(I: Interior, rnd: () => number) {
           ] as [number, number, boolean][])
             if (free(ci, ty - 1)) {
               occ[at(ci, ty - 1)] = 2;
-              I.furn.push({ ...t, k: 'chair', x: t.x + fx, y: t.y - IT + 2, flip: fl });
+              I.furn.push({ ...t, k: 'chair', x: t.x + fx, y: t.y - CHAIR_IN, flip: fl });
             }
           I.furn.push({ ...t, k: 'chairF', x: t.x, y: t.y + 16 });
           if (clear) reserve(tx - 1, ty - 1, 4, 3); // after the chairs, which sit on the rug
@@ -531,6 +545,137 @@ function furnishSmithy(I: Interior, v) {
     sayT: 0,
   });
   I.counter = { x: (sx + 0.5) * IT, y: (cy + 1) * IT + 4 };
+}
+
+/* ---------- the tavern ---------- */
+// The bar runs along the back wall on one side, with kegs and a bottle shelf behind it and the
+// barmaid in between; the hearth warms the other side. Tables with chairs fill the room in two
+// rows either side of the aisle from the door; patrons sit at them (see game/houses.ts).
+export const BAR_ROW = 2;
+function furnishTavern(I: Interior, rnd: () => number, big: boolean) {
+  const w = I.GW - 2,
+    dc = I.door.cx,
+    put = (k: string, cx: number, cy: number, cw = 1, ch = 1, extra: Partial<Furn> = {}) => {
+      const f: Furn = {
+        k,
+        cx,
+        cy,
+        cw,
+        ch,
+        x: (cx + cw / 2) * IT,
+        y: (cy + ch) * IT - 4,
+        s: rnd(),
+        ...extra,
+      };
+      I.furn.push(f);
+      return f;
+    };
+  const L = rnd() < 0.5, // bar on the left
+    barW = big ? 6 : 5,
+    bx0 = L ? 1 : w - barW + 1;
+  put('bar', bx0, BAR_ROW, barW, 1);
+  put('kegs', L ? bx0 : bx0 + barW - 2, 1, 2, 1);
+  put('bottles', L ? bx0 + barW - 2 : bx0, 1, 2, 1);
+  const hx = L ? w - 2 : 2;
+  put('hearth', hx, 1, 2, 1);
+  I.furn.push({ k: 'rug', cx: hx - 1, cy: 2, cw: 4, ch: 2, x: (hx + 1) * IT, y: -1e4, s: rnd() });
+  put('barrel', L ? w : 1, 3);
+  put('candle', L ? w - 3 : 4, 1);
+  // tables: two rows, either side of the aisle up from the door
+  const seats: Furn[] = [];
+  for (const tr of [5, 8]) {
+    for (const [a, b] of [
+      [1, dc - 1],
+      [dc + 1, w],
+    ]) {
+      const len = b - a + 1,
+        n = Math.floor((len + 1) / 3),
+        off = Math.floor((len - (n * 3 - 1)) / 2);
+      for (let k = 0; k < n; k++) {
+        const t = put('ttable', a + off + k * 3, tr, 2, 1);
+        for (const [fx, fl] of [
+          [-IT * 0.45, false],
+          [IT * 0.45, true],
+        ] as [number, boolean][])
+          seats.push(
+            put('chair', t.cx, tr - 1, 1, 1, { x: t.x + fx, y: t.y - CHAIR_IN, flip: fl }),
+          );
+        if (tr * IT + 56 < (I.GH - 1) * IT) put('chairF', t.cx, tr, 1, 1, { x: t.x, y: t.y + 16 });
+      }
+    }
+  }
+  // back wall between the pieces: windows and a painting
+  const busy = new Uint8Array(I.GW);
+  for (const f of I.furn)
+    if (f.cy === 1 && f.k !== 'rug') for (let i = f.cx; i < f.cx + f.cw; i++) busy[i] = 1;
+  for (let i = 1; i <= w; i++) {
+    if (busy[i]) continue;
+    I.deco.push({
+      k: rnd() < 0.6 ? 'window' : 'painting',
+      x: (i + 0.5) * IT,
+      w: IT,
+      s: rnd(),
+      col: '#9a3a3a',
+    });
+    i++;
+  }
+  buildSolids(I);
+  // the barmaid behind the bar, sunk behind the counter up to her waist
+  const bm = bx0 + Math.floor(barW / 2),
+    look = villagerLook(rnd);
+  Object.assign(look, {
+    fem: true,
+    beard: false,
+    stubble: false,
+    hair: [4, 2, 5, 6, 11][Math.floor(rnd() * 5)],
+    cloth: '#8a3a3a',
+    apron: true,
+  });
+  I.npcs.push({
+    role: 'barmaid',
+    x: (bm + 0.5) * IT,
+    y: 1.9 * IT,
+    hx: (bm + 0.5) * IT,
+    hy: 1.9 * IT,
+    x0: (bx0 + 0.6) * IT,
+    x1: (bx0 + barW - 0.6) * IT,
+    sink: 28,
+    dx: 0,
+    dy: 1,
+    walk: 0,
+    moving: false,
+    wt: 2,
+    look,
+    lines: [],
+    line: 0,
+    say: null,
+    sayT: 0,
+  });
+  I.bar = { x: (bm + 0.5) * IT, y: (BAR_ROW + 1.5) * IT };
+  // patrons on the chairs behind the tables
+  const lines = [...TAVERN_LINES, ...(BIOME_LINES[I.b] || [])],
+    n = Math.min(seats.length, (big ? 5 : 3) + Math.floor(rnd() * 4));
+  seats.sort(() => rnd() - 0.5);
+  for (let k = 0; k < n; k++) {
+    const c = seats[k];
+    I.npcs.push({
+      role: 'patron',
+      x: c.x,
+      y: c.y + 1,
+      seat: { x: c.x, y: c.y + 1, row: c.cy },
+      sink: 4, // drawn lower so the table hides the legs
+      dx: 0,
+      dy: 1,
+      walk: 0,
+      moving: false,
+      wt: 8 + rnd() * 25,
+      look: villagerLook(rnd),
+      line: 0,
+      lines: pickLines(lines, 4, rnd),
+      say: null,
+      sayT: 0,
+    });
+  }
 }
 
 /* ---------- residents ---------- */

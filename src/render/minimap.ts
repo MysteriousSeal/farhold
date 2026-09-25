@@ -370,6 +370,18 @@ export function drawMini(dt) {
         else if (p.kind === 'lair') lairIcon(x, y, !!game.P.cleared[p.key]);
         else caveIcon(x, y, !!game.P.cleared[p.key]);
       });
+      if (p.tavern) {
+        const tx = C + (p.tavern.x - game.P.x) * sc,
+          ty = C + (p.tavern.y - game.P.y) * sc;
+        big(tx, ty, () => mugIcon(tx, ty), POI_SCALE * 0.8);
+      }
+    }
+    // rumours heard at taverns: out-of-view lairs and caves pinned on the rim
+    for (const r of game.P.rumours || []) {
+      if (game.P.cleared[r.key]) continue;
+      if (Math.hypot(r.x - game.P.x, r.y - game.P.y) * sc < C - FRAME - 16) continue;
+      const [x, y] = clampRim(r.x, r.y, sc, C - FRAME - 18);
+      big(x, y, () => (r.kind === 'lair' ? lairIcon(x, y, false) : caveIcon(x, y, false)), 1.4);
     }
     for (const q of game.P.quests) {
       if (q.x == null || q.done || !q.tracked) continue;
@@ -480,8 +492,8 @@ const shadowDot = (x: number, y: number, rx: number) => {
 /** Points of interest are drawn at this scale around their centre. */
 const POI_SCALE = 2;
 /** Draw a marker `POI_SCALE`× bigger over a soft light halo, so it reads on any biome. */
-function big(x: number, y: number, draw: () => void) {
-  const r = 13 * POI_SCALE,
+function big(x: number, y: number, draw: () => void, k = POI_SCALE) {
+  const r = 13 * k,
     g = mc.createRadialGradient(x, y, 0, x, y, r);
   g.addColorStop(0, 'rgba(255,250,230,.55)');
   g.addColorStop(0.55, 'rgba(255,250,230,.28)');
@@ -492,7 +504,7 @@ function big(x: number, y: number, draw: () => void) {
   mc.fill();
   mc.save();
   mc.translate(x, y);
-  mc.scale(POI_SCALE, POI_SCALE);
+  mc.scale(k, k);
   mc.translate(-x, -y);
   draw();
   mc.restore();
@@ -517,6 +529,40 @@ function villageIcon(x: number, y: number, known: boolean, city: boolean) {
   mc.stroke();
   mc.fillStyle = OUT;
   mc.fillRect(x - 1.8 * s, y + 1.5 * s, 3.6 * s, 5.5 * s);
+}
+/** A tankard: the village tavern. */
+function mugIcon(x: number, y: number) {
+  shadowDot(x, y + 5, 7);
+  mc.strokeStyle = OUT;
+  mc.lineWidth = 3.6;
+  mc.beginPath();
+  mc.moveTo(x + 4, y - 3);
+  mc.quadraticCurveTo(x + 9, y - 2, x + 4, y + 3);
+  mc.stroke();
+  mc.strokeStyle = '#a8744a';
+  mc.lineWidth = 1.6;
+  mc.stroke();
+  mc.strokeStyle = OUT;
+  mc.lineWidth = 2;
+  mc.fillStyle = '#c08a50';
+  mc.beginPath();
+  mc.roundRect(x - 5.5, y - 5, 10, 11, 2);
+  mc.fill();
+  mc.stroke();
+  mc.fillStyle = '#f0a830';
+  mc.fillRect(x - 3.5, y - 2, 6, 6);
+  mc.fillStyle = '#fff6e0';
+  mc.beginPath();
+  mc.arc(x - 3, y - 5.5, 2.6, 0, TAU);
+  mc.arc(x + 0.5, y - 6.5, 3, 0, TAU);
+  mc.arc(x + 3.5, y - 5.4, 2.4, 0, TAU);
+  mc.fill();
+  mc.lineWidth = 1.4;
+  mc.beginPath();
+  mc.arc(x - 3, y - 5.5, 2.6, Math.PI, TAU);
+  mc.arc(x + 0.5, y - 6.5, 3, Math.PI * 1.1, TAU);
+  mc.arc(x + 3.5, y - 5.4, 2.4, Math.PI * 1.2, 0.2);
+  mc.stroke();
 }
 function lairIcon(x: number, y: number, cleared: boolean) {
   shadowDot(x, y + 2, 8);

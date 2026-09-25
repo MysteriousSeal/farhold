@@ -1,7 +1,15 @@
 import type { Poi } from '../game/types';
 import { TAU, mulberry, strSeed } from '../core/math';
 import { game } from '../game/state';
-import { DOOR_F, houseRoute, makeHouse, makeSmithy, placeLamps, villagerLook } from './poi';
+import {
+  DOOR_F,
+  houseRoute,
+  makeHouse,
+  makeSmithy,
+  placeLamps,
+  tavernHouse,
+  villagerLook,
+} from './poi';
 import { terr } from './terrain';
 /* ---------- Hearthfire: the walled starting town ---------- */
 // Layout (world units, y grows south): a paved square around the waystone, four cobbled
@@ -64,6 +72,31 @@ export function cityLaneStart(h) {
 const CITY_MIX = [2, 5, 2, 0, 0.6];
 const rectsOverlap = (a, b) => a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0;
 
+/** Rebuild the plain house nearest (tx, ty) as the city tavern, as wide as its neighbours allow. */
+function cityTavern(v, tx: number, ty: number) {
+  let best = -1,
+    bd = 1e9;
+  v.houses.forEach((h, i) => {
+    if (h.kind === 'hall' || h.kind === 'tower' || h.kind === 'smithy') return;
+    const d = Math.hypot(h.x - tx, h.y - ty);
+    if (d < bd) {
+      bd = d;
+      best = i;
+    }
+  });
+  if (best < 0) return;
+  const old = v.houses[best];
+  let W = 160;
+  for (const q of v.houses)
+    if (q !== old && Math.abs(q.y - old.y) < 80)
+      W = Math.min(W, 2 * (Math.abs(q.x - old.x) - q.w / 2 - 16));
+  W = Math.max(old.w, W);
+  const h = tavernHouse(v, old.x, old.y, W, mulberry(strSeed(v.key + '/tavern') ^ game.SEED));
+  v.houses[best] = h;
+  const si = v.solids.findIndex((s) => s.y1 === old.y && s.x0 === old.x - old.w / 2);
+  if (si >= 0) v.solids[si] = { x0: h.x - W / 2, x1: h.x + W / 2, y0: h.y - 40, y1: h.y };
+  v.tavern = h;
+}
 export function makeCity(key: string) {
   const rnd = mulberry(strSeed(key) ^ game.SEED),
     b = terr(0, 0).b,
@@ -175,6 +208,8 @@ export function makeCity(key: string) {
 
   // the smithy: the townhouse nearest the old forge corner of the square
   makeSmithy(v, 260, 160);
+  // the tavern: the house nearest the opposite corner, rebuilt wider (a bigger city tavern)
+  cityTavern(v, -260, 160);
   // lamps beside the streets and around the square
   placeLamps(
     v,

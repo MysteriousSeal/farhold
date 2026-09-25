@@ -13,6 +13,31 @@ import { mini } from '../render/minimap';
 import { QMAX, activeQuests, trackedQuests } from '../game/quests';
 import { QICON, heroWorldPos, questProgress } from './questUi';
 import { dangerAt } from '../world/terrain';
+import { DRINKS } from '../data/tavern';
+import { DRINK_ICON } from './tavern';
+
+/** The active tavern drink as a HUD chip with its time left (created on first use). */
+let bufEl: HTMLElement = null,
+  bufKey = '';
+function buffChip() {
+  const b = game.P.buff;
+  if (!bufEl) {
+    if (!b) return;
+    bufEl = document.createElement('span');
+    bufEl.className = 'chip buffchip';
+    $('#dgt').closest('.chips').appendChild(bufEl);
+  }
+  bufEl.style.display = b ? '' : 'none';
+  if (!b) return;
+  const d = DRINKS.find((q) => q.k === b.k),
+    t = Math.max(0, Math.ceil(b.t));
+  if (bufKey !== b.k) {
+    bufKey = b.k;
+    bufEl.innerHTML = DRINK_ICON[b.k] + '<span></span>';
+    bufEl.title = d.n + ': ' + d.desc;
+  }
+  bufEl.lastElementChild.textContent = Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+}
 /* ================= HUD ================= */
 const fmt = (n: number) => n.toLocaleString('en-US');
 
@@ -80,6 +105,7 @@ export function updHud() {
   }
   const wp = heroWorldPos();
   $('#dgt').textContent = String(game.mode === 'dungeon' ? game.DG.lvl : dangerAt(wp.x, wp.y));
+  buffChip();
   drawPortrait();
   for (const n of [1, 2]) {
     const r = rank('s' + n),

@@ -44,6 +44,11 @@ export function computeStats(p = game.P): Stats {
   s.defMul += 0.12 * rank('b1');
   s.regenPct = 0.4 * rank('b2');
   s.cdr += 10 * rank('c1');
+  // tavern drink (ui/tavern.ts): one buff at a time
+  const bk = p.buff && p.buff.t > 0 ? p.buff.k : '';
+  if (bk === 'ale') s.dmgMul += 0.1;
+  else if (bk === 'stew') s.hpMul += 0.1;
+  else if (bk === 'mead') s.regen += 2 + p.lvl * 0.4;
   s.hp = Math.round(s.hp * s.hpMul);
   s.atk = Math.round(s.atk * s.dmgMul * 10) / 10;
   s.def = Math.round(s.def * s.defMul);

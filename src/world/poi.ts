@@ -1,6 +1,7 @@
 import type { Poi } from '../game/types';
 import { TAU, angDiff, hs, mulberry, strSeed } from '../core/math';
 import { BOSS } from '../data/bosses';
+import { TAVERN_A, TAVERN_N } from '../data/tavern';
 import { game } from '../game/state';
 import { dangerAt, terr, walkT } from './terrain';
 import { cityLaneStart, makeCity } from './city';
@@ -147,6 +148,7 @@ export const HOUSE_HEIGHT = {
   tower: 196,
   hall: 172,
   smithy: 120,
+  tavern: 152,
 };
 export const HOUSE_PROPS = ['barrel', 'crate', 'wood', 'pot', 'bench', 'fence'];
 // model weights per biome: cottage, townhouse, stone, hut, tower
@@ -263,6 +265,7 @@ function makeVillage(x, y, key, home?) {
     v.solids.push({ x0: hx - h.w / 2, x1: hx + h.w / 2, y0: hy - 40, y1: hy });
   }
   makeSmithy(v, x + 160, y + 20);
+  makeTavern(v);
   placeLamps(
     v,
     [], // no road leaves the village: lamps ring the plaza and line the house lanes
@@ -310,7 +313,7 @@ export function makeSmithy(v, tx: number, ty: number) {
   let best = null,
     bd = 1e9;
   for (const h of v.houses) {
-    if (h.kind === 'tower' || h.kind === 'hall') continue;
+    if (h.kind === 'tower' || h.kind === 'hall' || h.kind === 'tavern') continue;
     const d = Math.hypot(h.x - tx, h.y - ty);
     if (d < bd) {
       bd = d;
@@ -323,6 +326,79 @@ export function makeSmithy(v, tx: number, ty: number) {
   best.chim = true;
   best.sign = true;
   v.smithy = best;
+}
+/** A tavern's seeded name, e.g. "The Drunken Boar". */
+export function tavernName(key: string) {
+  const r = mulberry(strSeed(key + '/tavern:name') ^ game.SEED);
+  return (
+    'The ' + TAVERN_A[(r() * TAVERN_A.length) | 0] + ' ' + TAVERN_N[(r() * TAVERN_N.length) | 0]
+  );
+}
+/** The tavern building: a wide two-storey timber hall with a centred double door. */
+export function tavernHouse(v, x: number, y: number, w: number, rnd: () => number) {
+  const h = makeHouse(v.b, x, y, rnd, false);
+  return Object.assign(h, {
+    kind: 'tavern',
+    w,
+    door: 0,
+    chim: true,
+    sign: true,
+    props: [],
+    name: tavernName(v.key),
+    big: !!v.city,
+  });
+}
+/**
+ * Add the village tavern on the house ring, on top of the houses: it keeps clear of them, of
+ * the bounty board and of the south road. Its own seed leaves the rest of the layout as it was.
+ */
+function makeTavern(v) {
+  const rnd = mulberry(strSeed(v.key + '/tavern') ^ game.SEED),
+    base = rnd() * TAU;
+  /** Can a tavern W wide stand at (hx, hy), ignoring house `skip`? */
+  const fits = (hx: number, hy: number, W: number, skip = null) => {
+    if (Math.abs(hx - v.board.x) < 60 + W / 2 && hy < v.y - 40) return false;
+    if (hy > v.y && Math.abs(hx - v.x) < W / 2 + 34) return false;
+    // a house in front must not hide the tavern's door, nor the tavern hide a house behind it
+    return !v.houses.some(
+      (o) =>
+        o !== skip &&
+        Math.abs(o.x - hx) < (o.w + W) / 2 + 16 &&
+        (o.y > hy
+          ? o.y - hy < 0.8 * (HOUSE_HEIGHT[o.kind] || 104) + 10
+          : hy - o.y < 0.8 * HOUSE_HEIGHT.tavern),
+    );
+  };
+  const put = (hx: number, hy: number, W: number, at = -1) => {
+    const h = tavernHouse(v, hx, hy, W, rnd),
+      solid = { x0: hx - W / 2, x1: hx + W / 2, y0: hy - 40, y1: hy };
+    if (at < 0) {
+      v.houses.push(h);
+      v.solids.push(solid);
+    } else {
+      const old = v.houses[at],
+        si = v.solids.findIndex((q) => q.y1 === old.y && q.x0 === old.x - old.w / 2);
+      v.houses[at] = h;
+      if (si >= 0) v.solids[si] = solid;
+    }
+    v.tavern = h;
+  };
+  // an extra building on a free spot of the house ring
+  for (const W of [128, 112])
+    for (let k = 0; k < 60; k++) {
+      const a = base + (k / 60) * TAU,
+        rad = 206 + (k % 5) * 14,
+        hx = v.x + Math.cos(a) * rad,
+        hy = v.y + Math.sin(a) * rad * 0.8 + 30;
+      if (fits(hx, hy, W)) return put(hx, hy, W);
+    }
+  // no free spot: the tavern takes the place of the plain house where it fits best
+  for (const W of [128, 112, 96])
+    for (let i = 0; i < v.houses.length; i++) {
+      const o = v.houses[i];
+      if (o.kind !== 'smithy' && o.kind !== 'tower' && fits(o.x, o.y, W, o))
+        return put(o.x, o.y, W, i);
+    }
 }
 /**
  * A random villager's looks (gender, skin, hair and clothes) from the seeded `rnd`: about
@@ -527,7 +603,7 @@ export function houseRoute(v, h): Pt[] {
       bot: { x: h.x + s * (h.w / 2 + 34), y: h.y + 34 },
     });
   const routes: Pt[][] = [[P, F, D]];
-  for (const s of [h.door, -h.door]) {
+  for (const s of h.door ? [h.door, -h.door] : [1, -1]) {
     const c = corners(s);
     routes.push([P, c.bot, F, D], [P, c.top, c.bot, F, D]);
   }

@@ -66,7 +66,8 @@ export function updateNpcs(dt) {
   }
 }
 export function drawNpc(c, n, t) {
-  drawHumanoid(c, n.x, n.y, {
+  // seated patrons and the barmaid are drawn lower, so the table or bar hides their legs
+  drawHumanoid(c, n.x, n.y + (n.seated ? n.sink || 0 : 0), {
     look: n.look,
     dx: n.dx,
     dy: n.dy,

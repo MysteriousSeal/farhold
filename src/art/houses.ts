@@ -958,6 +958,178 @@ function anvil(x: Ctx, cx: number, by: number, k = 1) {
   x.fillStyle = 'rgba(255,255,255,.35)';
   x.fillRect(cx - 7 * k, by - 10.2 * k, 11 * k, 1.1 * k);
 }
+/**
+ * A heavy double door: one frame, two plank leaves meeting in the middle, iron bands, handles
+ * at the seam, a lintel over it and a single step (the smithy and the tavern).
+ */
+function doubleDoor(x: Ctx, dx: number, col: string, lintel: string) {
+  ink(x);
+  const dh = 29,
+    dw2 = 26;
+  rr(x, dx - dw2 / 2 - 2.5, -dh - 2.5, dw2 + 5, dh + 2.5, 2, sh(col, -0.35));
+  for (const s0 of [-1, 1]) {
+    const lx = s0 < 0 ? dx - dw2 / 2 : dx;
+    rr(x, lx, -dh, dw2 / 2, dh, 1, col);
+    x.save();
+    x.strokeStyle = 'rgba(0,0,0,.28)';
+    x.lineWidth = 1.1;
+    x.beginPath();
+    x.moveTo(lx + dw2 / 4, -dh);
+    x.lineTo(lx + dw2 / 4, 0);
+    x.stroke();
+    x.restore();
+  }
+  x.save();
+  x.strokeStyle = 'rgba(35,28,30,.7)';
+  x.lineWidth = 1.8;
+  for (const f of [0.3, 0.72]) {
+    x.beginPath();
+    x.moveTo(dx - dw2 / 2, -dh * f);
+    x.lineTo(dx + dw2 / 2, -dh * f);
+    x.stroke();
+  }
+  x.restore();
+  ink(x, 1.2);
+  circ(x, dx - 2.6, -dh * 0.45, 1.6, '#f5c451');
+  circ(x, dx + 2.6, -dh * 0.45, 1.6, '#f5c451');
+  ink(x);
+  rr(x, dx - 17, -34, 34, 5, 1.5, lintel);
+  rr(x, dx - dw2 / 2 - 5, -2.5, dw2 + 10, 5, 2, STONE_FOUND);
+}
+/** A foaming tankard, `k` scale, standing on (cx, by): the tavern sign and the outdoor table. */
+function mug(x: Ctx, cx: number, by: number, k = 1) {
+  ink(x, 1.3 * Math.min(1, k + 0.2));
+  // handle
+  x.beginPath();
+  x.moveTo(cx + 4 * k, by - 8.5 * k);
+  x.quadraticCurveTo(cx + 9 * k, by - 7.5 * k, cx + 8 * k, by - 4 * k);
+  x.quadraticCurveTo(cx + 7.4 * k, by - 2.2 * k, cx + 4 * k, by - 2.6 * k);
+  x.lineWidth = 3.4 * k;
+  x.stroke();
+  x.strokeStyle = '#8a5a36';
+  x.lineWidth = 1.6 * k;
+  x.stroke();
+  ink(x, 1.3 * Math.min(1, k + 0.2));
+  rr(x, cx - 5 * k, by - 10 * k, 10 * k, 10 * k, 1.5 * k, '#a8744a');
+  x.fillStyle = '#6b4a32';
+  x.fillRect(cx - 5 * k, by - 7.4 * k, 10 * k, 1.2 * k);
+  x.fillRect(cx - 5 * k, by - 3 * k, 10 * k, 1.2 * k);
+  // the foam head spilling over the rim
+  x.fillStyle = '#fff6e0';
+  x.beginPath();
+  x.arc(cx - 3 * k, by - 10.5 * k, 2.4 * k, 0, TAU);
+  x.arc(cx + 0.4 * k, by - 11.4 * k, 2.8 * k, 0, TAU);
+  x.arc(cx + 3.4 * k, by - 10.4 * k, 2.2 * k, 0, TAU);
+  x.fill();
+}
+/**
+ * The tavern: a wide two-storey hall, stone below and timber above, with a centred double
+ * door, warm windows, a big tankard sign, a lantern, and a bench, barrel table and kegs outside.
+ */
+function tavern(x: Ctx, h, rnd: () => number, B: Built) {
+  const w = h.w,
+    g = -38,
+    top = -80;
+  stoneWall(x, rnd, -w / 2, g, w, 38, h.stone);
+  timberWall(x, -w / 2, top, w, 42, h.wall, 4);
+  foundation(x, w, sh(h.stone, -0.15));
+  eaveShadow(x, w + 8, g, 5);
+  eaveShadow(x, w, top);
+  doubleDoor(x, 0, h.doorCol, sh(h.stone, 0.12));
+  // ground-floor windows either side of the door, upper windows under the eaves
+  for (const s of [-1, 1]) windowAt(x, B.wins, s * w * 0.3, -20, 18, 14, { box: true });
+  const up = w > 140 ? [-0.34, -0.12, 0.12, 0.34] : [-0.3, 0, 0.3];
+  for (const f of up) windowAt(x, B.wins, f * w, -60, 15, 14, { shut: h.shut || '#6b4a32' });
+  B.smoke = chimney(x, -w * 0.3, top - 30, 34);
+  const peak = top - 56;
+  tileRoof(
+    x,
+    [
+      [-w / 2 - 12, top + 5],
+      [-w * 0.24, peak],
+      [w * 0.24, peak],
+      [w / 2 + 12, top + 5],
+    ],
+    h.roof,
+    peak,
+    top + 5,
+    h.snow,
+    h,
+  );
+  // lantern on a bracket left of the door
+  const lx = -22,
+    ly = -32;
+  ink(x, 1.6);
+  x.beginPath();
+  x.moveTo(-16, ly);
+  x.lineTo(lx, ly);
+  x.lineTo(lx, ly + 3);
+  x.stroke();
+  ink(x, 1.4);
+  rr(x, lx - 3.5, ly + 3, 7, 9, 1.5, '#ffd27a');
+  rr(x, lx - 4.5, ly + 1.5, 9, 2.5, 1, '#3a3440');
+  rr(x, lx - 2.5, ly + 12, 5, 2, 1, '#3a3440');
+  CUR.lanternAt = { x: lx, y: ly + 7 };
+  // a big tankard sign hanging from an iron bracket at the right corner
+  const sx = w / 2 + 3,
+    bx = sx + 16;
+  ink(x, 2);
+  x.beginPath();
+  x.moveTo(sx, -50);
+  x.lineTo(sx + 30, -50);
+  x.moveTo(sx, -40);
+  x.lineTo(sx + 10, -50);
+  x.moveTo(bx - 10, -50);
+  x.lineTo(bx - 10, -46);
+  x.moveTo(bx + 10, -50);
+  x.lineTo(bx + 10, -46);
+  x.stroke();
+  ink(x);
+  rr(x, bx - 14, -46, 28, 22, 3, '#b8844a');
+  x.fillStyle = 'rgba(255,255,255,.18)';
+  x.fillRect(bx - 12, -44, 24, 2);
+  mug(x, bx - 1.5, -28, 1.05);
+  // outside: a bench under the left window, a barrel table with mugs and a stack of kegs
+  const bxl = -w * 0.3;
+  ink(x);
+  shadow(x, bxl, 5, 16, 3.5, 0.2);
+  rr(x, bxl - 15, 0, 30, 4, 1.5, '#9a6a3a');
+  rr(x, bxl - 12, 4, 3, 5, 1, '#7a4f2a');
+  rr(x, bxl + 9, 4, 3, 5, 1, '#7a4f2a');
+  const tx = w * 0.3;
+  shadow(x, tx, 8, 13, 3.5, 0.22);
+  ink(x);
+  rr(x, tx - 8, -8, 16, 16, 4, '#9a6a3a');
+  x.save();
+  x.strokeStyle = '#5a5a60';
+  x.lineWidth = 2;
+  x.beginPath();
+  x.moveTo(tx - 8, -3);
+  x.lineTo(tx + 8, -3);
+  x.moveTo(tx - 8, 3);
+  x.lineTo(tx + 8, 3);
+  x.stroke();
+  x.restore();
+  ell(x, tx, -8, 9, 3, '#7a4f2a');
+  mug(x, tx - 3.5, -8, 0.55);
+  mug(x, tx + 4, -8.5, 0.5);
+  const kx = w / 2 + 14;
+  shadow(x, kx, 4, 16, 4, 0.22);
+  for (const [ox, oy] of [
+    [-7, 0],
+    [7, 0],
+    [0, -12],
+  ]) {
+    ink(x, 1.8);
+    x.fillStyle = '#a8744a';
+    x.beginPath();
+    x.ellipse(kx + ox, oy - 5, 7, 6.5, 0, 0, TAU);
+    x.fill();
+    x.stroke();
+    ell(x, kx + ox, oy - 5, 3.6, 3.4, '#7a4f2a');
+    circ(x, kx + ox, oy - 5, 1.1, '#3a3440');
+  }
+}
 /** The village smithy: a stone forge-house with a wide glowing chimney, a heavy double door,
  * an anvil sign, and an open lean-to with the outdoor forge. */
 function smithy(x: Ctx, h, rnd: () => number, B: Built) {
@@ -995,40 +1167,7 @@ function smithy(x: Ctx, h, rnd: () => number, B: Built) {
   foundation(x, w, sh(col, -0.15));
   eaveShadow(x, w, top, 7);
   // heavy double door under a stone lintel
-  const dx = h.door * w * DOOR_F;
-  ink(x);
-  // one frame, two plank leaves meeting in the middle, iron bands, handles at the seam
-  const dh = 29,
-    dw2 = 26;
-  rr(x, dx - dw2 / 2 - 2.5, -dh - 2.5, dw2 + 5, dh + 2.5, 2, sh(h.doorCol, -0.35));
-  for (const s0 of [-1, 1]) {
-    const lx = s0 < 0 ? dx - dw2 / 2 : dx;
-    rr(x, lx, -dh, dw2 / 2, dh, 1, h.doorCol);
-    x.save();
-    x.strokeStyle = 'rgba(0,0,0,.28)';
-    x.lineWidth = 1.1;
-    x.beginPath();
-    x.moveTo(lx + dw2 / 4, -dh);
-    x.lineTo(lx + dw2 / 4, 0);
-    x.stroke();
-    x.restore();
-  }
-  x.save();
-  x.strokeStyle = 'rgba(35,28,30,.7)';
-  x.lineWidth = 1.8;
-  for (const f of [0.3, 0.72]) {
-    x.beginPath();
-    x.moveTo(dx - dw2 / 2, -dh * f);
-    x.lineTo(dx + dw2 / 2, -dh * f);
-    x.stroke();
-  }
-  x.restore();
-  ink(x, 1.2);
-  circ(x, dx - 2.6, -dh * 0.45, 1.6, '#f5c451');
-  circ(x, dx + 2.6, -dh * 0.45, 1.6, '#f5c451');
-  ink(x);
-  rr(x, dx - 17, -34, 34, 5, 1.5, sh(col, 0.12)); // stone lintel
-  rr(x, dx - dw2 / 2 - 5, -2.5, dw2 + 10, 5, 2, STONE_FOUND); // one step
+  doubleDoor(x, h.door * w * DOOR_F, h.doorCol, sh(col, 0.12));
   // a small window glowing with forge light
   const wx = -h.door * w * 0.22;
   ink(x);
@@ -1099,7 +1238,7 @@ function smithy(x: Ctx, h, rnd: () => number, B: Built) {
   // the anvil's outline spans -8k..11k across and -11k..0 up: centre it on the plank
   anvil(x, bx - 1.5 * k, -34.5 + 5.5 * k, k);
 }
-const MODELS = { cottage, townhouse, stone: stoneCottage, hut, tower, hall, smithy };
+const MODELS = { cottage, townhouse, stone: stoneCottage, hut, tower, hall, smithy, tavern };
 const WALL_TOP = {
   cottage: -46,
   townhouse: -76,
@@ -1108,6 +1247,7 @@ const WALL_TOP = {
   tower: -98,
   hall: -70,
   smithy: -50,
+  tavern: -80,
 };
 
 /** Ivy climbing a house corner: a wavy stem with leaf pairs. */
@@ -1217,7 +1357,7 @@ function paintHouse(c: Ctx, h) {
     shadow(c, side * 15, 2, h.w / 2 + 24, 8, 0.28);
   } else shadow(c, 0, 3, h.w / 2 + 16, 11, 0.3);
   MODELS[kind](c, h, rnd, B);
-  const plain = kind !== 'hall' && kind !== 'smithy';
+  const plain = kind !== 'hall' && kind !== 'smithy' && kind !== 'tavern';
   if (plain && kind !== 'hut' && extra(h, 80) < 0.3) ivy(c, h);
   if (plain && kind !== 'tower' && extra(h, 90) < 0.3) garden(c, h);
   (h.props || []).forEach((pk, i) => {
