@@ -401,7 +401,18 @@ function finishGen(G) {
         d = b === 4 ? 'icerock' : b === 3 ? 'sandrock' : b === 6 ? 'blightrock' : 'rock';
       else if (q < 0.3 && b !== 3 && b !== 6) d = b === 4 ? 'snowpine' : 'pine';
     } else if (t === 2 && q < 0.05) d = b === 3 ? 'palm' : 'rock';
-    if (d) decor.push({ k: d, x: wx, y: wy, r: DECOR_R[d] || 0, ph: rnd() * TAU });
+    if (d) {
+      const ph = rnd() * TAU,
+        m = (DECOR_R[d] || 8) + 10,
+        // keep decor and its footprint off lake shores and swamp-pool banks
+        wet = [
+          [m, 0],
+          [-m, 0],
+          [0, m * 0.6],
+          [0, -m * 0.6],
+        ].some(([dx, dy]) => at(lx + dx, ly + dy)[0] <= 1);
+      if (!wet) decor.push({ k: d, x: wx, y: wy, r: DECOR_R[d] || 0, ph });
+    }
   }
   decor.sort((a, b) => a.y - b.y);
   // crisp vector edges (mountain cliffs, shorelines) are traced only where they occur
