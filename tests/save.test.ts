@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { SLOTS } from '../src/data/classes';
-import { loadSave, migrate, save } from '../src/game/save';
+import { deleteSave, listSaves, loadSave, migrate, save } from '../src/game/save';
 import { game } from '../src/game/state';
 
 const store = new Map<string, string>();
@@ -33,12 +33,15 @@ describe('game/save', () => {
     expect(p.kills).toBe(0);
   });
 
-  it('reads a legacy v1 key', () => {
+  it('moves a legacy v1 save into a slot', () => {
     store.set('farhold_save_v1', JSON.stringify({ name: 'Old', inv: [] }));
-    expect(loadSave()?.name).toBe('Old');
+    expect(loadSave()?.p.name).toBe('Old');
+    expect(store.has('farhold_save_v1')).toBe(false);
+    expect(listSaves()).toHaveLength(1);
   });
 
-  it('saves the cave entrance position and drops derived data', () => {
+  it('saves into the current slot, at the cave entrance, without derived data', () => {
+    game.slot = 'a';
     game.P = migrate({
       name: 'Brom',
       x: 5,
@@ -49,14 +52,23 @@ describe('game/save', () => {
     });
     game.mode = 'dungeon';
     save();
-    const s = JSON.parse(store.get('farhold_save_v2')!);
+    const s = JSON.parse(store.get('farhold_slot:a')!);
     expect([s.x, s.y]).toEqual([100, 200]);
     expect(s.look).toBeUndefined();
-    expect(loadSave()?.name).toBe('Brom');
+    expect(s.last).toBeGreaterThan(0);
+    expect(loadSave()?.p.name).toBe('Brom');
   });
 
-  it('returns null on a corrupt save', () => {
-    store.set('farhold_save_v2', '{nope');
+  it('lists several heroes newest first and deletes one', () => {
+    store.set('farhold_slot:x', JSON.stringify({ name: 'Old', inv: [], last: 1 }));
+    store.set('farhold_slot:y', JSON.stringify({ name: 'New', inv: [], last: 2 }));
+    expect(listSaves().map((s) => s.p.name)).toEqual(['New', 'Old']);
+    deleteSave('y');
+    expect(listSaves().map((s) => s.p.name)).toEqual(['Old']);
+  });
+
+  it('skips a corrupt save', () => {
+    store.set('farhold_slot:bad', '{nope');
     expect(loadSave()).toBeNull();
   });
 });

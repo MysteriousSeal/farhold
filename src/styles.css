@@ -1515,3 +1515,77 @@ input.txt {
     top: calc(env(safe-area-inset-top) + 176px);
   }
 }
+
+/* Load game: one card per saved hero */
+.loadp {
+  width: min(640px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  padding: 16px;
+}
+.slist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+.scard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #141934;
+  border: 2px solid #2a3160;
+}
+.scard:hover {
+  border-color: var(--gold2);
+}
+.sport {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 38%, #6a5a8e, #2c2244 70%);
+  border: 3px solid #e3b24a;
+  box-shadow: 0 0 0 2px #140e1c;
+}
+.sinfo {
+  flex: 1;
+  min-width: 0;
+}
+.snm {
+  font: 700 19px var(--f);
+  color: #fff3d0;
+}
+.scl {
+  font: 600 14px var(--f);
+  color: var(--gold);
+  margin-top: 1px;
+}
+.smeta {
+  font-size: 13px;
+  opacity: 0.8;
+  margin-top: 3px;
+}
+.sacts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.btn.danger {
+  background: #c8423a;
+  color: #fff3e8;
+}
+@media (max-width: 520px) {
+  .scard {
+    flex-wrap: wrap;
+  }
+  .sacts {
+    flex-direction: row;
+    width: 100%;
+  }
+  .sacts .btn {
+    flex: 1;
+  }
+}

@@ -42,8 +42,49 @@ export function migrate(p) {
   p.kills = p.kills || 0;
   return p;
 }
+/* ---------- save slots ---------- */
+// Each hero lives in its own slot: localStorage['farhold_slot:<id>']. game.slot is the slot of
+// the hero being played. The old single save is moved into a slot the first time.
+const SLOT = 'farhold_slot:';
+export type SlotInfo = { id: string; p: any };
+/** Move a pre-slots save into its own slot (once). */
+function legacy() {
+  try {
+    const old = localStorage.getItem(KEY) || localStorage.getItem(OLDKEY);
+    if (!old) return;
+    const id = 's' + Date.now().toString(36);
+    const p = JSON.parse(old);
+    p.last = p.last || Date.now();
+    localStorage.setItem(SLOT + id, JSON.stringify(p));
+    localStorage.removeItem(KEY);
+    localStorage.removeItem(OLDKEY);
+  } catch (e) {}
+}
+/** Every saved hero, most recently played first. */
+export function listSaves(): SlotInfo[] {
+  legacy();
+  const out: SlotInfo[] = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith(SLOT)) continue;
+      try {
+        out.push({ id: k.slice(SLOT.length), p: migrate(JSON.parse(localStorage.getItem(k))) });
+      } catch (e) {}
+    }
+  } catch (e) {}
+  return out.sort((a, b) => (b.p.last || 0) - (a.p.last || 0));
+}
+/** A fresh slot id for a new hero. */
+export const newSlot = () =>
+  's' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
+export function deleteSave(id: string) {
+  try {
+    localStorage.removeItem(SLOT + id);
+  } catch (e) {}
+}
 export function save() {
-  if (!game.P) return;
+  if (!game.P || !game.slot) return;
   try {
     const s = Object.assign({}, game.P);
     if ((game.mode === 'dungeon' || game.mode === 'house') && game.P.ret) {
@@ -51,14 +92,12 @@ export function save() {
       s.y = game.P.ret.y;
     }
     delete s.look;
-    localStorage.setItem(KEY, JSON.stringify(s));
+    s.last = Date.now();
+    localStorage.setItem(SLOT + game.slot, JSON.stringify(s));
   } catch (e) {}
 }
+/** The most recently played hero (for Continue), or null. */
 export function loadSave() {
-  try {
-    const s = localStorage.getItem(KEY) || localStorage.getItem(OLDKEY);
-    return s ? migrate(JSON.parse(s)) : null;
-  } catch (e) {
-    return null;
-  }
+  const l = listSaves();
+  return l.length ? l[0] : null;
 }

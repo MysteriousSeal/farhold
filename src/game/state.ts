@@ -8,6 +8,7 @@ export const game: any = {
   state: 'menu',
   mode: 'world',
   DG: null,
+  slot: null as string | null, // save slot of the hero being played
   HS: null as any, // house interior while game.mode === 'house'
   P: null,
   ST: null,

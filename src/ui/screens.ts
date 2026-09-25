@@ -17,11 +17,12 @@ import { unstick } from '../game/enemies';
 import { banner } from '../game/fx';
 import { genItem } from '../game/items';
 import { offers } from '../game/quests';
-import { loadSave, migrate, save } from '../game/save';
+import { deleteSave, listSaves, loadSave, migrate, newSlot, save } from '../game/save';
 import { game } from '../game/state';
 import { calcStats, lookOfPlayer } from '../game/stats';
 import { isTouch } from '../input/input';
 import { setHud } from './hud';
+import { refreshMenu } from './menus';
 import { shopStock } from './village';
 import { WCH, getChunk } from '../world/chunks';
 import { poiCache, poisNear } from '../world/poi';
@@ -29,7 +30,7 @@ import { CH } from '../world/terrain';
 /* ================= SCREENS ================= */
 export function showScreen(id) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.id === id));
-  if (['menu', 'confirm', 'create', 'help'].includes(id)) {
+  if (['menu', 'load', 'delc', 'create', 'help'].includes(id)) {
     $('#zone').style.opacity = 0;
     $('#toast').style.opacity = 0;
   }
@@ -150,21 +151,16 @@ function goCreate() {
   refreshCreate();
   showScreen('create');
 }
+// a new hero gets a new save slot; other heroes are kept
 $('#mNew').onclick = () => {
   audioInit();
-  const s = loadSave();
-  if (s) {
-    $('#confT').textContent =
-      'Start a new hero? ' + s.name + ' (level ' + s.lvl + ') will be replaced.';
-    game.state = 'help';
-    showScreen('confirm');
-  } else goCreate();
+  goCreate();
 };
-$('#confYes').onclick = goCreate;
-$('#confNo').onclick = () => {
-  game.state = 'menu';
-  showScreen('menu');
+$('#mLoad').onclick = () => {
+  audioInit();
+  openLoad();
 };
+$('#loadBack').onclick = backToMenu;
 $('#mHelp').onclick = () => {
   game.state = 'help';
   showScreen('help');
@@ -180,7 +176,7 @@ $('#cBack').onclick = () => {
 $('#mCont').onclick = () => {
   audioInit();
   const s = loadSave();
-  if (s) startGame(s);
+  if (s) playSlot(s.id, s.p);
 };
 $('#cGo').onclick = () => {
   const p = previewPlayer();
@@ -198,9 +194,104 @@ $('#cGo').onclick = () => {
     inv: [],
     seed: $('#cSeed').value.trim() || randSeed(),
   });
+  game.slot = newSlot();
   startGame(migrate(p), true);
 };
 $('#dGo').onclick = respawn;
+function playSlot(id: string, p) {
+  game.slot = id;
+  startGame(p);
+}
+function backToMenu() {
+  game.state = 'menu';
+  refreshMenu();
+  showScreen('menu');
+}
+
+/* ---------- Load game: every saved hero, newest first; play or delete ---------- */
+function openLoad() {
+  const list = listSaves();
+  if (!list.length) return backToMenu();
+  game.state = 'help';
+  $('#loadSub').textContent =
+    list.length + (list.length > 1 ? ' heroes' : ' hero') + ' · most recently played first';
+  const box = $('#loadList');
+  box.innerHTML = '';
+  for (const { id, p } of list) {
+    const card = document.createElement('div');
+    card.className = 'scard';
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 128;
+    cv.className = 'sport';
+    drawFace(cv, lookOfPlayer(p));
+    const info = document.createElement('div');
+    info.className = 'sinfo';
+    info.innerHTML =
+      '<div class="snm">' +
+      esc(p.name || 'Hero') +
+      '</div><div class="scl">Level ' +
+      (p.lvl || 1) +
+      ' ' +
+      (RACE[p.race] ? RACE[p.race].n : '') +
+      ' ' +
+      (CLS[p.cls] ? CLS[p.cls].n : '') +
+      '</div><div class="smeta">' +
+      esc(p.region || 'Hearthfire') +
+      ' · ' +
+      playtime(p.play || 0) +
+      ' played · ' +
+      ago(p.last) +
+      '</div>';
+    const acts = document.createElement('div');
+    acts.className = 'sacts';
+    const play = document.createElement('button');
+    play.className = 'btn sm';
+    play.textContent = 'Play';
+    play.onclick = () => playSlot(id, p);
+    const del = document.createElement('button');
+    del.className = 'btn sm alt';
+    del.textContent = 'Delete';
+    del.onclick = () => confirmDelete(id, p);
+    acts.append(play, del);
+    card.append(cv, info, acts);
+    card.ondblclick = () => playSlot(id, p);
+    box.appendChild(card);
+  }
+  showScreen('load');
+}
+function confirmDelete(id: string, p) {
+  $('#delT').textContent =
+    'Delete ' + (p.name || 'this hero') + ' (level ' + (p.lvl || 1) + ')? This cannot be undone.';
+  $('#delYes').onclick = () => {
+    deleteSave(id);
+    if (listSaves().length) openLoad();
+    else backToMenu();
+  };
+  $('#delNo').onclick = openLoad;
+  showScreen('delc');
+}
+const esc = (t: string) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+function playtime(sec: number) {
+  const m = Math.floor(sec / 60);
+  return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60) + ' min';
+}
+function ago(t: number) {
+  if (!t) return 'long ago';
+  const m = Math.floor((Date.now() - t) / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return m + ' min ago';
+  const h = Math.floor(m / 60);
+  return h < 24 ? h + ' h ago' : Math.floor(h / 24) + ' d ago';
+}
+/** The hero's face for a save card (same framing as the HUD portrait). */
+function drawFace(cv: HTMLCanvasElement, look) {
+  const x = cv.getContext('2d'),
+    k = 4.3;
+  x.setTransform(k, 0, 0, k, cv.width / 2, cv.height / 2 + 32 * k);
+  drawHumanoid(x, 0, 0, { look, dx: 0, dy: 1, moving: false, walk: 0, time: 0, noShadow: true });
+  x.setTransform(1, 0, 0, 1, 0, 0);
+}
+
 function startGame(p, fresh?) {
   game.P = p;
   game.SEED = strSeed(game.P.seed);

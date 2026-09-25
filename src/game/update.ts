@@ -249,9 +249,11 @@ export function update(dt) {
     const zn = regionName(game.P.x, game.P.y);
     if (zn !== game.zoneName && game.mode === 'world') {
       game.zoneName = zn;
+      game.P.region = zn; // shown on the save card
       const T = terr(game.P.x, game.P.y);
       banner(zn, BIOMES[T.b] + ', danger level ' + dangerAt(game.P.x, game.P.y));
     }
+    game.P.play = (game.P.play || 0) + dt; // play time (seconds), for the save card
     game.saveT += dt;
     if (game.saveT > 8) {
       game.saveT = 0;

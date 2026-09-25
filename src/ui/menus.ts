@@ -192,10 +192,10 @@ export function openPause() {
     ),
   );
 }
+/** Main menu: Continue with the most recent hero, Load game when any hero is saved. */
 export function refreshMenu() {
   const s = loadSave();
-  if (s) {
-    $('#mCont').style.display = '';
-    $('#mCont').textContent = 'Continue as ' + s.name + ' (Lv ' + s.lvl + ')';
-  } else $('#mCont').style.display = 'none';
+  $('#mCont').style.display = s ? '' : 'none';
+  $('#mLoad').style.display = s ? '' : 'none';
+  if (s) $('#mCont').textContent = 'Continue as ' + s.p.name + ' (Lv ' + s.p.lvl + ')';
 }
