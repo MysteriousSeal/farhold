@@ -26,7 +26,7 @@ export function findInteract() {
     const ex = game.DG.exit,
       ch = game.DG.chest;
     cand(ex.x, ex.y + 10, 64, 'Leave cave', () => leaveDungeon(), ex.y - 30);
-    if (!ch.open) cand(ch.x, ch.y + 14, 64, 'Open chest', openChest, ch.y - 34);
+    if (!ch.open && !ch.hidden) cand(ch.x, ch.y + 14, 64, 'Open chest', openChest, ch.y - 34);
     const pt = game.DG.portal;
     if (pt && !hero.warp)
       cand(pt.x, pt.y + 8, 80, 'Warp portal: back to the entrance', startWarp, pt.y - 78);

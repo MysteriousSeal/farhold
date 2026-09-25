@@ -405,7 +405,8 @@ export function render() {
       if (vis(p.x, p.y)) list.push({ y: p.y, f: (c) => drawProp(c, p, game.time) });
     for (const p of game.DG.pillars)
       if (vis(p.x, p.y)) list.push({ y: p.y, f: (c) => drawDPillar(c, p) });
-    list.push({ y: game.DG.chest.y, f: (c) => drawChest(c, game.DG.chest, game.time) });
+    if (!game.DG.chest.hidden)
+      list.push({ y: game.DG.chest.y, f: (c) => drawChest(c, game.DG.chest, game.time) });
     const portal = game.DG.portal;
     if (portal) list.push({ y: portal.y, f: (c) => drawPortal(c, portal, game.time, !!hero.warp) });
     g.save();

@@ -17,6 +17,11 @@ export function migrate(p) {
     p.dgClear = {};
     p.caveReset1 = 1;
   }
+  p.caves = p.caves || {};
+  // caves cleared before cave cycles existed: guardian gone and chest looted
+  for (const k of Object.keys(p.cleared))
+    if (k[0] === 'c' && !p.caves[k])
+      p.caves[k] = { gen: 0, dead: [], guardDead: true, chestOpen: true, resetAt: 0 };
   p.tod = p.tod || 0.1;
   p.eq = p.eq || {};
   for (const k of SLOTS) if (!(k in p.eq)) p.eq[k] = null;

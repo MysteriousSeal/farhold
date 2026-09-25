@@ -2,11 +2,11 @@ import { spawnWarpPortal } from './warp';
 import { gainXp } from './combat';
 import { xpNeed } from './stats';
 import { SFX } from '../audio/sfx';
-import { pick } from '../core/math';
+import { mulberry, strSeed } from '../core/math';
 import { settings } from '../core/settings';
-import { DTABLE, typesFor } from '../data/enemies';
+import { DTABLE, ET, typesFor } from '../data/enemies';
 import { ELITES, dropAt, makeBoss, makeEnemy, unstick } from './enemies';
-import { banner, doFade, ring, toast } from './fx';
+import { banner, burst, doFade, ring, toast } from './fx';
 import { genItem } from './items';
 import { questEvent } from './quests';
 import { save } from './save';
@@ -22,8 +22,15 @@ export function enterDungeon(p) {
     game.DG = genDungeon(p.key, p.lvl, p.b);
     game.DG.name = p.name;
     game.DG.poiKey = p.key;
+    // this cave's saved cycle: which enemies died, guardian, chest, reset time
+    const st = caveState(p.key),
+      rnd = mulberry(strSeed(p.key + ':' + st.gen)),
+      rpick = (a) => a[(rnd() * a.length) | 0];
+    game.DG.cave = st;
     game.DG.cleared = !!game.P.cleared[p.key];
-    if (game.DG.cleared) game.DG.chest.open = true;
+    game.DG.guardDead = st.guardDead;
+    game.DG.chest.open = st.chestOpen;
+    game.DG.chest.hidden = !st.guardDead; // the chest appears once the guardian is dead
     game.enemies = [];
     game.projs = [];
     game.drops = [];
@@ -35,48 +42,52 @@ export function enterDungeon(p) {
     unstick(game.P);
     game.camX = game.P.x;
     game.camY = game.P.y;
-    const rnd = Math.random;
+    // enemy spawns are seeded per cave and cycle, so the same ones stay dead between visits
+    const slots = [];
     for (const r of game.DG.rooms) {
       if (r === game.DG.start) continue;
       const dn = settings.density === 'few' ? 0 : settings.density === 'many' ? 2 : 1,
         n = Math.max(1, dn + ((rnd() * 2) | 0) + (r.w * r.h > 90 ? 1 : 0));
       for (let i = 0; i < n; i++) {
         const x = (r.x + 1 + rnd() * (r.w - 2)) * game.DG.T,
-          y = (r.y + 1 + rnd() * (r.h - 2)) * game.DG.T;
-        const lv = p.lvl + (rnd() < 0.2 ? 1 : 0);
-        const e = makeEnemy(pick(typesFor(DTABLE, lv)), lv, x, y, {
-          elite: rnd() < 0.08 ? pick(ELITES) : null,
-        });
-        if (!solidAt(x, y, e.r * 0.6)) game.enemies.push(e);
+          y = (r.y + 1 + rnd() * (r.h - 2)) * game.DG.T,
+          lv = p.lvl + (rnd() < 0.2 ? 1 : 0),
+          type = rpick(typesFor(DTABLE, lv)),
+          elite = rnd() < 0.08 ? rpick(ELITES) : null;
+        if (!solidAt(x, y, ET[type].r * 0.6)) slots.push({ x, y, lv, type, elite });
       }
     }
-    if (!game.DG.cleared) {
-      const bt = pick(['bonelord', 'lich', 'brood']);
+    // at least one in five cave enemies is elite
+    let need = Math.ceil(slots.length * ELITE_SHARE) - slots.filter((q) => q.elite).length;
+    while (need-- > 0) {
+      const plain = slots.filter((q) => !q.elite);
+      if (!plain.length) break;
+      rpick(plain).elite = rpick(ELITES);
+    }
+    slots.forEach((q, i) => {
+      if (st.dead.includes(i)) return;
+      const e = makeEnemy(q.type, q.lv, q.x, q.y, { elite: q.elite });
+      e.dg = true;
+      e.dgi = i;
+      game.enemies.push(e);
+    });
+    const bt = rpick(['bonelord', 'lich', 'brood']);
+    if (!st.guardDead) {
       const b = makeBoss(bt, p.lvl + 1, game.DG.chest.x, game.DG.chest.y + 80, {
         mini: true,
         key: p.key,
       });
       b.aggro = false;
       b.dormant = true;
+      b.dg = true;
+      b.dgi = -1;
       game.enemies.push(b);
       game.DG.guard = b;
-    } else game.DG.guardDead = true;
-    // at least one in five cave enemies is elite
-    const mobs = game.enemies.filter((e) => !e.boss);
-    let need = Math.ceil(mobs.length * ELITE_SHARE) - mobs.filter((e) => e.elite).length;
-    while (need-- > 0) {
-      const plain = game.enemies.filter((e) => !e.boss && !e.elite);
-      if (!plain.length) break;
-      const e = pick(plain);
-      game.enemies[game.enemies.indexOf(e)] = makeEnemy(e.type, e.lvl, e.x, e.y, {
-        elite: pick(ELITES),
-      });
     }
-    // clearing progress: every enemy placed now (guardian included) counts; minions don't
-    for (const e of game.enemies) e.dg = true;
-    game.DG.total = game.enemies.length;
-    game.DG.killed = 0;
-    game.DG.bonus = false;
+    // clearing progress: every spawn of this cycle (guardian included) counts; minions don't
+    game.DG.total = slots.length + 1;
+    game.DG.killed = st.dead.length + (st.guardDead ? 1 : 0);
+    game.DG.bonus = game.DG.killed >= game.DG.total;
     game.genBudget = 99;
     for (let i = -1; i <= 1; i++)
       for (let j = -1; j <= 1; j++)
@@ -116,6 +127,7 @@ export function openChest() {
     return;
   }
   c.open = true;
+  game.DG.cave.chestOpen = true;
   SFX.chest();
   ring(c.x, c.y - 14, '#ffd27a', 30, 200, 3);
   const L = game.DG.lvl;
@@ -139,12 +151,21 @@ export const REPEAT_SHARE = 0.25;
 export const clearBonusXp = (lvl: number, first: boolean) =>
   Math.round(xpNeed(lvl) * CLEAR_BONUS * (first ? 1 : REPEAT_SHARE));
 /** Count a cave enemy's death; the last one completes the clear and pays the XP bonus. */
-export function dungeonKill() {
+export function dungeonKill(e) {
   const D = game.DG;
-  if (!D || D.bonus) return;
+  if (!D) return;
+  const st = D.cave;
+  if (e.dgi === -1) {
+    // the guardian fell: its treasure chest appears
+    st.guardDead = true;
+    D.guardDead = true;
+    revealChest();
+  } else if (!st.dead.includes(e.dgi)) st.dead.push(e.dgi);
+  if (D.bonus) return save();
   D.killed++;
-  if (D.killed < D.total) return;
+  if (D.killed < D.total) return save();
   D.bonus = true;
+  st.resetAt = Date.now() + RESET_MS;
   const first = !game.P.dgClear[D.poiKey];
   game.P.dgClear[D.poiKey] = 1;
   const xp = clearBonusXp(D.lvl, first);
@@ -154,4 +175,36 @@ export function dungeonKill() {
   banner(D.name + ' cleared', '+' + xp + ' xp bonus' + (first ? '' : ' (repeat clear)'));
   spawnWarpPortal();
   save();
+}
+
+/* ---- cave cycles: a full clear keeps the cave empty for 5 minutes, then it resets ---- */
+export const RESET_MS = 5 * 60 * 1000;
+/** Saved state of a cave's current cycle; resets it (everything respawns) once its timer ran out. */
+export function caveState(key: string) {
+  const all = game.P.caves;
+  let s = all[key];
+  if (!s) s = all[key] = { gen: 0, dead: [], guardDead: false, chestOpen: false, resetAt: 0 };
+  if (s.resetAt && Date.now() >= s.resetAt) {
+    all[key] = s = { gen: s.gen + 1, dead: [], guardDead: false, chestOpen: false, resetAt: 0 };
+    delete game.P.cleared[key];
+  }
+  return s;
+}
+/** Milliseconds until a cleared cave resets (0 if it isn't waiting to reset). */
+export function resetLeft(key: string) {
+  const s = game.P && game.P.caves[key];
+  return s && s.resetAt ? Math.max(0, s.resetAt - Date.now()) : 0;
+}
+export const fmtClock = (ms: number) => {
+  const t = Math.ceil(ms / 1000);
+  return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+};
+function revealChest() {
+  const c = game.DG.chest;
+  if (!c.hidden) return;
+  c.hidden = false;
+  SFX.chest();
+  ring(c.x, c.y - 14, '#ffd27a', 40, 240, 3);
+  burst(c.x, c.y - 10, '#ffe38a', 24, 200, 3, 80, 1);
+  toast('The treasure chest appeared');
 }

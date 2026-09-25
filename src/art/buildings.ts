@@ -1,3 +1,4 @@
+import { fmtClock, resetLeft } from '../game/dungeons';
 import { SPR } from './decor';
 import { circ, ell, rr, shadow } from '../core/dom';
 import { OUT, TAU, mulberry, rand, sh } from '../core/math';
@@ -427,6 +428,14 @@ export function drawCave(c, p, t) {
   c.strokeText(tx, p.x, p.y - 108);
   c.fillStyle = game.P && game.P.cleared[p.key] ? '#b8e8a0' : '#ffe0a0';
   c.fillText(tx, p.x, p.y - 108);
+  const left = resetLeft(p.key);
+  if (left > 0) {
+    const w = 'Cleared · resets in ' + fmtClock(left);
+    c.font = '700 10px Fredoka,sans-serif';
+    c.strokeText(w, p.x, p.y - 94);
+    c.fillStyle = '#ffb35a';
+    c.fillText(w, p.x, p.y - 94);
+  }
   c.restore();
 }
 export function drawTorch(c, tr, t) {

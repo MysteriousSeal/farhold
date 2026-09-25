@@ -67,7 +67,8 @@ export function drawMini(dt) {
       mc.stroke();
     };
     ic(game.DG.exit.x, game.DG.exit.y, '#bfe6ff');
-    if (!game.DG.chest.open) ic(game.DG.chest.x, game.DG.chest.y, '#ffd27a', 6);
+    if (!game.DG.chest.open && !game.DG.chest.hidden)
+      ic(game.DG.chest.x, game.DG.chest.y, '#ffd27a', 6);
   } else {
     miniT -= dt;
     const R = MINI_R;

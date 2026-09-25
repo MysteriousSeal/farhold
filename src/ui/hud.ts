@@ -1,5 +1,5 @@
 import { zoom } from '../render/render';
-import { clearBonusXp } from '../game/dungeons';
+import { clearBonusXp, fmtClock, resetLeft } from '../game/dungeons';
 import { $, H, W } from '../core/dom';
 import { clamp } from '../core/math';
 import { SKILLCD, TREES, pointsFree, rank } from '../data/skills';
@@ -74,7 +74,9 @@ export function updHud() {
       pct +
       '% · ' +
       (D.bonus
-        ? '+' + D.bonusXp + ' xp earned'
+        ? (D.bonusXp ? '+' + D.bonusXp + ' xp earned · ' : '') +
+          'resets in ' +
+          fmtClock(resetLeft(D.poiKey))
         : 'Reward ' + clearBonusXp(D.lvl, first) + ' xp' + (first ? '' : ' (repeat)'));
     $('#dgf').style.width = pct + '%';
   } else db.style.display = 'none';

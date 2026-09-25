@@ -173,7 +173,7 @@ export function killEnemy(e) {
   game.shake = Math.max(game.shake, 3);
   game.hitstop = Math.max(game.hitstop, 0.05);
   game.P.kills++;
-  if (e.dg && game.mode === 'dungeon') dungeonKill();
+  if (e.dg && game.mode === 'dungeon') dungeonKill(e);
   const D = ET[e.type];
   const xp = Math.round(
     D.xp * (8 + e.lvl * 6) * (e.elite ? 3 : 1) * (e.boss ? 12 : 1) * RACE[game.P.race].xp,
