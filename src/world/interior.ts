@@ -57,7 +57,7 @@ const SIZE = {
   townhouse: { w: [9, 11], d: [6, 6], rooms: [2, 3], floor: 'wood' },
   tower: { w: [7, 7], d: [6, 6], rooms: [1, 1], floor: 'stone' },
   hall: { w: [15, 15], d: [8, 8], rooms: [1, 1], floor: 'hall' },
-  smithy: { w: [10, 10], d: [6, 6], rooms: [1, 1], floor: 'stone' },
+  smithy: { w: [8, 8], d: [5, 5], rooms: [1, 1], floor: 'stone' },
 };
 const SURNAMES = [
   'Ashby',
@@ -509,37 +509,40 @@ function furnishSmithy(I: Interior, v) {
         s: ((cx * 7 + cyy * 13) % 10) / 10,
         ...extra,
       });
-  // the smith stands in line with the door, the anvil at his right
-  const sx = Math.min(Math.max(dc, 2), w - 2);
+  // working corner on the side away from the door: the forge with its bellows beside it,
+  // the quench trough in front of it and the anvil at the smith's right hand
+  const L = dc > w / 2,
+    forge = L ? 1 : w - 1,
+    sx = L ? 2 : w - 2;
   put('counter', 1, cy, w, 1);
-  put('anvil', sx + 1, cy - 1);
-  // forge against the back wall on the far side from the smith, bellows and trough beside it
-  const left = sx > w / 2,
-    fx = left ? 1 : w - 2;
-  put('bigforge', fx, 1, 2, 1);
-  put('bellows', left ? 3 : w - 3, 1);
-  put('trough', left ? 3 : w - 3, 2);
-  put('smithbench', left ? w - 2 : 1, 1, 2, 1);
-  put('grind', left ? w - 1 : 2, 2);
-  // customer side: racks along the side walls, a barrel of spears by the door
+  put('bigforge', forge, 1, 2, 1);
+  put('bellows', L ? 3 : w - 2, 1, 1, 1, { flip: L }); // nozzle toward the fire
+  put('trough', L ? 1 : w, 2);
+  put('anvil', sx + 1, 2);
+  // finishing corner on the other side: workbench against the wall, grindstone in front
+  put('smithbench', L ? w - 1 : 1, 1, 2, 1);
+  put('grind', L ? w : 1, 2);
+  // the shop side: racks, armour and spears along the side walls, the middle kept clear
   put('wrack', 1, d - 1);
   put('wrack', w, d - 1);
-  put('armour', dc > w / 2 ? 2 : w - 1, d);
-  put('spears', dc > w / 2 ? 3 : w - 2, d);
-  // wall: tool racks and shields
-  for (let i = 1; i <= w; i++) {
-    const busy = I.furn.some((f) => f.cy === 1 && i >= f.cx && i < f.cx + f.cw);
-    if (busy) continue;
-    I.deco.push({ k: i % 2 ? 'tools' : 'shield', x: (i + 0.5) * IT, w: IT, s: i / w });
-  }
+  put(L ? 'spears' : 'armour', 1, d);
+  put(L ? 'armour' : 'spears', w, d);
+  // back wall: a tool rack over the workbench, shields over the middle
+  const bench = L ? w - 1 : 1;
+  I.deco.push({ k: 'tools', x: (bench + 1) * IT, w: IT, s: 0 });
+  for (const [i, k] of [
+    [L ? 4 : w - 4, 0.1],
+    [L ? 5 : w - 5, 0.6],
+  ])
+    I.deco.push({ k: 'shield', x: (i + 0.5) * IT, w: IT, s: k });
   buildSolids(I);
   const smith = v.smith || { look: villagerLook(() => 0.5) };
   I.npcs.push({
     role: 'smith',
     x: (sx + 0.5) * IT,
-    y: (cy - 0.25) * IT,
+    y: (cy - 0.35) * IT,
     hx: (sx + 0.5) * IT,
-    hy: (cy - 0.25) * IT,
+    hy: (cy - 0.35) * IT,
     dx: 1,
     dy: 0,
     walk: 0,

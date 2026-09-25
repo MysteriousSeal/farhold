@@ -642,6 +642,11 @@ function bigforge(c: Ctx, f: Furn, t: number) {
   rr(c, x - 40, y - 8, 80, 8, 2, sh(BRICK, -0.2));
 }
 function bellows(c: Ctx, f: Furn, t: number) {
+  if (f.flip) {
+    // mirrored around its own centre so the nozzle points left
+    c.translate(f.x * 2, 0);
+    c.scale(-1, 1);
+  }
   const x = f.x,
     y = f.y - 6,
     pump = Math.max(0, Math.sin(t * 2.2)) * 4;
