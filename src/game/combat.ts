@@ -1,3 +1,4 @@
+import { cancelWarp } from './warp';
 import type { Rec } from './types';
 import { SFX } from '../audio/sfx';
 import { $ } from '../core/dom';
@@ -72,6 +73,7 @@ export function damageEnemy(e, mul, kx, ky, o: Rec = {}) {
 }
 export function heroAttack() {
   if (hero.cd > 0 || hero.roll > 0 || hero.leap || hero.whirl > 0) return;
+  cancelWarp();
   const c = game.P.cls,
     ox = game.P.x,
     oy = game.P.y - 18;
@@ -156,6 +158,7 @@ export function heroAttack() {
 }
 export function heroRoll() {
   if (hero.rollCd > 0 || hero.roll > 0 || hero.leap) return;
+  cancelWarp();
   let dx = hero.vx,
     dy = hero.vy;
   if (!dx && !dy) {
@@ -178,6 +181,7 @@ function skillTarget(max) {
     : { x: game.P.x + Math.cos(hero.aim) * 180, y: game.P.y + Math.sin(hero.aim) * 180 };
 }
 export function useSkill(n) {
+  cancelWarp();
   const r = rank('s' + n);
   if (!r) {
     toast('Unlock ' + SKILLN[game.P.cls][n - 1] + ' in the skill tree');
@@ -309,6 +313,7 @@ export function drinkPot() {
 export function hurtHero(d, sx, sy, o: Rec = {}) {
   if (hero.roll > 0 || hero.inv > 0 || hero.leap || game.state !== 'play') return;
   const dm = Math.max(1, Math.round((d * 100) / (100 + game.ST.def * 4)));
+  cancelWarp();
   game.P.hp -= dm;
   hero.inv = 0.5;
   game.shake = Math.max(game.shake, 7);

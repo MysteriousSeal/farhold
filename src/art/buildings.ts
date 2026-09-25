@@ -1,6 +1,6 @@
 import { SPR } from './decor';
 import { circ, ell, rr, shadow } from '../core/dom';
-import { OUT, TAU, rand, sh } from '../core/math';
+import { OUT, TAU, mulberry, rand, sh } from '../core/math';
 import { addLight } from '../game/fx';
 import { game } from '../game/state';
 /* ================= ART: buildings & props ================= */
@@ -495,21 +495,81 @@ export function drawProp(c, p, t) {
     c.lineTo(-9, -2);
     c.stroke();
   } else if (k === 'bones') {
-    c.drawImage(SPR.bones.c, -20, -18, 40, 24);
+    const s = SPR.bones;
+    c.drawImage(s.c, -s.ax, -s.ay, s.w, s.h);
   } else if (k === 'web') {
-    c.strokeStyle = 'rgba(230,230,240,.35)';
-    c.lineWidth = 1;
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI;
-      c.beginPath();
-      c.moveTo(-Math.cos(a) * 16, -Math.sin(a) * 12);
-      c.lineTo(Math.cos(a) * 16, Math.sin(a) * 12);
-      c.stroke();
+    // cobweb: irregular spokes, sagging spiral threads, a torn strand, dewdrops, maybe a spider
+    const rnd = mulberry(((p.x * 73 + p.y * 151) | 0) ^ 0x5bd1),
+      n = 9 + ((rnd() * 3) | 0),
+      spokes: number[][] = [];
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU + (rnd() - 0.5) * 0.35,
+        r = 22 * (0.72 + rnd() * 0.4);
+      spokes.push([Math.cos(a) * r, Math.sin(a) * r * 0.72]);
     }
-    for (const r of [5, 10, 15]) {
+    shadow(c, 0, 5, 18, 5, 0.1);
+    c.lineCap = 'round';
+    c.strokeStyle = 'rgba(242,242,252,.6)';
+    c.lineWidth = 1.1;
+    c.beginPath();
+    for (const [sx, sy] of spokes) {
+      c.moveTo(0, 0);
+      c.lineTo(sx, sy);
+    }
+    c.stroke();
+    const torn = (rnd() * n) | 0;
+    c.strokeStyle = 'rgba(236,238,250,.5)';
+    c.lineWidth = 0.9;
+    c.beginPath();
+    for (let f = 0.2; f < 0.98; f += 0.12)
+      for (let i = 0; i < n; i++) {
+        if (f > 0.85 && i === torn) continue;
+        const [ax, ay] = spokes[i],
+          [bx, by] = spokes[(i + 1) % n];
+        c.moveTo(ax * f, ay * f);
+        c.quadraticCurveTo(((ax + bx) / 2) * f * 0.84, ((ay + by) / 2) * f * 0.84, bx * f, by * f);
+      }
+    c.stroke();
+    // loose end of the torn strand
+    const [tx, ty] = spokes[torn];
+    c.beginPath();
+    c.moveTo(tx * 0.92, ty * 0.92);
+    c.quadraticCurveTo(tx * 0.95 + 3, ty * 0.95 + 7, tx * 0.9 + 1, ty * 0.9 + 11);
+    c.stroke();
+    // dewdrops
+    for (let d = 0; d < 5; d++) {
+      const [sx, sy] = spokes[(rnd() * n) | 0],
+        f = 0.3 + rnd() * 0.6;
+      c.fillStyle =
+        'rgba(210,240,255,' + (0.55 + 0.4 * Math.sin(t * 2.5 + d * 1.7)).toFixed(3) + ')';
       c.beginPath();
-      c.ellipse(0, 0, r, r * 0.75, 0, 0, TAU);
+      c.arc(sx * f, sy * f, 1.1, 0, TAU);
+      c.fill();
+    }
+    c.fillStyle = 'rgba(245,245,255,.7)';
+    c.beginPath();
+    c.arc(0, 0, 1.8, 0, TAU);
+    c.fill();
+    if (rnd() < 0.35) {
+      // a small spider on the hub
+      c.strokeStyle = '#1e1624';
+      c.lineWidth = 1.1;
+      c.beginPath();
+      for (const s of [-1, 1])
+        for (let l = 0; l < 4; l++) {
+          const ly = -2 + l * 1.6;
+          c.moveTo(0, ly);
+          c.quadraticCurveTo(s * 4, ly - 3 + l, s * (5.5 + (l % 2)), ly + 1 + l * 0.6);
+        }
       c.stroke();
+      c.fillStyle = '#2a1d2c';
+      c.beginPath();
+      c.ellipse(0, 1, 2.8, 3.2, 0, 0, TAU);
+      c.ellipse(0, -2.6, 1.8, 1.6, 0, 0, TAU);
+      c.fill();
+      c.fillStyle = '#ff5a4a';
+      c.fillRect(-1, -3, 0.9, 0.9);
+      c.fillRect(0.2, -3, 0.9, 0.9);
     }
   } else if (k === 'rubble') {
     for (const [a, b, r] of [
@@ -594,5 +654,83 @@ export function drawDPillar(c, p) {
   c.fillStyle = 'rgba(0,0,0,.18)';
   c.fillRect(3, -66, 7, 58);
   rr(c, -13, -72, 26, 8, 2, '#5a5268');
+  c.restore();
+}
+/** Warp portal: a stone arch around a swirling vortex (faster while channelling). */
+export function drawPortal(c, p, t, channel: boolean) {
+  const x = p.x,
+    y = p.y,
+    sp = channel ? 4 : 1.4,
+    cy = y - 34;
+  c.save();
+  // glow on the floor
+  c.globalCompositeOperation = 'lighter';
+  const g = c.createRadialGradient(x, y, 4, x, y, 46);
+  g.addColorStop(0, 'rgba(140,190,255,' + (channel ? 0.55 : 0.35) + ')');
+  g.addColorStop(1, 'rgba(140,120,255,0)');
+  c.fillStyle = g;
+  c.beginPath();
+  c.ellipse(x, y, 46, 16, 0, 0, TAU);
+  c.fill();
+  c.globalCompositeOperation = 'source-over';
+  // vortex
+  const vortex = () => {
+    c.beginPath();
+    c.ellipse(x, cy, 19, 30, 0, 0, TAU);
+  };
+  vortex();
+  const vg = c.createRadialGradient(x, cy, 2, x, cy, 30);
+  vg.addColorStop(0, '#f4f0ff');
+  vg.addColorStop(0.35, '#8fb8ff');
+  vg.addColorStop(1, '#5a3aa8');
+  c.fillStyle = vg;
+  c.fill();
+  c.save();
+  vortex();
+  c.clip();
+  c.lineCap = 'round';
+  for (let k = 0; k < 3; k++) {
+    c.strokeStyle = k === 1 ? 'rgba(255,255,255,.7)' : 'rgba(210,190,255,.6)';
+    c.lineWidth = 2.2;
+    c.beginPath();
+    for (let a = 0; a < TAU * 1.6; a += 0.2) {
+      const r = 2 + a * 5.2,
+        aa = a + t * sp + (k * TAU) / 3;
+      const px = x + Math.cos(aa) * r * 0.62,
+        py = cy + Math.sin(aa) * r;
+      if (a === 0) c.moveTo(px, py);
+      else c.lineTo(px, py);
+    }
+    c.stroke();
+  }
+  c.restore();
+  // stone arch
+  c.lineJoin = 'round';
+  c.strokeStyle = OUT;
+  c.lineWidth = 9;
+  vortex();
+  c.stroke();
+  c.strokeStyle = '#8a8298';
+  c.lineWidth = 5.5;
+  vortex();
+  c.stroke();
+  c.strokeStyle = 'rgba(255,255,255,.3)';
+  c.lineWidth = 1.4;
+  c.beginPath();
+  c.ellipse(x, cy, 19, 30, 0, Math.PI * 1.1, Math.PI * 1.6);
+  c.stroke();
+  // runes on the arch
+  for (let k = 0; k < 6; k++) {
+    const a = (k / 6) * TAU + t * 0.3;
+    c.fillStyle = 'rgba(160,210,255,' + (0.6 + 0.4 * Math.sin(t * 3 + k)).toFixed(3) + ')';
+    c.beginPath();
+    c.arc(x + Math.cos(a) * 19, cy + Math.sin(a) * 30, 1.8, 0, TAU);
+    c.fill();
+  }
+  // base stones
+  c.lineWidth = 2;
+  c.strokeStyle = OUT;
+  rr(c, x - 16, y - 5, 12, 6, 2, '#6e667e');
+  rr(c, x + 4, y - 5, 12, 6, 2, '#6e667e');
   c.restore();
 }

@@ -1,3 +1,4 @@
+import { cancelWarp, updateWarp } from './warp';
 import { inPlaceNow } from '../world/poi';
 import { WADE, isPool } from '../world/terrain';
 import { SFX } from '../audio/sfx';
@@ -40,6 +41,8 @@ function updateHero(dt) {
   hero.vx = mx;
   hero.vy = my;
   hero.moving = l > 0.15;
+  if (hero.moving && hero.warp) cancelWarp();
+  updateWarp(dt);
   if (hero.moving && hero.atk <= 0) {
     hero.dx = mx;
     hero.dy = my;

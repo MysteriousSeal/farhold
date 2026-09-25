@@ -1,3 +1,5 @@
+import { WARP_TIME } from '../game/warp';
+import { drawMoss } from '../art/decor';
 import {
   drawCityGround,
   drawFountain,
@@ -9,6 +11,7 @@ import {
 } from '../art/city';
 import { wallPt } from '../world/city';
 import { drawHouse } from '../art/houses';
+import { drawPortal } from '../art/buildings';
 import {
   drawBoard,
   drawCave,
@@ -28,7 +31,7 @@ import { SPR, TREESET } from '../art/decor';
 import { drawHumanoid, drawWeapon, handPos, restAng, weaponBehind } from '../art/humanoid';
 import { drawDrop, drawProj } from '../art/items';
 import { DPR, H, W, g, mkCanvas, shadow } from '../core/dom';
-import { TAU, clamp, lerp, rand } from '../core/math';
+import { OUT, TAU, clamp, lerp, rand } from '../core/math';
 import { MATS, RAR } from '../data/classes';
 import { addLight } from '../game/fx';
 import { drawNpc } from '../game/npcs';
@@ -179,6 +182,36 @@ function drawHero(c, t) {
   });
   c.restore();
   if (!behind || hero.whirl > 0) wd();
+  if (hero.warp) {
+    // channel cast bar above the hero
+    const k = Math.min(1, hero.warp.t / WARP_TIME),
+      bx = game.P.x - 28,
+      by = game.P.y - 70;
+    c.save();
+    c.beginPath();
+    if (c.roundRect) c.roundRect(bx, by, 56, 8, 4);
+    else c.rect(bx, by, 56, 8);
+    c.fillStyle = 'rgba(20,15,30,.9)';
+    c.fill();
+    c.save();
+    c.clip();
+    c.fillStyle = '#8fb8ff';
+    c.fillRect(bx, by, 56 * k, 8);
+    c.fillStyle = 'rgba(255,255,255,.35)';
+    c.fillRect(bx, by, 56 * k, 3);
+    c.restore();
+    c.strokeStyle = OUT;
+    c.lineWidth = 1.6;
+    c.stroke();
+    c.font = '700 10px Fredoka,sans-serif';
+    c.textAlign = 'center';
+    c.lineWidth = 3;
+    c.strokeStyle = 'rgba(0,0,0,.85)';
+    c.strokeText('Warping…', game.P.x, by - 3);
+    c.fillStyle = '#d8e8ff';
+    c.fillText('Warping…', game.P.x, by - 3);
+    c.restore();
+  }
   if (game.P.cls === 'warrior' && hero.atk > 0 && hero.whirl <= 0) {
     c.save();
     c.translate(game.P.x, game.P.y - 18);
@@ -241,6 +274,7 @@ export function render() {
   game.genBudget = game.state === 'play' ? 1 : 2;
   const list = [],
     cliffs = [],
+    moss = [],
     shores = [],
     pools = [];
   for (let i = Math.floor((x0 - 40) / CH); i <= Math.floor((x1 + 40) / CH); i++)
@@ -263,6 +297,9 @@ export function render() {
         if (d.x > x0 - 60 && d.x < x1 + 60 && d.y > y0 - 10 && d.y < y1 + 130)
           list.push({ y: d.y, d });
       if (ch.cliffs) cliffs.push(...ch.cliffs);
+      if (ch.moss)
+        for (const m of ch.moss)
+          if (m.x > x0 - 30 && m.x < x1 + 30 && m.y > y0 - 20 && m.y < y1 + 20) moss.push(m);
       if (ch.shores) shores.push(ch.shores);
       if (ch.pools) pools.push(ch.pools);
     }
@@ -270,6 +307,7 @@ export function render() {
   drawShores(g, shores, game.time);
   drawPools(g, pools, game.time);
   drawCliffs(g, cliffs);
+  if (game.mode === 'dungeon') for (const m of moss) drawMoss(g, m, game.DG.b === 6, game.time);
   if (game.genBudget > 0) {
     if (game.mode === 'world') bgStep(cx, cy);
     else {
@@ -348,7 +386,14 @@ export function render() {
           addLight(p.x, p.y, 160, 0.5, '#ff3a5a');
         }
         for (const pl of p.pillars) list.push({ y: pl.y, f: (c) => drawPillar(c, pl, game.time) });
-        list.push({ y: p.y - 40, f: (c) => c.drawImage(SPR.bones.c, p.x - 30, p.y - 60, 60, 36) });
+        list.push({
+          y: p.y - 40,
+          f: (c) => {
+            const s = SPR.bones,
+              k = 1.35;
+            c.drawImage(s.c, p.x - s.ax * k, p.y - 40 - s.ay * k, s.w * k, s.h * k);
+          },
+        });
         const chest = game.P && game.P.chests && game.P.chests[p.key];
         if (chest) list.push({ y: chest.y, f: (c) => drawChest(c, chest, game.time) });
       } else if (p.kind === 'cave') list.push({ y: p.y, f: (c) => drawCave(c, p, game.time) });
@@ -361,6 +406,8 @@ export function render() {
     for (const p of game.DG.pillars)
       if (vis(p.x, p.y)) list.push({ y: p.y, f: (c) => drawDPillar(c, p) });
     list.push({ y: game.DG.chest.y, f: (c) => drawChest(c, game.DG.chest, game.time) });
+    const portal = game.DG.portal;
+    if (portal) list.push({ y: portal.y, f: (c) => drawPortal(c, portal, game.time, !!hero.warp) });
     g.save();
     drawStairs(g, game.DG.exit, game.time);
     g.restore();

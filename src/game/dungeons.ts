@@ -1,3 +1,4 @@
+import { spawnWarpPortal } from './warp';
 import { gainXp } from './combat';
 import { xpNeed } from './stats';
 import { SFX } from '../audio/sfx';
@@ -60,6 +61,17 @@ export function enterDungeon(p) {
       game.enemies.push(b);
       game.DG.guard = b;
     } else game.DG.guardDead = true;
+    // at least one in five cave enemies is elite
+    const mobs = game.enemies.filter((e) => !e.boss);
+    let need = Math.ceil(mobs.length * ELITE_SHARE) - mobs.filter((e) => e.elite).length;
+    while (need-- > 0) {
+      const plain = game.enemies.filter((e) => !e.boss && !e.elite);
+      if (!plain.length) break;
+      const e = pick(plain);
+      game.enemies[game.enemies.indexOf(e)] = makeEnemy(e.type, e.lvl, e.x, e.y, {
+        elite: pick(ELITES),
+      });
+    }
     // clearing progress: every enemy placed now (guardian included) counts; minions don't
     for (const e of game.enemies) e.dg = true;
     game.DG.total = game.enemies.length;
@@ -117,6 +129,8 @@ export function openChest() {
   save();
 }
 
+/** Minimum share of elite enemies in a cave. */
+export const ELITE_SHARE = 0.2;
 /* ---- clearing bonus ---- */
 /** Share of a level's XP (at the cave level) given for killing every enemy in a cave. */
 export const CLEAR_BONUS = 0.6;
@@ -138,5 +152,6 @@ export function dungeonKill() {
   gainXp(xp);
   SFX.quest();
   banner(D.name + ' cleared', '+' + xp + ' xp bonus' + (first ? '' : ' (repeat clear)'));
+  spawnWarpPortal();
   save();
 }

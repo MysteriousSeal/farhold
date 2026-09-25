@@ -70,6 +70,7 @@ export const hero = {
   leap: null,
   slow: 0,
   stepT: 0,
+  warp: null as any,
 };
 export const lights = [];
 
