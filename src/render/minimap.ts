@@ -7,9 +7,37 @@ import { COL, terr } from '../world/terrain';
 export const mini = $('#mini'),
   mc = mini.getContext('2d');
 let miniT = 0,
-  miniImg = null;
+  miniImg = null,
+  miniGen = null;
+const MINI_R = 950, // world radius shown
+  MINI_S = 96, // terrain samples across
+  MINI_ROWS = 8; // sample rows computed per frame (spreads the work)
+/** Build the terrain snapshot a few rows per frame; swap it in once complete. */
+function stepMiniGen() {
+  const g = miniGen,
+    S = MINI_S,
+    R = MINI_R,
+    end = Math.min(S, g.row + MINI_ROWS);
+  for (let j = g.row; j < end; j++)
+    for (let i = 0; i < S; i++) {
+      const T = terr(g.x + ((i + 0.5) / S - 0.5) * 2 * R, g.y + ((j + 0.5) / S - 0.5) * 2 * R),
+        a = COL[T.t][T.b],
+        k = (j * S + i) * 4;
+      g.img.data[k] = a[0];
+      g.img.data[k + 1] = a[1];
+      g.img.data[k + 2] = a[2];
+      g.img.data[k + 3] = 255;
+    }
+  g.row = end;
+  if (g.row >= S) {
+    const t = mkCanvas(S, S);
+    t.getContext('2d').putImageData(g.img, 0, 0);
+    miniImg = { c: t, x: g.x, y: g.y, R };
+    miniGen = null;
+  }
+}
 export function drawMini(dt) {
-  const M = 216;
+  const M = mini.width;
   mc.save();
   mc.clearRect(0, 0, M, M);
   mc.beginPath();
@@ -42,29 +70,18 @@ export function drawMini(dt) {
     if (!game.DG.chest.open) ic(game.DG.chest.x, game.DG.chest.y, '#ffd27a', 6);
   } else {
     miniT -= dt;
-    const R = 950,
-      S = 38;
-    if (miniT <= 0 || !miniImg) {
+    const R = MINI_R;
+    if (!miniGen && (miniT <= 0 || !miniImg)) {
       miniT = 0.8;
-      const img = new ImageData(S, S);
-      for (let j = 0; j < S; j++)
-        for (let i = 0; i < S; i++) {
-          const x = game.P.x + (i / S - 0.5) * 2 * R,
-            y = game.P.y + (j / S - 0.5) * 2 * R,
-            T = terr(x, y),
-            a = COL[T.t][T.b],
-            k = (j * S + i) * 4;
-          img.data[k] = a[0];
-          img.data[k + 1] = a[1];
-          img.data[k + 2] = a[2];
-          img.data[k + 3] = 255;
-        }
-      const t = mkCanvas(S, S);
-      t.getContext('2d').putImageData(img, 0, 0);
-      miniImg = { c: t, x: game.P.x, y: game.P.y, R };
+      miniGen = { img: new ImageData(MINI_S, MINI_S), row: 0, x: game.P.x, y: game.P.y };
+    }
+    if (miniGen) {
+      stepMiniGen();
+      // the very first snapshot is built in one go so the map is never empty
+      while (!miniImg && miniGen) stepMiniGen();
     }
     const sc = M / (2 * R);
-    mc.imageSmoothingEnabled = true;
+    mc.imageSmoothingEnabled = false;
     mc.drawImage(
       miniImg.c,
       M / 2 + (miniImg.x - game.P.x) * sc - M / 2,

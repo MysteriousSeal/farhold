@@ -330,8 +330,8 @@ input.txt {
   position: fixed;
   right: 12px;
   top: calc(env(safe-area-inset-top) + 10px);
-  width: 112px;
-  height: 112px;
+  width: 225px;
+  height: 225px;
   border-radius: 50%;
   border: 3px solid var(--gold2);
   box-shadow:
@@ -344,7 +344,7 @@ input.txt {
 #topbtns {
   position: fixed;
   right: 10px;
-  top: calc(env(safe-area-inset-top) + 128px);
+  top: calc(env(safe-area-inset-top) + 250px);
   display: none;
   flex-direction: column;
   gap: 8px;
@@ -994,5 +994,16 @@ input.txt {
   }
   #dgbar.low {
     top: calc(env(safe-area-inset-top) + 160px);
+  }
+}
+
+/* bigger minimap, a bit smaller on phones */
+@media (max-width: 640px) {
+  #mini {
+    width: 150px;
+    height: 150px;
+  }
+  #topbtns {
+    top: calc(env(safe-area-inset-top) + 176px);
   }
 }
