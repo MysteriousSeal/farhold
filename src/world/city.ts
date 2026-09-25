@@ -95,12 +95,12 @@ export function makeCity(key: string) {
     { kind: 'fine', label: 'Fine goods', x: 134, y: -58, awning: '#c9912c', goods: 'fine' },
   ];
   v.solids.push(
-    { c: 1, x: v.way.x, y: v.way.y - 4, r: 15 },
+    { e: 1, x: v.way.x, y: v.way.y - 2, rx: 22, ry: 8 },
     { x0: v.stall.x - 34, x1: v.stall.x + 34, y0: v.stall.y - 26, y1: v.stall.y + 2 },
     { x0: v.forge.x - 36, x1: v.forge.x + 30, y0: v.forge.y - 30, y1: v.forge.y + 2 },
     { x0: v.board.x - 24, x1: v.board.x + 24, y0: v.board.y - 8, y1: v.board.y + 2 },
-    { c: 1, x: v.fountain.x, y: v.fountain.y - 4, r: 40 },
-    { c: 1, x: v.well.x, y: v.well.y - 4, r: 17 },
+    { e: 1, x: v.fountain.x, y: v.fountain.y - 7, rx: 42, ry: 22 },
+    { e: 1, x: v.well.x, y: v.well.y - 6, rx: 18, ry: 12 },
     ...v.shops.map((s) => ({ x0: s.x - 34, x1: s.x + 34, y0: s.y - 26, y1: s.y + 2 })),
   );
 

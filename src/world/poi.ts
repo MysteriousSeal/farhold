@@ -236,7 +236,7 @@ function makeVillage(x, y, key, home?) {
   v.forge = { x: x + 112, y: y + 34 };
   v.board = { x: x + 4, y: y - 104 };
   v.solids.push(
-    { c: 1, x: v.way.x, y: v.way.y - 4, r: 15 },
+    { e: 1, x: v.way.x, y: v.way.y - 2, rx: 22, ry: 8 },
     { x0: v.stall.x - 34, x1: v.stall.x + 34, y0: v.stall.y - 26, y1: v.stall.y + 2 },
     { x0: v.forge.x - 36, x1: v.forge.x + 30, y0: v.forge.y - 30, y1: v.forge.y + 2 },
     { x0: v.board.x - 24, x1: v.board.x + 24, y0: v.board.y - 8, y1: v.board.y + 2 },
@@ -326,9 +326,8 @@ function makeCave(x, y, key) {
     b: terr(x, y).b,
     name: 'The ' + CPRE[(rnd() * CPRE.length) | 0] + CSUF[(rnd() * CSUF.length) | 0],
     solids: [
-      { c: 1, x: x - 34, y: y - 34, r: 30 },
-      { c: 1, x: x + 34, y: y - 34, r: 30 },
-      { c: 1, x, y: y - 52, r: 34 },
+      // the whole base of the rock mound; only the doorway at the front is reachable
+      { x0: x - 84, x1: x + 84, y0: y - 68, y1: y - 6 },
     ],
   };
 }
@@ -364,14 +363,22 @@ function makeLair(x, y, key) {
     const px = x + Math.cos(a) * 160,
       py = y + Math.sin(a) * 120;
     l.pillars.push({ x: px, y: py, h: (30 + rnd() * 40) | 0, broken: rnd() < 0.5 });
-    l.solids.push({ c: 1, x: px, y: py - 4, r: 13 });
+    l.solids.push({ e: 1, x: px, y: py - 4, rx: 15, ry: 5 });
   }
   l.name = BOSS[bt].n + "'s Lair";
   return l;
 }
+/**
+ * Is a body of radius `r` at (x, y) inside one of the place's solids? Solids are circles
+ * (`c`), ellipses matching a prop's drawn base (`e`: rx × ry) or boxes (x0..x1, y0..y1).
+ */
 export function poiSolid(p, x, y, r) {
   for (const s of p.solids) {
-    if (s.c) {
+    if (s.e) {
+      const dx = (x - s.x) / (s.rx + r),
+        dy = (y - s.y) / (s.ry + r * 0.6);
+      if (dx * dx + dy * dy < 1) return true;
+    } else if (s.c) {
       const dx = x - s.x,
         dy = (y - s.y) * 1.3;
       if (dx * dx + dy * dy < (s.r + r) * (s.r + r)) return true;
