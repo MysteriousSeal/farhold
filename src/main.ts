@@ -17,6 +17,8 @@ import { refreshMenu } from './ui/menus';
 import { drawPreview } from './ui/screens';
 /* ================= LOOP ================= */
 buildSprites();
+// cheat panel: dev server only, left out of production builds
+if (import.meta.env.DEV) import('./ui/cheats');
 refreshMenu();
 game.SEED = strSeed('menu-' + ((Math.random() * 1e9) | 0));
 applyVolumes();

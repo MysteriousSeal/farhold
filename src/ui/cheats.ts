@@ -1,0 +1,69 @@
+import { TAU } from '../core/math';
+import { ET } from '../data/enemies';
+import { makeEnemy } from '../game/enemies';
+import { game } from '../game/state';
+import { solidAt } from '../world/chunks';
+/* ================= CHEATS (dev builds only, loaded from main.ts) ================= */
+// A button in the bottom-left corner opens a panel to spawn any regular enemy, level 1,
+// right next to the hero.
+
+/** A free spot 70–110 units from the hero, or the hero's own position as a fallback. */
+function spotNearHero() {
+  for (let i = 0; i < 20; i++) {
+    const a = Math.random() * TAU,
+      d = 70 + Math.random() * 40,
+      x = game.P.x + Math.cos(a) * d,
+      y = game.P.y + Math.sin(a) * d;
+    if (!solidAt(x, y, 14)) return { x, y };
+  }
+  return { x: game.P.x + 60, y: game.P.y };
+}
+function spawn(type: string) {
+  if (game.state !== 'play' || !game.P) return;
+  const { x, y } = spotNearHero();
+  game.enemies.push(makeEnemy(type, 1, x, y));
+}
+
+const css = document.createElement('style');
+css.textContent = `
+#cheatBtn{position:fixed;left:12px;bottom:calc(env(safe-area-inset-bottom) + 12px);z-index:30;
+  padding:6px 12px;border-radius:10px;border:2px solid #1c1008;background:#7a1e22;color:#ffe7a8;
+  font:700 13px var(--f);cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.45)}
+#cheatPanel{position:fixed;left:12px;bottom:calc(env(safe-area-inset-bottom) + 52px);z-index:30;
+  display:none;width:250px;padding:10px;border-radius:12px;border:2px solid #1c1008;
+  background:rgba(36,26,46,.95);box-shadow:inset 0 0 0 2px #c9912c,0 6px 14px rgba(0,0,0,.5)}
+#cheatPanel.on{display:block}
+#cheatPanel h3{margin:0 0 8px;font:700 14px var(--f);color:#ffe7a8}
+#cheatPanel .grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+#cheatPanel button{padding:5px 6px;border-radius:7px;border:1.5px solid #1c1008;
+  background:#efe0bf;color:#241a2e;font:600 12px var(--f);cursor:pointer;text-align:left}
+#cheatPanel button:hover{background:#f5c451}`;
+document.head.appendChild(css);
+
+const btn = document.createElement('button'),
+  panel = document.createElement('div');
+btn.id = 'cheatBtn';
+btn.textContent = 'Cheats';
+panel.id = 'cheatPanel';
+panel.innerHTML = '<h3>Spawn enemy (Lv 1)</h3><div class="grid"></div>';
+const grid = panel.querySelector('.grid');
+for (const [type, D] of Object.entries(ET) as [string, { n: string }][]) {
+  const b = document.createElement('button');
+  b.textContent = D.n;
+  b.onclick = () => spawn(type);
+  grid.appendChild(b);
+}
+btn.onclick = () => panel.classList.toggle('on');
+// keep the canvas from treating clicks here as attacks
+for (const el of [btn, panel]) {
+  el.addEventListener('pointerdown', (e) => e.stopPropagation());
+  el.addEventListener('mousedown', (e) => e.stopPropagation());
+  el.addEventListener('touchstart', (e) => e.stopPropagation());
+}
+document.body.append(btn, panel);
+// only while playing
+setInterval(() => {
+  const on = game.state === 'play';
+  btn.style.display = on ? 'block' : 'none';
+  if (!on) panel.classList.remove('on');
+}, 250);
