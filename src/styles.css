@@ -651,11 +651,26 @@ input.txt {
   width: 86%;
   height: 86%;
 }
+/* slot label: a dark pill tab straddling the slot's bottom edge, always readable */
 .cell .lab {
   position: absolute;
-  bottom: 0;
-  font-size: 8px;
-  opacity: 0.55;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1px 7px 2px;
+  border-radius: 8px;
+  background: #141934;
+  border: 1.5px solid #4a5488;
+  color: #fff6e0;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.3px;
+  text-transform: capitalize;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 1;
 }
 .cell.sel {
   outline: 3px solid #fff;
@@ -882,7 +897,7 @@ input.txt {
 .scol {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 18px;
 }
 .scol .slot,
 .wslot .slot {
@@ -917,7 +932,7 @@ input.txt {
 .wslot {
   display: flex;
   justify-content: center;
-  margin-top: 10px;
+  margin: 10px 0 12px;
 }
 .gs {
   text-align: center;

@@ -100,7 +100,9 @@ function drawPortrait(cv: HTMLCanvasElement) {
   const x = cv.getContext('2d'),
     w = game.P.eq.weapon;
   x.clearRect(0, 0, cv.width, cv.height);
-  x.setTransform(2 * 3.3, 0, 0, 2 * 3.3, cv.width / 2, cv.height - 26);
+  // centre the whole figure (helmet top ≈ -48, feet and weapon tip ≈ +20, weapon to the right)
+  const k = 2 * 2.9;
+  x.setTransform(k, 0, 0, k, cv.width / 2 - 4 * k, cv.height / 2 + 14 * k);
   const hp = handPos(0, 1, false, 0, 0, game.P.race),
     ang = restAng(hp, game.P.cls),
     wd = () =>
