@@ -5,7 +5,7 @@ import { RAR, SLOTS } from '../data/classes';
 import { BAGMAX } from '../game/drops';
 import { unstick } from '../game/enemies';
 import { doFade, toast } from '../game/fx';
-import { genItem, itemName, upCost } from '../game/items';
+import { equipSlot, genItem, itemName, upCost } from '../game/items';
 import { genOffers, offers } from '../game/quests';
 import { game } from '../game/state';
 import { calcStats } from '../game/stats';
@@ -124,7 +124,7 @@ function renderShop(v) {
     body.appendChild(row);
     for (const it of s.items) {
       const price = it.val * (shopFine ? 6 : 4),
-        cur = game.P.eq[it.slot],
+        cur = game.P.eq[equipSlot(it, game.P.eq)],
         r2 = document.createElement('div');
       r2.className = 'row2';
       const ic = document.createElement('div');
@@ -204,7 +204,7 @@ function renderShop(v) {
         '">' +
         itemName(it) +
         '</div><div class="stats">' +
-        statLines(it, game.P.eq[it.slot]) +
+        statLines(it, game.P.eq[equipSlot(it, game.P.eq)]) +
         '</div><div class="acts"></div>';
       det.querySelector('.acts').appendChild(
         btn('Sell for ' + it.val, () => {

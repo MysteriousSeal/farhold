@@ -911,7 +911,7 @@ input.txt {
 }
 .portrait {
   position: relative;
-  height: 250px;
+  height: 326px;
   border-radius: 16px;
   border: 3px solid #3b4478;
   background:
@@ -927,7 +927,7 @@ input.txt {
 }
 .portrait canvas {
   width: 220px;
-  height: 250px;
+  height: 326px;
 }
 .wslot {
   display: flex;

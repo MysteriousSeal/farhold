@@ -19,7 +19,7 @@ export function openModal(html) {
   setHud(false);
   mp.scrollTop = 0;
 }
-export function iconCanvas(it, sz = 64) {
+export function iconCanvas(it, sz = 128) {
   const c = mkCanvas(sz, sz);
   drawIcon(c.getContext('2d'), it, sz);
   return c;

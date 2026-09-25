@@ -74,7 +74,30 @@ export const RAR = [
   { n: 'Epic', c: '#c872ff', m: 1.75 },
   { n: 'Legendary', c: '#ffa63a', m: 2.2 },
 ];
-export const SLOTS = ['weapon', 'helm', 'armor', 'boots', 'ring', 'amulet'];
+/** Equipment slots (keys of P.eq); both ring slots take items of type 'ring'. */
+export const SLOTS = [
+  'weapon',
+  'helm',
+  'armor',
+  'gloves',
+  'pants',
+  'boots',
+  'ring',
+  'ring2',
+  'amulet',
+];
+/** Display names for equipment slots. */
+export const SLOT_NAME = {
+  weapon: 'Weapon',
+  helm: 'Helm',
+  armor: 'Armor',
+  gloves: 'Gloves',
+  pants: 'Pants',
+  boots: 'Boots',
+  ring: 'Ring',
+  ring2: 'Ring',
+  amulet: 'Amulet',
+};
 export const STATN = {
   hp: 'Health',
   atk: 'Attack',

@@ -141,10 +141,26 @@ describe('player look', () => {
     p.eq.armor = gear('armor', 'Iron Tunic');
     p.eq.helm = gear('helm', 'Iron Cap');
     L = lookOfPlayer(p);
-    expect(L.shorts).toBeUndefined();
+    expect(L.shorts).toBe(UNDERWEAR); // legs stay bare until pants are worn
     expect(L.cloth).toBe(CLS.mage.cloth);
     expect(L.robe).toBe(true);
     expect(L.helm).toBe(MATS[1][1]);
+
+    p.eq.pants = gear('pants', 'Iron Leggings');
+    p.eq.gloves = gear('gloves', 'Iron Gloves');
+    L = lookOfPlayer(p);
+    expect(L.shorts).toBeUndefined();
+    expect(L.pants).not.toBe(p.skin);
+    expect(L.gloves).toBeTruthy();
+  });
+
+  it('a second ring fills the empty ring slot, then replaces the weaker ring', async () => {
+    const { equipSlot } = await import('../src/game/items');
+    const ring = (lvl: number) => ({ slot: 'ring', r: 1, lvl, plus: 0 });
+    expect(equipSlot(ring(5), {})).toBe('ring');
+    expect(equipSlot(ring(5), { ring: ring(3) })).toBe('ring2');
+    expect(equipSlot(ring(5), { ring: ring(9), ring2: ring(2) })).toBe('ring2');
+    expect(equipSlot({ slot: 'gloves' }, {})).toBe('gloves');
   });
 });
 

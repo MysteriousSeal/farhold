@@ -2,10 +2,17 @@ import { drawHumanoid, drawWeapon, handPos, restAng } from '../art/humanoid';
 import { compareItem, fmtPct } from '../game/power';
 import { SFX } from '../audio/sfx';
 import { $ } from '../core/dom';
-import { CLS, MATS, RACE, RAR } from '../data/classes';
+import { CLS, MATS, RACE, RAR, SLOT_NAME } from '../data/classes';
 import { BAGMAX } from '../game/drops';
 import { toast } from '../game/fx';
-import { gearScore, itemName, salvageAll, salvageValue, salvageable } from '../game/items';
+import {
+  equipSlot,
+  gearScore,
+  itemName,
+  salvageAll,
+  salvageValue,
+  salvageable,
+} from '../game/items';
 import { game } from '../game/state';
 import { calcStats, xpNeed } from '../game/stats';
 import { btn, iconCanvas, openModal, statLines } from './modal';
@@ -121,7 +128,17 @@ function drawPortrait(cv: HTMLCanvasElement) {
   wd();
   x.setTransform(1, 0, 0, 1, 0, 0);
 }
-const SLOT_ICON = { helm: '⛑', amulet: '📿', armor: '🥋', ring: '💍', boots: '👢', weapon: '⚔' };
+const SLOT_ICON = {
+  helm: '⛑',
+  amulet: '📿',
+  armor: '🥋',
+  gloves: '🧤',
+  pants: '👖',
+  ring: '💍',
+  ring2: '💍',
+  boots: '👢',
+  weapon: '⚔',
+};
 function slotCell(k: string) {
   const it = game.P.eq[k],
     d = document.createElement('div');
@@ -137,12 +154,12 @@ function slotCell(k: string) {
   }
   const lb = document.createElement('span');
   lb.className = 'lab';
-  lb.textContent = k;
+  lb.textContent = SLOT_NAME[k];
   d.appendChild(lb);
-  d.title = it ? itemName(it) : 'Empty ' + k + ' slot';
+  d.title = it ? itemName(it) : 'Empty ' + SLOT_NAME[k].toLowerCase() + ' slot';
   d.onclick = () => {
     if (!it) return;
-    selItem = { it, eq: true };
+    selItem = { it, eq: true, key: k };
     render();
   };
   return d;
@@ -160,13 +177,13 @@ function renderChar() {
     ' / ' +
     need +
     ' xp</div>' +
-    '<div class="sheet"><div class="scol" id="sLeft"></div><div class="portrait"><canvas id="sHero" width="440" height="500"></canvas></div><div class="scol" id="sRight"></div></div>' +
+    '<div class="sheet"><div class="scol" id="sLeft"></div><div class="portrait"><canvas id="sHero" width="440" height="652"></canvas></div><div class="scol" id="sRight"></div></div>' +
     '<div class="wslot" id="sWeapon"></div>' +
     '<div class="gs">Gear score <b>' +
     gearScore(P.eq) +
     '</b></div><div class="stats sheetstats" id="sStats"></div><div id="cdetail"></div>';
-  for (const k of ['helm', 'amulet', 'armor']) $('#sLeft').appendChild(slotCell(k));
-  for (const k of ['ring', 'boots']) $('#sRight').appendChild(slotCell(k));
+  for (const k of ['helm', 'armor', 'gloves', 'pants']) $('#sLeft').appendChild(slotCell(k));
+  for (const k of ['amulet', 'ring', 'ring2', 'boots']) $('#sRight').appendChild(slotCell(k));
   $('#sWeapon').appendChild(slotCell('weapon'));
   drawPortrait($('#sHero'));
   $('#sStats').innerHTML = [
@@ -263,7 +280,7 @@ function renderBags() {
 /* ---------- item details (equip / unequip / salvage) ---------- */
 function renderDetail(dt: HTMLElement) {
   const it = selItem.it,
-    cur = selItem.eq ? null : game.P.eq[it.slot];
+    cur = selItem.eq ? null : game.P.eq[equipSlot(it, game.P.eq)];
   dt.innerHTML =
     '<div class="nm" style="color:' +
     RAR[it.r].c +
@@ -288,7 +305,7 @@ function renderDetail(dt: HTMLElement) {
           toast('Bag is full');
           return;
         }
-        game.P.eq[it.slot] = null;
+        game.P.eq[selItem.key] = null;
         game.P.inv.push(it);
         selItem = null;
         calcStats();
@@ -296,18 +313,24 @@ function renderDetail(dt: HTMLElement) {
       }),
     );
   else {
-    bx.appendChild(
-      btn('Equip', () => {
-        const old = game.P.eq[it.slot];
-        game.P.eq[it.slot] = it;
-        game.P.inv.splice(game.P.inv.indexOf(it), 1);
-        if (old) game.P.inv.push(old);
-        selItem = null;
-        calcStats();
-        SFX.pick();
-        render();
-      }),
-    );
+    const equip = (key: string) => () => {
+      const old = game.P.eq[key];
+      game.P.eq[key] = it;
+      game.P.inv.splice(game.P.inv.indexOf(it), 1);
+      if (old) game.P.inv.push(old);
+      selItem = null;
+      calcStats();
+      SFX.pick();
+      render();
+    };
+    if (it.slot === 'ring' && game.P.eq.ring && game.P.eq.ring2) {
+      // both ring slots full: choose which one to replace (the weaker one is suggested first)
+      const weak = equipSlot(it, game.P.eq);
+      for (const key of weak === 'ring' ? ['ring', 'ring2'] : ['ring2', 'ring'])
+        bx.appendChild(
+          btn('Replace ring ' + (key === 'ring' ? 1 : 2), equip(key), key === weak ? '' : 'alt'),
+        );
+    } else bx.appendChild(btn('Equip', equip(equipSlot(it, game.P.eq))));
     bx.appendChild(
       btn(
         'Salvage for ' + salvageValue(it) + ' gold',

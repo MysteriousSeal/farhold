@@ -149,11 +149,59 @@ export function drawIcon(c, it, S) {
     c.beginPath();
     c.arc(0, 6, 3, 0, TAU);
     c.fill();
+  } else if (s === 'gloves') {
+    // glove: fingers, thumb and a darker cuff
+    const dk = sh(m, -0.25);
+    for (const [fx, fh] of [
+      [-6, 9],
+      [-2, 11],
+      [2, 10.5],
+      [6, 8.5],
+    ])
+      rr(c, fx - 2, -1 - fh, 4, fh, 2, m);
+    c.beginPath();
+    c.moveTo(-8.5, -3);
+    c.lineTo(8.5, -3);
+    c.lineTo(8, 8);
+    c.lineTo(-8, 8);
+    c.closePath();
+    c.fillStyle = m;
+    c.fill();
+    c.stroke();
+    c.save();
+    c.translate(-9, 0);
+    c.rotate(-0.7);
+    rr(c, -2, -8, 4.5, 9, 2.2, m);
+    c.restore();
+    rr(c, -9.5, 7, 19, 7, 2, dk);
+    c.fillStyle = 'rgba(255,255,255,.35)';
+    c.fillRect(-7, -1.5, 3, 7);
+  } else if (s === 'pants') {
+    // trousers: waistband with a belt, two legs and a centre split
+    const dk = sh(m, -0.3);
+    c.beginPath();
+    c.moveTo(-10, -9);
+    c.lineTo(10, -9);
+    c.lineTo(11, 14);
+    c.lineTo(2.5, 14);
+    c.lineTo(0, 0);
+    c.lineTo(-2.5, 14);
+    c.lineTo(-11, 14);
+    c.closePath();
+    c.fillStyle = m;
+    c.fill();
+    c.stroke();
+    rr(c, -10.5, -12, 21, 5, 1.5, dk);
+    rr(c, -2.5, -12.5, 5, 6, 1, '#f5c451');
+    c.fillStyle = 'rgba(255,255,255,.3)';
+    c.fillRect(-8.5, -5, 2.5, 16);
+    c.fillRect(6, -5, 2, 16);
   } else {
     c.lineWidth = 5;
     c.strokeStyle = OUT;
+    // band and gem centred together (band 0..+12, gem -13..-3)
     c.beginPath();
-    c.arc(0, 3, 10, 0, TAU);
+    c.arc(0, 1.5, 9.5, 0, TAU);
     c.stroke();
     c.lineWidth = 3;
     c.strokeStyle = m;
@@ -161,23 +209,35 @@ export function drawIcon(c, it, S) {
     c.lineWidth = 2;
     c.strokeStyle = OUT;
     c.beginPath();
-    c.moveTo(0, -12);
-    c.lineTo(6, -7);
-    c.lineTo(0, -2);
-    c.lineTo(-6, -7);
+    c.moveTo(0, -13);
+    c.lineTo(6, -8);
+    c.lineTo(0, -3);
+    c.lineTo(-6, -8);
     c.closePath();
     c.fillStyle = rc;
     c.fill();
     c.stroke();
   }
   if (it.plus) {
-    c.font = '800 11px Fredoka,sans-serif';
-    c.textAlign = 'right';
-    c.lineWidth = 3;
+    // upgrade badge, top-left: bronze +1–2, silver +3–4, gold +5 and up
+    const txt = '+' + it.plus,
+      col = it.plus >= 5 ? '#f5c451' : it.plus >= 3 ? '#dfe5ee' : '#d8935a';
+    c.font = '800 10px Fredoka,sans-serif';
+    const bw = c.measureText(txt).width + 7;
+    c.lineWidth = 1.8;
     c.strokeStyle = OUT;
-    c.strokeText('+' + it.plus, 19, 18);
-    c.fillStyle = '#ffe38a';
-    c.fillText('+' + it.plus, 19, 18);
+    c.beginPath();
+    if (c.roundRect) c.roundRect(-19, -19, bw, 12, 6);
+    else c.rect(-19, -19, bw, 12);
+    c.fillStyle = col;
+    c.fill();
+    c.stroke();
+    c.fillStyle = 'rgba(255,255,255,.35)';
+    c.fillRect(-16, -17.5, bw - 6, 2);
+    c.fillStyle = '#241a2e';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText(txt, -19 + bw / 2, -12.6);
   }
   c.restore();
 }

@@ -5,7 +5,9 @@ import { game } from './state';
 /* ---- items ---- */
 
 export function genItem(lvl, bonus = 0, slot?, minR = 0) {
-  slot = slot || pick(['weapon', 'weapon', 'helm', 'armor', 'boots', 'ring', 'amulet']);
+  slot =
+    slot ||
+    pick(['weapon', 'weapon', 'helm', 'armor', 'gloves', 'pants', 'boots', 'ring', 'amulet']);
   let r = 0;
   const x = Math.random() - bonus;
   if (x < 0.012) r = 4;
@@ -39,6 +41,14 @@ export function genItem(lvl, bonus = 0, slot?, minR = 0) {
     add('atk', (1 + k * 0.5) * R * v());
   }
   if (slot === 'amulet') add('hp', (6 + k * 3) * R * v());
+  if (slot === 'gloves') {
+    add('atk', (1.5 + k * 0.6) * R * v());
+    add('aspd', (3 + k * 0.18) * R * v());
+  }
+  if (slot === 'pants') {
+    add('def', (1.5 + k * 0.7) * R * v());
+    add('hp', (6 + k * 3) * R * v());
+  }
   const pool = {
     hp: 6 + k * 3,
     atk: 1 + k * 0.6,
@@ -76,6 +86,8 @@ export function genItem(lvl, bonus = 0, slot?, minR = 0) {
     helm: pick(['Cap', 'Helm', 'Coif']),
     armor: pick(['Tunic', 'Hauberk', 'Cuirass']),
     boots: pick(['Boots', 'Greaves', 'Treads']),
+    gloves: pick(['Gloves', 'Gauntlets', 'Grips']),
+    pants: pick(['Leggings', 'Breeches', 'Legplates']),
     ring: pick(['Ring', 'Band', 'Signet']),
     amulet: pick(['Amulet', 'Pendant', 'Talisman']),
   }[slot];
@@ -153,4 +165,16 @@ export function salvageAll(p) {
   p.inv = p.inv.filter((it) => it.r >= SALVAGE_KEEP_R);
   p.gold += gold;
   return { count: junk.length, gold };
+}
+
+const ringScore = (it) => it.lvl * RAR[it.r].m * (1 + 0.1 * (it.plus || 0));
+/**
+ * Equipment slot an item goes into: its own slot, except rings, which fill an empty ring slot
+ * first and otherwise replace the weaker ring.
+ */
+export function equipSlot(it, eq) {
+  if (it.slot !== 'ring') return it.slot;
+  if (!eq.ring) return 'ring';
+  if (!eq.ring2) return 'ring2';
+  return ringScore(eq.ring) <= ringScore(eq.ring2) ? 'ring' : 'ring2';
 }

@@ -1,3 +1,4 @@
+import { equipSlot } from './items';
 import { CLS } from '../data/classes';
 import { game } from './state';
 import { computeStats } from './stats';
@@ -26,7 +27,7 @@ export function powerOf(cls: string, s) {
 /** Relative change (0.14 = +14%) if `it` replaced the item in its slot. */
 export function compareItem(it, p = game.P) {
   const a = powerOf(p.cls, computeStats(p)),
-    b = powerOf(p.cls, computeStats({ ...p, eq: { ...p.eq, [it.slot]: it } })),
+    b = powerOf(p.cls, computeStats({ ...p, eq: { ...p.eq, [equipSlot(it, p.eq)]: it } })),
     [wd, wt] = WEIGHTS[p.cls] || [0.5, 0.5],
     dmg = b.dmg / a.dmg - 1,
     tough = b.tough / a.tough - 1,

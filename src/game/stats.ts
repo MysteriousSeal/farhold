@@ -101,10 +101,13 @@ export function lookOfPlayer(p) {
       robe: bare ? false : C2.robe,
       tusks: p.race === 'orc',
     };
-  if (bare) {
+  // legs stay bare (linen shorts) until pants are worn; gloves colour the hands
+  if (e.pants) L.pants = sh(MATS[e.pants.mat][1], -0.3);
+  else {
     L.shorts = UNDERWEAR;
     L.pants = p.skin;
   }
+  if (e.gloves) L.gloves = sh(MATS[e.gloves.mat][1], -0.12);
   if (e.armor) {
     const n = e.armor.name;
     L.armor = {
