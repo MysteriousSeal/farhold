@@ -300,6 +300,11 @@ export function updateEnemies(dt) {
   const pVillage = inVillage(game.P.x, game.P.y);
   for (const e of game.enemies) {
     if (e.dead) continue;
+    // one pack member noticing the hero alerts the whole pack
+    if (e.pack != null && e.aggro && !e.packAlert) {
+      e.packAlert = true;
+      for (const o of game.enemies) if (o.pack === e.pack && !o.aggro) o.aggro = true;
+    }
     if (e.dying > 0) {
       e.dying -= dt;
       if (e.dying <= 0) e.dead = true;

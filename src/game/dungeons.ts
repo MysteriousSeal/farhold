@@ -43,11 +43,21 @@ export function enterDungeon(p) {
     game.camX = game.P.x;
     game.camY = game.P.y;
     // enemy spawns are seeded per cave and cycle, so the same ones stay dead between visits
-    const slots = [];
-    for (const r of game.DG.rooms) {
-      if (r === game.DG.start) continue;
+    const slots = [],
+      rooms = game.DG.rooms.filter((r) => r !== game.DG.start),
+      // ~40% of rooms hold a pack, bigger rooms first (with a little randomness)
+      byArea = rooms
+        .map((r) => ({ r, k: r.w * r.h * (0.75 + rnd() * 0.5) }))
+        .sort((a, b) => b.k - a.k),
+      packRooms = new Set(byArea.slice(0, Math.round(rooms.length * PACK_SHARE)).map((o) => o.r));
+    let packId = 0;
+    for (const r of rooms) {
+      if (packRooms.has(r)) {
+        addPack(slots, r, p.lvl, rnd, rpick, packId++);
+        continue;
+      }
       const dn = settings.density === 'few' ? 0 : settings.density === 'many' ? 2 : 1,
-        n = Math.max(1, dn + ((rnd() * 2) | 0) + (r.w * r.h > 90 ? 1 : 0));
+        n = Math.max(1, dn + (rnd() < 0.3 ? 1 : 0) + (r.w * r.h > 90 && rnd() < 0.6 ? 1 : 0));
       for (let i = 0; i < n; i++) {
         const x = (r.x + 1 + rnd() * (r.w - 2)) * game.DG.T,
           y = (r.y + 1 + rnd() * (r.h - 2)) * game.DG.T,
@@ -69,6 +79,7 @@ export function enterDungeon(p) {
       const e = makeEnemy(q.type, q.lv, q.x, q.y, { elite: q.elite });
       e.dg = true;
       e.dgi = i;
+      if (q.pack != null) e.pack = q.pack;
       game.enemies.push(e);
     });
     const bt = rpick(['bonelord', 'lich', 'brood']);
@@ -184,26 +195,25 @@ export function dungeonKill(e) {
 export const RESET_MS = 5 * 60 * 1000;
 /** Saved state of a cave's current cycle; resets it (everything respawns) once its timer ran out. */
 export function caveState(key: string) {
-  const all = game.P.caves;
+  const all = game.P.caves,
+    fresh = (gen: number) => ({
+      gen,
+      dead: [],
+      guardDead: false,
+      chestOpen: false,
+      done: false,
+      resetAt: 0,
+      layout: CAVE_LAYOUT,
+    });
   let s = all[key];
-  if (!s)
-    s = all[key] = {
-      gen: 0,
-      dead: [],
-      guardDead: false,
-      chestOpen: false,
-      done: false,
-      resetAt: 0,
-    };
+  if (!s) s = all[key] = fresh(0);
+  // enemy layouts changed (packs): old kill lists no longer match their slots
+  if (s.layout !== CAVE_LAYOUT) {
+    s.dead = [];
+    s.layout = CAVE_LAYOUT;
+  }
   if (s.resetAt && Date.now() >= s.resetAt) {
-    all[key] = s = {
-      gen: s.gen + 1,
-      dead: [],
-      guardDead: false,
-      chestOpen: false,
-      done: false,
-      resetAt: 0,
-    };
+    all[key] = s = fresh(s.gen + 1);
     delete game.P.cleared[key];
   }
   return s;
@@ -225,4 +235,38 @@ function revealChest() {
   ring(c.x, c.y - 14, '#ffd27a', 40, 240, 3);
   burst(c.x, c.y - 10, '#ffe38a', 24, 200, 3, 80, 1);
   toast('The treasure chest appeared');
+}
+
+/* ---- packs: themed groups of 3-5 cave enemies that fight together ---- */
+const CAVE_LAYOUT = 2;
+/** Share of cave rooms (bigger first) that hold a pack instead of scattered enemies. */
+export const PACK_SHARE = 0.4;
+// themed packs: minimum cave level and members (the first one leads)
+const PACKS: [number, string[]][] = [
+  [1, ['skeleton', 'skeleton', 'skelarcher', 'skeleton', 'skelarcher']],
+  [1, ['spider', 'spider', 'spider', 'spider', 'spider']],
+  [1, ['bat', 'bat', 'bat', 'bat', 'bat']],
+  [1, ['slime', 'slime', 'slime', 'slime', 'slime']],
+  [3, ['cultist', 'cultist', 'skeleton', 'cultist', 'cultist']],
+  [4, ['mummy', 'skeleton', 'mummy', 'skelarcher', 'mummy']],
+  [5, ['necro', 'skeleton', 'skeleton', 'skelarcher', 'skeleton']],
+];
+/** Add a themed pack of 3-5 enemies around a point in room `r`; 4+ get an elite leader. */
+function addPack(slots, r, lvl: number, rnd: () => number, rpick, id: number) {
+  const T = game.DG.T,
+    cx = (r.x + 2 + rnd() * Math.max(0, r.w - 4)) * T,
+    cy = (r.y + 2 + rnd() * Math.max(0, r.h - 4)) * T,
+    members = rpick(PACKS.filter(([min]) => lvl >= min))[1],
+    size = 3 + (rnd() < 0.5 ? 1 : 0) + (rnd() < 0.15 ? 1 : 0),
+    a0 = rnd() * Math.PI * 2;
+  for (let i = 0; i < size; i++) {
+    const a = a0 + (i / size) * Math.PI * 2,
+      d = i === 0 ? 0 : 30 + rnd() * 16,
+      x = cx + Math.cos(a) * d,
+      y = cy + Math.sin(a) * d * 0.8,
+      type = members[i],
+      lv = lvl + (i === 0 && rnd() < 0.5 ? 1 : 0),
+      elite = i === 0 && size >= 4 ? rpick(ELITES) : null;
+    if (!solidAt(x, y, ET[type].r * 0.6)) slots.push({ x, y, lv, type, elite, pack: id });
+  }
 }
