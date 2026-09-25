@@ -1,4 +1,4 @@
-import { drawHumanoid, drawWeapon, handPos, restAng } from '../art/humanoid';
+import { drawHumanoid, drawWeapon, handPos, restAng, weaponBehind } from '../art/humanoid';
 import { audioInit } from '../audio/sfx';
 import { $ } from '../core/dom';
 import { pick, strSeed } from '../core/math';
@@ -121,9 +121,10 @@ export function drawPreview(t) {
   const hp = handPos(di[0], di[1], true, walk, t, C.race),
     ang = restAng(hp, C.cls),
     wd = () => drawWeapon(pc, hp.x, hp.y, ang, C.cls, 0);
-  if (hp.behind) wd();
+  const behind = weaponBehind(hp, C.cls);
+  if (behind) wd();
   drawHumanoid(pc, 0, 0, { look: L, dx: di[0], dy: di[1], moving: true, walk, time: t });
-  if (!hp.behind) wd();
+  if (!behind) wd();
   pc.setTransform(1, 0, 0, 1, 0, 0);
 }
 $('#cDice').onclick = () => {

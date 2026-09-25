@@ -2,6 +2,7 @@ import { circ, rr, shadow } from '../core/dom';
 import { OUT, TAU, rand, sh } from '../core/math';
 import { MATS, RAR } from '../data/classes';
 import { addLight } from '../game/fx';
+import { drawAxeHead } from './humanoid';
 import { game } from '../game/state';
 /* ================= ART: items & fx ================= */
 export function drawIcon(c, it, S) {
@@ -26,16 +27,9 @@ export function drawIcon(c, it, S) {
     if (it.wc === 'warrior') {
       c.rotate(-0.8);
       if (it.style === 1) {
-        rr(c, -16, -2, 26, 4, 2, '#7a5230');
-        c.beginPath();
-        c.moveTo(4, -2);
-        c.quadraticCurveTo(15, -13, 13, -2);
-        c.lineTo(13, 2);
-        c.quadraticCurveTo(15, 13, 4, 2);
-        c.closePath();
-        c.fillStyle = m;
-        c.fill();
-        c.stroke();
+        c.translate(-2, 3);
+        rr(c, -16, -2, 32, 4, 2, '#7a5230');
+        drawAxeHead(c, 14, m);
       } else {
         const L2 = it.style === 2 ? 19 : 15;
         rr(c, -16, -2.5, 7, 5, 2, '#6b4423');

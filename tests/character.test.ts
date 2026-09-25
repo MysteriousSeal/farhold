@@ -4,7 +4,8 @@ import { mulberry } from '../src/core/math';
 import { pointsFree } from '../src/data/skills';
 import { genItem, itemStat, upCost } from '../src/game/items';
 import { game } from '../src/game/state';
-import { calcStats, xpNeed } from '../src/game/stats';
+import { CLS } from '../src/data/classes';
+import { UNDERWEAR, calcStats, lookOfPlayer, xpNeed } from '../src/game/stats';
 
 const hero = (o: Record<string, unknown> = {}) => ({
   cls: 'warrior',
@@ -96,5 +97,39 @@ describe('game/stats', () => {
     game.P = hero({ hp: 9999 });
     calcStats();
     expect(game.P.hp).toBe(game.ST.hp);
+  });
+});
+
+describe('player look', () => {
+  const gear = (slot: string, name: string) => ({ slot, name, r: 0, mat: 1, plus: 0, st: {} });
+
+  it('an unequipped hero wears only linen shorts and is barefoot', () => {
+    for (const cls of ['warrior', 'ranger', 'mage']) {
+      const p = hero({ cls });
+      const L = lookOfPlayer(p);
+      expect(L.shorts).toBe(UNDERWEAR);
+      expect(L.cloth).toBe(p.skin);
+      expect(L.pants).toBe(p.skin);
+      expect(L.cape).toBeNull();
+      expect(L.robe).toBe(false);
+      expect(L.helm).toBeUndefined();
+      expect(L.boots).not.toBe(MATS[1][1]);
+    }
+  });
+
+  it('each gear slot dresses its own body part', () => {
+    const p = hero({ cls: 'mage' });
+    p.eq.boots = gear('boots', 'Iron Boots');
+    let L = lookOfPlayer(p);
+    expect(L.shorts).toBe(UNDERWEAR);
+    expect(L.boots).not.toBe(lookOfPlayer(hero()).boots);
+
+    p.eq.armor = gear('armor', 'Iron Tunic');
+    p.eq.helm = gear('helm', 'Iron Cap');
+    L = lookOfPlayer(p);
+    expect(L.shorts).toBeUndefined();
+    expect(L.cloth).toBe(CLS.mage.cloth);
+    expect(L.robe).toBe(true);
+    expect(L.helm).toBe(MATS[1][1]);
   });
 });

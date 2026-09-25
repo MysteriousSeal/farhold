@@ -1,4 +1,4 @@
-import { drawHumanoid, drawWeapon, handPos, restAng } from './humanoid';
+import { drawHumanoid, drawWeapon, handPos, restAng, weaponBehind } from './humanoid';
 import { circ, ell, rr, shadow } from '../core/dom';
 import { OUT, TAU, clamp, mixCol, sh } from '../core/math';
 import { ET } from '../data/enemies';
@@ -479,7 +479,8 @@ export function drawEnemy(c, e, t) {
             s,
           );
       };
-    if (hp.behind) wd();
+    const behind = weaponBehind(hp, D.wep, e.wind > 0);
+    if (behind) wd();
     drawHumanoid(c, e.x, e.y, {
       look: L,
       dx: e.dx,
@@ -495,7 +496,7 @@ export function drawEnemy(c, e, t) {
       noShadow: !!z,
       squash: e.hitSq || 0,
     });
-    if (!hp.behind) wd();
+    if (!behind) wd();
     if (z) c.restore();
   }
   if (e.dying > 0) {

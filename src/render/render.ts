@@ -15,7 +15,7 @@ import {
 } from '../art/buildings';
 import { drawEnemy } from '../art/creatures';
 import { SPR, TREESET } from '../art/decor';
-import { drawHumanoid, drawWeapon, handPos, restAng } from '../art/humanoid';
+import { drawHumanoid, drawWeapon, handPos, restAng, weaponBehind } from '../art/humanoid';
 import { drawDrop, drawProj } from '../art/items';
 import { DPR, H, W, g, mkCanvas, shadow } from '../core/dom';
 import { TAU, clamp, lerp, rand } from '../core/math';
@@ -139,7 +139,8 @@ function drawHero(c, t) {
   if (z) {
     shadow(c, game.P.x, game.P.y, 12, 4.5, 0.3);
   }
-  if (hp.behind && hero.whirl <= 0) wd();
+  const behind = weaponBehind(hp, game.P.cls, hero.atk > 0);
+  if (behind && hero.whirl <= 0) wd();
   const alpha = hero.inv > 0 && !leap && Math.sin(t * 50) > 0 ? 0.5 : null;
   if (rolling && Math.random() < 0.7)
     game.ghosts.push({
@@ -167,7 +168,7 @@ function drawHero(c, t) {
     noShadow: !!z,
   });
   c.restore();
-  if (!hp.behind || hero.whirl > 0) wd();
+  if (!behind || hero.whirl > 0) wd();
   if (game.P.cls === 'warrior' && hero.atk > 0 && hero.whirl <= 0) {
     c.save();
     c.translate(game.P.x, game.P.y - 18);

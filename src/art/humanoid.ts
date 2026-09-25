@@ -155,11 +155,13 @@ export function drawHumanoid(c, x, y, o) {
     }
   } else {
     if (A) armorBody(c, A, by, up, side, tint, lw);
-    c.fillStyle = A && A.trim ? tint(A.trim) : cloth2;
-    c.fillRect(-8.5, by + 10, 17, 3);
-    if (!up && !side) {
-      c.fillStyle = '#f5c451';
-      c.fillRect(-2, by + 10, 4, 3);
+    if (!L.shorts) {
+      c.fillStyle = A && A.trim ? tint(A.trim) : cloth2;
+      c.fillRect(-8.5, by + 10, 17, 3);
+      if (!up && !side) {
+        c.fillStyle = '#f5c451';
+        c.fillRect(-2, by + 10, 4, 3);
+      }
     }
     if (L.apron && !up) {
       c.lineWidth = lw;
@@ -181,6 +183,12 @@ export function drawHumanoid(c, x, y, o) {
   c.restore();
   c.lineWidth = lw;
   c.strokeStyle = OUT;
+  // underwear: linen shorts over the hips
+  if (L.shorts) {
+    const uc = tint(L.shorts);
+    if (side) rr(c, -5, -15, 10, 8, 3, uc);
+    else rr(c, -8.5 * dw, -15, 17 * dw, 8, 3, uc);
+  }
   if (L.cape && up) {
     c.fillStyle = tint(L.cape);
     c.beginPath();
@@ -592,13 +600,42 @@ export function handPos(dx, dy, moving, walk, t, race, scale = 1) {
     return { x: 10 * dw * scale, y: (armY + 11 - sw * 2) * scale, f, flip, behind: false };
   return { x: -10 * dw * scale, y: (armY + 11 + sw * 2) * scale, f, flip, behind: true };
 }
+/** Whether a held weapon is drawn behind the body. A bow at rest stays visible in the hand. */
+export function weaponBehind(h, kind, aiming = false) {
+  return h.behind && (aiming || (kind !== 'ranger' && kind !== 'bow'));
+}
 export function restAng(h, cls) {
+  // Bows are carried upright at the side, belly facing away from the body.
   if (cls === 'ranger' || cls === 'bow')
-    return h.f === 'side' ? (h.flip ? Math.PI : 0) : h.f === 'down' ? Math.PI / 2 : -Math.PI / 2;
+    return h.f === 'side' ? (h.flip ? Math.PI : 0) : h.f === 'down' ? 0 : Math.PI;
   if (cls === 'mage' || cls === 'staff')
     return h.f === 'side' ? (h.flip ? -0.25 : 0.25) : h.f === 'down' ? 0.15 : -0.15;
   if (h.f === 'side') return h.flip ? Math.PI - 0.5 : 0.5;
   return h.f === 'down' ? Math.PI / 2 - 0.6 : -Math.PI / 2 - 0.6;
+}
+/**
+ * Axe head on a haft lying along +x, with its top end at `x`. The cutting edge faces -y:
+ * a narrow cheek on the haft flares into a curved, bearded blade; a small poll sits behind it.
+ */
+export function drawAxeHead(c, x, col) {
+  rr(c, x - 7, 1, 6, 4.5, 1.5, sh(col, -0.25));
+  c.beginPath();
+  c.moveTo(x - 6, -2);
+  c.quadraticCurveTo(x - 8, -5, x - 14, -6);
+  c.quadraticCurveTo(x - 7, -20, x + 6, -15);
+  c.quadraticCurveTo(x + 1, -8, x, -2);
+  c.closePath();
+  c.fillStyle = col;
+  c.fill();
+  c.stroke();
+  c.save();
+  c.strokeStyle = 'rgba(255,255,255,.75)';
+  c.lineWidth = 1.2;
+  c.beginPath();
+  c.moveTo(x - 11, -7.5);
+  c.quadraticCurveTo(x - 6, -17, x + 3.5, -14.5);
+  c.stroke();
+  c.restore();
 }
 export function drawWeapon(c, x, y, ang, kind, sw, col?, glow?, style = 0, scale = 1) {
   c.save();
@@ -619,22 +656,10 @@ export function drawWeapon(c, x, y, ang, kind, sw, col?, glow?, style = 0, scale
       c.fillStyle = '#ccc';
       c.fillRect(20, -8, 2, 4);
     } else if (kind === 'axe' || style === 1) {
-      rr(c, 0, -2.5, 30, 5, 2, '#7a5230');
-      c.beginPath();
-      c.moveTo(20, -2);
-      c.quadraticCurveTo(32, -16, 30, -2);
-      c.lineTo(30, 3);
-      c.quadraticCurveTo(32, 15, 20, 3);
-      c.closePath();
-      c.fillStyle = bl;
-      c.fill();
-      c.stroke();
-      c.strokeStyle = 'rgba(255,255,255,.7)';
-      c.lineWidth = 1.2;
-      c.beginPath();
-      c.moveTo(29, -9);
-      c.quadraticCurveTo(31, 0, 29, 9);
-      c.stroke();
+      // keep the blade on the forward/upper side whichever way the axe points
+      if (Math.cos(ang + sw) < 0) c.scale(1, -1);
+      rr(c, 0, -2.5, 34, 5, 2, '#7a5230');
+      drawAxeHead(c, 31, bl);
     } else {
       const L2 = style === 2 ? 44 : 36,
         w2 = style === 2 ? 4 : 3;

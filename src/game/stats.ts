@@ -79,20 +79,27 @@ export function calcStats() {
   game.P.look = lookOfPlayer(game.P);
   if (game.P.hp > s.hp) game.P.hp = s.hp;
 }
+export const UNDERWEAR = '#e6dcc4';
 export function lookOfPlayer(p) {
+  const e = p.eq || {};
+  // Without body armor the hero is bare-skinned in linen shorts; the class outfit comes with armor.
+  const bare = !e.armor;
   const C2 = CLS[p.cls],
     L: Look = {
       skin: p.skin,
       hair: p.hair,
       hairC: p.hairC,
       race: p.race,
-      cloth: C2.cloth,
-      cloth2: C2.cloth2,
-      cape: C2.cape,
-      robe: C2.robe,
+      cloth: bare ? p.skin : C2.cloth,
+      cloth2: bare ? sh(p.skin, -0.2) : C2.cloth2,
+      cape: bare ? null : C2.cape,
+      robe: bare ? false : C2.robe,
       tusks: p.race === 'orc',
     };
-  const e = p.eq || {};
+  if (bare) {
+    L.shorts = UNDERWEAR;
+    L.pants = p.skin;
+  }
   if (e.armor) {
     const n = e.armor.name;
     L.armor = {
@@ -106,7 +113,7 @@ export function lookOfPlayer(p) {
     L.helm = MATS[e.helm.mat][1];
     if (e.helm.r >= 3) L.plume = RAR[e.helm.r].c;
   }
-  if (e.boots) L.boots = sh(MATS[e.boots.mat][1], -0.35);
+  L.boots = e.boots ? sh(MATS[e.boots.mat][1], -0.35) : sh(p.skin, -0.12);
   if (e.armor && e.armor.r >= 2 && L.cape) L.cape = sh(RAR[e.armor.r].c, -0.35);
   return L;
 }
