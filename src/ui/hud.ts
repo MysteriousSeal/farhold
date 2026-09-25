@@ -123,7 +123,7 @@ export function updHud() {
   const bars = (bossOn ? 1 : 0) + (db.style.display === 'block' ? 1 : 0);
   const q = $('#quests');
   q.style.top =
-    bars && W <= 640 ? 'calc(env(safe-area-inset-top) + ' + (122 + bars * 50) + 'px)' : '';
+    bars && W <= 640 ? 'calc(env(safe-area-inset-top) + ' + (154 + bars * 50) + 'px)' : '';
   q.innerHTML = game.P.quests
     .map(
       (o) =>
