@@ -9,3 +9,8 @@
 # Local runtime databases
 ruvector.db
 .swarm/memory.db
+
+# Node / build
+node_modules/
+dist/
+dev-dist/

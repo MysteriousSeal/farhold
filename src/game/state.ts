@@ -1,0 +1,49 @@
+/* ================= GAME STATE ================= */
+/** Mutable globals shared across modules (the original file used top-level `let`s). */
+export const game:any={
+ SEED:1,
+ genBudget:1,
+ bgGen:null,
+ uidN:Date.now()%100000,
+ state:'menu',
+ mode:'world',
+ DG:null,
+ P:null,
+ ST:null,
+ time:0,
+ hitstop:0,
+ enemies:[],
+ projs:[],
+ drops:[],
+ parts:[],
+ texts:[],
+ teles:[],
+ zones:[],
+ shake:0,
+ camX:0,
+ camY:0,
+ camKX:0,
+ camKY:0,
+ kickX:0,
+ kickY:0,
+ spawnT:0,
+ zoneName:'',
+ saveT:0,
+ curBoss:null,
+ interact:null,
+ fade:0,
+ fadeDir:0,
+ fadeCb:null,
+ dark:0,
+ dusk:0,
+ activePois:[],
+ poiT:0,
+ ghosts:[],
+ atkHeld:false,
+ hudT:0
+};
+
+export const hero={vx:0,vy:0,dx:0,dy:1,aim:Math.PI/2,walk:0,moving:false,cd:0,atk:0,roll:0,rollCd:0,rdx:0,rdy:0,inv:0,regen:0,kbx:0,kby:0,combo:0,lastAtk:0,comboSw:0,scd:[0,0],whirl:0,whirlTick:0,leap:null,slow:0,stepT:0};
+export const lights=[];
+
+export const weather={type:'none',t:20,k:0,target:0};
