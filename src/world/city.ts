@@ -1,7 +1,7 @@
 import type { Poi } from '../game/types';
 import { TAU, mulberry, strSeed } from '../core/math';
 import { game } from '../game/state';
-import { DOOR_F, makeHouse } from './poi';
+import { DOOR_F, houseRoute, makeHouse, placeLamps } from './poi';
 import { terr } from './terrain';
 /* ---------- Hearthfire: the walled starting town ---------- */
 // Layout (world units, y grows south): a paved square around the waystone, four cobbled
@@ -174,20 +174,19 @@ export function makeCity(key: string) {
   for (let a = 0; a < TAU; a += 0.035) if (!inGate(a)) v.solids.push({ c: 1, ...wallPt(a), r: 16 });
   for (const tw of towers) v.solids.push({ c: 1, x: tw.x, y: tw.y, r: 26 });
 
-  // lamps around the square and along the streets
-  for (let k = 0; k < 6; k++) {
-    const a = (k / 6) * TAU + Math.PI / 6;
-    v.lamps.push({ x: Math.cos(a) * (prx - 26), y: py + Math.sin(a) * (pry - 22) });
-  }
-  for (const s of [-1, 1])
-    for (const d of [300, 440]) v.lamps.push({ x: s * d, y: cy + (d === 300 ? -34 : 36) });
-  for (const [x, y] of [
-    [-36, 260],
-    [36, 380],
-    [36, -200],
-  ])
-    v.lamps.push({ x, y });
-  for (const l of v.lamps) v.solids.push({ c: 1, x: l.x, y: l.y, r: 5 });
+  // lamps beside the streets and around the square
+  placeLamps(
+    v,
+    STREETS.map(([x0, y0, x1, y1]) => ({
+      pts: [
+        { x: x0, y: y0 },
+        { x: x1, y: y1 },
+      ],
+      w: CITY.sw + 8,
+    })),
+    v.houses.filter((h) => !h.street).map((h) => ({ pts: houseRoute(v, h), w: 27 })),
+    { x: 0, y: py, rx: prx + 5, ry: pry + 5 },
+  );
 
   // townsfolk, shopkeepers and gate guards
   const skins = ['#f7d4b2', '#e6b187', '#c4895c', '#8a5838'],

@@ -261,11 +261,20 @@ function makeVillage(x, y, key, home?) {
     v.houses.push(h);
     v.solids.push({ x0: hx - h.w / 2, x1: hx + h.w / 2, y0: hy - 40, y1: hy });
   }
-  for (let k = 0; k < 4; k++) {
-    const a = (k / 4) * TAU + 0.785;
-    v.lamps.push({ x: x + Math.cos(a) * 140, y: y + Math.sin(a) * 112 + 10 });
-    v.solids.push({ c: 1, x: x + Math.cos(a) * 140, y: y + Math.sin(a) * 112 + 10, r: 5 });
-  }
+  placeLamps(
+    v,
+    [
+      {
+        pts: [
+          { x, y },
+          { x, y: y + 150 },
+        ],
+        w: 22,
+      },
+    ],
+    v.houses.map((h) => ({ pts: houseRoute(v, h), w: 26 })),
+    { x, y: y + 10, rx: 128, ry: 96 },
+  );
   const skins = ['#f7d4b2', '#e6b187', '#c4895c', '#8a5838'],
     hairs = ['#2b1d14', '#6b3e1f', '#c9803a', '#f0d27a', '#e4e4e4'],
     cl = ['#8a6a4a', '#5a7a9a', '#9a5a5a', '#6a8a5a', '#a08050', '#7a6a9a'];
@@ -372,6 +381,59 @@ export function poiSolid(p, x, y, r) {
   return false;
 }
 
+/* ---------- Street lamps ---------- */
+type Road = { pts: { x: number; y: number }[]; w: number };
+const segDist = (x: number, y: number, a, b) => {
+  const dx = b.x - a.x,
+    dy = b.y - a.y,
+    t = Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / (dx * dx + dy * dy || 1)));
+  return Math.hypot(x - a.x - dx * t, y - a.y - dy * t);
+};
+/** Lamp spacing along streets and around squares (world units). */
+export const LAMP_GAP = 130;
+/**
+ * Put lamps beside (never on) the roads: a ring just outside the square/plaza and rows along
+ * `streets` on alternating sides. Spots on any road or lane, inside a building/wall or too
+ * close to another lamp are skipped.
+ */
+export function placeLamps(v, streets: Road[], lanes: Road[], sq) {
+  const roads = [...streets, ...lanes],
+    lamps: { x: number; y: number }[] = [];
+  const ok = (x: number, y: number) =>
+    !roads.some((r) =>
+      r.pts.some((p, i) => i > 0 && segDist(x, y, r.pts[i - 1], p) < r.w / 2 + 10),
+    ) &&
+    ((x - sq.x) / (sq.rx + 8)) ** 2 + ((y - sq.y) / (sq.ry + 8)) ** 2 > 1 &&
+    !poiSolid(v, x, y, 16) &&
+    lamps.every((l) => Math.hypot(l.x - x, l.y - y) > 70);
+  const n = Math.max(4, Math.round((TAU * ((sq.rx + sq.ry) / 2 + 24)) / LAMP_GAP));
+  for (let k = 0; k < n; k++) {
+    const a = (k / n) * TAU + 0.3,
+      x = sq.x + Math.cos(a) * (sq.rx + 24),
+      y = sq.y + Math.sin(a) * (sq.ry + 20);
+    if (ok(x, y)) lamps.push({ x, y });
+  }
+  for (const s of streets) {
+    let side = 1;
+    for (let i = 1; i < s.pts.length; i++) {
+      const a = s.pts[i - 1],
+        b = s.pts[i],
+        len = Math.hypot(b.x - a.x, b.y - a.y),
+        nx = -(b.y - a.y) / len,
+        ny = (b.x - a.x) / len;
+      for (let d = 70; d < len; d += LAMP_GAP, side = -side) {
+        const px = a.x + ((b.x - a.x) * d) / len + nx * side * (s.w / 2 + 16),
+          py = a.y + ((b.y - a.y) * d) / len + ny * side * (s.w / 2 + 16);
+        if (ok(px, py)) lamps.push({ x: px, y: py });
+      }
+    }
+  }
+  for (const l of lamps) {
+    v.lamps.push(l);
+    v.solids.push({ c: 1, x: l.x, y: l.y, r: 5 });
+  }
+}
+
 /* ---------- Village paths ---------- */
 type Pt = { x: number; y: number };
 const segHitsRect = (a: Pt, b: Pt, x0: number, y0: number, x1: number, y1: number) => {
@@ -401,7 +463,7 @@ const segHitsRect = (a: Pt, b: Pt, x0: number, y0: number, x1: number, y1: numbe
  * Waypoints for the dirt path from a village plaza to a house door. The path walks around the
  * house (walls and roof) and always arrives at the door from the front.
  */
-export function houseRoute(v: Pt & { city?: boolean }, h): Pt[] {
+export function houseRoute(v, h): Pt[] {
   // in the city, lanes branch off the nearest street; in villages they start at the plaza
   const P = v.city ? cityLaneStart(h) : { x: v.x, y: v.y + 10 },
     dx = h.x + h.door * h.w * DOOR_F,

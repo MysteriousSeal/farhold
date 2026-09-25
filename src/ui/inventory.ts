@@ -13,7 +13,7 @@ import { btn, hdr, iconCanvas, openModal, statLines, wireClose } from './modal';
 const pctSpan = (x: number) =>
   '<span class="' + (x < 0 ? 'dn' : 'up') + '">' + fmtPct(x) + '</span>';
 /** Headline "+14% overall" plus a damage / toughness breakdown for a bag item. */
-function powerLines(it, equipped: boolean) {
+export function powerLines(it, equipped: boolean) {
   if (equipped) return '';
   const r = compareItem(it);
   return (

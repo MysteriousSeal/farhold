@@ -265,17 +265,42 @@ export function drawWaystone(c, v, t, on) {
       });
   }
 }
+/** Street lamp: always lit, with a soft halo by day that grows at night. */
 export function drawLamp(c, l, t, dark) {
+  const lx = l.x + 9,
+    ly = l.y - 37,
+    flick = 0.93 + Math.sin(t * 7 + l.x) * 0.04 + Math.sin(t * 13 + l.y) * 0.03;
+  c.save();
+  c.globalCompositeOperation = 'lighter';
+  const R = 24 + dark * 36,
+    g = c.createRadialGradient(lx, ly, 2, lx, ly, R);
+  g.addColorStop(0, 'rgba(255,205,120,' + ((0.24 + dark * 0.36) * flick).toFixed(3) + ')');
+  g.addColorStop(1, 'rgba(255,185,90,0)');
+  c.fillStyle = g;
+  c.fillRect(lx - R, ly - R, R * 2, R * 2);
+  c.restore();
   c.save();
   c.translate(l.x, l.y);
   c.lineWidth = 2.2;
   c.strokeStyle = OUT;
-  shadow(c, 0, 0, 7, 3);
-  rr(c, -2, -44, 4, 44, 1, '#4a3a2e');
-  rr(c, -2, -46, 12, 3, 1, '#4a3a2e');
-  rr(c, 5, -44, 8, 11, 2, dark > 0.15 ? '#ffd27a' : '#6a6070');
+  c.lineJoin = 'round';
+  shadow(c, 0, 0, 8, 3);
+  rr(c, -4.5, -6, 9, 6, 2, '#3a2e26');
+  rr(c, -2, -47, 4, 42, 1, '#4a3a2e');
+  rr(c, -2, -50, 15, 3.5, 1.5, '#4a3a2e');
+  rr(c, 4, -46, 10, 3.5, 1.5, '#3a2e26');
+  rr(c, 5, -43, 8, 11, 2, '#ffd27a');
+  c.fillStyle = 'rgba(255,248,220,' + (0.8 * flick).toFixed(3) + ')';
+  c.fillRect(7, -41, 4, 7);
+  c.lineWidth = 1;
+  c.beginPath();
+  c.moveTo(9, -43);
+  c.lineTo(9, -32);
+  c.stroke();
+  c.lineWidth = 2.2;
+  rr(c, 4, -32, 10, 3, 1.2, '#3a2e26');
   c.restore();
-  if (dark > 0.15) addLight(l.x + 9, l.y - 38, 120, 0.9 * dark, '#ffc060');
+  if (dark > 0.15) addLight(lx, ly, 120, 0.9 * dark, '#ffc060');
 }
 export function drawPillar(c, p, t) {
   c.save();

@@ -1,3 +1,4 @@
+import { powerLines } from './inventory';
 import { SFX } from '../audio/sfx';
 import { $ } from '../core/dom';
 import { RAR, SLOTS } from '../data/classes';
@@ -139,7 +140,9 @@ function renderShop(v) {
         RAR[it.r].c +
         '">' +
         itemName(it) +
-        '</div><div class="stats sm">' +
+        '</div>' +
+        powerLines(it, false) +
+        '<div class="stats sm">' +
         statLines(it, cur) +
         '</div>';
       r2.appendChild(inf);
