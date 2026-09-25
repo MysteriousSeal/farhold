@@ -931,3 +931,48 @@ input.txt {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- cave clearing progress ---- */
+#dgbar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  top: calc(env(safe-area-inset-top) + 8px);
+  width: min(360px, calc(100vw - 150px));
+  display: none;
+  z-index: 6;
+  pointer-events: none;
+}
+#dgbar.low {
+  top: calc(env(safe-area-inset-top) + 58px);
+}
+#dgn {
+  font-weight: 700;
+  font-size: 13px;
+  text-align: center;
+  text-shadow: 0 2px 3px #000;
+  margin-bottom: 2px;
+}
+#dgbar .bar {
+  height: 11px;
+}
+#dgf {
+  background: linear-gradient(#9ad0ff, #3f7fbf) !important;
+}
+#dgbar.done #dgf {
+  background: linear-gradient(#ffe38a, #e0a92c) !important;
+}
+#dgbar.done #dgn {
+  color: var(--gold);
+}
+@media (max-width: 640px) {
+  #dgbar {
+    top: calc(env(safe-area-inset-top) + 112px);
+    width: calc(100vw - 90px);
+    left: 12px;
+    transform: none;
+  }
+  #dgbar.low {
+    top: calc(env(safe-area-inset-top) + 160px);
+  }
+}

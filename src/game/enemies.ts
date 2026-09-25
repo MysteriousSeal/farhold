@@ -1,3 +1,4 @@
+import { dungeonKill } from './dungeons';
 import { inPlaceNow } from '../world/poi';
 import { WADE, isPool } from '../world/terrain';
 import type { Enemy, Rec } from './types';
@@ -172,6 +173,7 @@ export function killEnemy(e) {
   game.shake = Math.max(game.shake, 3);
   game.hitstop = Math.max(game.hitstop, 0.05);
   game.P.kills++;
+  if (e.dg && game.mode === 'dungeon') dungeonKill();
   const D = ET[e.type];
   const xp = Math.round(
     D.xp * (8 + e.lvl * 6) * (e.elite ? 3 : 1) * (e.boss ? 12 : 1) * RACE[game.P.race].xp,
@@ -311,7 +313,8 @@ export function updateEnemies(dt) {
     const dx = game.P.x - e.x,
       dy = game.P.y - e.y,
       d = Math.hypot(dx, dy) || 1;
-    if (d > 1150 && !e.boss) {
+    // far-away world enemies despawn; cave enemies stay until killed (they count for clearing)
+    if (d > 1150 && !e.boss && game.mode !== 'dungeon') {
       e.dead = true;
       continue;
     }

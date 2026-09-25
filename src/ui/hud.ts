@@ -17,6 +17,7 @@ export function setHud(on) {
   $('#quests').style.display = on ? 'block' : 'none';
   if (!on) {
     $('#bossbar').style.display = 'none';
+    $('#dgbar').style.display = 'none';
     $('#bAct').style.display = 'none';
   }
 }
@@ -55,9 +56,22 @@ export function updHud() {
     $('#bossn').textContent = boss.name + '  Lv ' + boss.lvl;
     $('#bossf').style.width = clamp((boss.hp / boss.max) * 100, 0, 100) + '%';
   } else bb.style.display = 'none';
+  // cave clearing progress
+  const db = $('#dgbar'),
+    D = game.mode === 'dungeon' ? game.DG : null,
+    bossOn = bb.style.display === 'block';
+  if (D && D.total) {
+    const pct = Math.min(100, Math.floor((D.killed / D.total) * 100));
+    db.style.display = 'block';
+    db.classList.toggle('done', pct >= 100);
+    db.classList.toggle('low', bossOn);
+    $('#dgn').textContent = D.name + ' · Cleared ' + pct + '%';
+    $('#dgf').style.width = pct + '%';
+  } else db.style.display = 'none';
+  const bars = (bossOn ? 1 : 0) + (db.style.display === 'block' ? 1 : 0);
   const q = $('#quests');
   q.style.top =
-    bb.style.display === 'block' && W <= 640 ? 'calc(env(safe-area-inset-top) + 150px)' : '';
+    bars && W <= 640 ? 'calc(env(safe-area-inset-top) + ' + (100 + bars * 50) + 'px)' : '';
   q.innerHTML = game.P.quests
     .map(
       (o) =>

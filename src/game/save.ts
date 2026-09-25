@@ -10,6 +10,13 @@ export function migrate(p) {
   p.quests = p.quests || [];
   p.cleared = p.cleared || {};
   p.chests = p.chests || {};
+  p.dgClear = p.dgClear || {};
+  // one-time reset of cave progress: guardians, chests and full-clear bonuses come back
+  if (!p.caveReset1) {
+    for (const k of Object.keys(p.cleared)) if (k[0] === 'c') delete p.cleared[k];
+    p.dgClear = {};
+    p.caveReset1 = 1;
+  }
   p.tod = p.tod || 0.1;
   p.eq = p.eq || {};
   for (const k of SLOTS) if (!(k in p.eq)) p.eq[k] = null;

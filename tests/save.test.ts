@@ -60,3 +60,13 @@ describe('game/save', () => {
     expect(loadSave()).toBeNull();
   });
 });
+
+describe('cave reset', () => {
+  it('clears cave progress once and keeps lairs', () => {
+    const p = migrate({ inv: [], cleared: { 'c1,2': 1, 'l0,1': 1 }, dgClear: { 'c1,2': 1 } });
+    expect(p.cleared).toEqual({ 'l0,1': 1 });
+    expect(p.dgClear).toEqual({});
+    p.cleared['c3,3'] = 1;
+    expect(migrate(p).cleared['c3,3']).toBe(1);
+  });
+});

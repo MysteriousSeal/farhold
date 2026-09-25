@@ -1,3 +1,5 @@
+import { gainXp } from './combat';
+import { xpNeed } from './stats';
 import { SFX } from '../audio/sfx';
 import { pick } from '../core/math';
 import { settings } from '../core/settings';
@@ -58,6 +60,11 @@ export function enterDungeon(p) {
       game.enemies.push(b);
       game.DG.guard = b;
     } else game.DG.guardDead = true;
+    // clearing progress: every enemy placed now (guardian included) counts; minions don't
+    for (const e of game.enemies) e.dg = true;
+    game.DG.total = game.enemies.length;
+    game.DG.killed = 0;
+    game.DG.bonus = false;
     game.genBudget = 99;
     for (let i = -1; i <= 1; i++)
       for (let j = -1; j <= 1; j++)
@@ -107,5 +114,28 @@ export function openChest() {
   game.P.cleared[game.DG.poiKey] = 1;
   questEvent('cave', game.DG.poiKey);
   banner('Treasure claimed', game.DG.name + ' cleared');
+  save();
+}
+
+/* ---- clearing bonus ---- */
+/** Share of a level's XP (at the cave level) given for killing every enemy in a cave. */
+export const CLEAR_BONUS = 0.6;
+/** Share of that bonus on later full clears of the same cave. */
+export const REPEAT_SHARE = 0.25;
+export const clearBonusXp = (lvl: number, first: boolean) =>
+  Math.round(xpNeed(lvl) * CLEAR_BONUS * (first ? 1 : REPEAT_SHARE));
+/** Count a cave enemy's death; the last one completes the clear and pays the XP bonus. */
+export function dungeonKill() {
+  const D = game.DG;
+  if (!D || D.bonus) return;
+  D.killed++;
+  if (D.killed < D.total) return;
+  D.bonus = true;
+  const first = !game.P.dgClear[D.poiKey];
+  game.P.dgClear[D.poiKey] = 1;
+  const xp = clearBonusXp(D.lvl, first);
+  gainXp(xp);
+  SFX.quest();
+  banner(D.name + ' cleared', '+' + xp + ' xp bonus' + (first ? '' : ' (repeat clear)'));
   save();
 }
