@@ -1,4 +1,12 @@
-import { drawHumanoid, drawWeapon, handOver, handPos, restAng, weaponBehind } from './humanoid';
+import {
+  carryPos,
+  drawHumanoid,
+  drawWeapon,
+  handOver,
+  handPos,
+  restAng,
+  weaponBehind,
+} from './humanoid';
 import { circ, ell, rr, shadow } from '../core/dom';
 import { OUT, TAU, clamp, mixCol, sh } from '../core/math';
 import { ET } from '../data/enemies';
@@ -447,8 +455,15 @@ export function drawEnemy(c, e, t) {
       c.translate(0, -z);
     }
     const hp = handPos(e.dx, e.dy, e.moving, e.walk, t, '', s),
-      wx = e.x + hp.x,
-      wy = e.y + hp.y;
+      // melee weapons are held on guard (blade up) unless winding up or swinging
+      guard =
+        (D.wep === 'sword' || D.wep === 'axe' || D.wep === 'club') &&
+        !(e.wind > 0) &&
+        !(e.swing > 0)
+          ? carryPos(e.dx, e.dy, e.moving, e.walk, t, '', s)
+          : null,
+      wx = e.x + (guard ? guard.x : hp.x),
+      wy = e.y + (guard ? guard.y : hp.y);
     let ang = restAng(
       hp,
       D.wep === 'bow' ? 'bow' : D.wep === 'orb' || D.wep === 'staff' ? 'staff' : 'sword',
@@ -457,6 +472,7 @@ export function drawEnemy(c, e, t) {
       ang = Math.atan2(e.dy, e.dx) - 1.5 * (1 - e.wind / 0.4);
     if (e.swing > 0 && D.wep !== 'bow') ang = Math.atan2(e.dy, e.dx) + 1.2;
     if (D.wep === 'bow') ang = e.aggro ? Math.atan2(e.dy, e.dx) : ang;
+    if (guard) ang = guard.ang;
     const wcol = D.wcol,
       wd = () => {
         if (D.wep === 'orb') {
@@ -481,7 +497,7 @@ export function drawEnemy(c, e, t) {
             s,
           );
       };
-    const behind = weaponBehind(hp, D.wep, e.wind > 0);
+    const behind = guard ? guard.behind : weaponBehind(hp, D.wep, e.wind > 0);
     if (behind) wd();
     drawHumanoid(c, e.x, e.y, {
       look: L,
@@ -497,6 +513,7 @@ export function drawEnemy(c, e, t) {
       alpha: D.float ? 0.9 : null,
       noShadow: !!z,
       squash: e.hitSq || 0,
+      carry: guard ? guard.arm : null,
     });
     if (!behind) {
       wd();

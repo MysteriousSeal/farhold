@@ -29,6 +29,7 @@ import {
 import { drawEnemy } from '../art/creatures';
 import { SPR, TREESET } from '../art/decor';
 import {
+  carryPos,
   drawHumanoid,
   drawWeapon,
   handOver,
@@ -136,9 +137,14 @@ function drawHero(c, t) {
     z = Math.sin(k * Math.PI) * 70;
   }
   const hp = handPos(hero.dx, hero.dy, hero.moving && !rolling, hero.walk, t, game.P.race),
-    wx = game.P.x + hp.x,
-    wy = game.P.y + hp.y - z;
-  let ang = restAng(hp, game.P.cls),
+    // a resting sword/axe is carried on the shoulder
+    carry =
+      game.P.cls === 'warrior' && hero.atk <= 0 && hero.whirl <= 0 && !leap && !rolling
+        ? carryPos(hero.dx, hero.dy, hero.moving, hero.walk, t, game.P.race)
+        : null,
+    wx = game.P.x + (carry ? carry.x : hp.x),
+    wy = game.P.y + (carry ? carry.y : hp.y) - z;
+  let ang = carry ? carry.ang : restAng(hp, game.P.cls),
     sw = 0;
   if (game.P.cls === 'warrior') {
     if (hero.whirl > 0) ang = game.time * 22;
@@ -159,7 +165,7 @@ function drawHero(c, t) {
   if (z) {
     shadow(c, game.P.x, game.P.y, 12, 4.5, 0.3);
   }
-  const behind = weaponBehind(hp, game.P.cls, hero.atk > 0);
+  const behind = carry ? carry.behind : weaponBehind(hp, game.P.cls, hero.atk > 0);
   if (behind && hero.whirl <= 0) wd();
   const alpha = hero.inv > 0 && !leap && Math.sin(t * 50) > 0 ? 0.5 : null;
   if (rolling && Math.random() < 0.7)
@@ -186,6 +192,7 @@ function drawHero(c, t) {
     time: t,
     alpha,
     noShadow: !!z,
+    carry: carry ? carry.arm : null,
   });
   c.restore();
   if (!behind || hero.whirl > 0) {

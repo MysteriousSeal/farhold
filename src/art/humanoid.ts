@@ -200,17 +200,44 @@ export function drawHumanoid(c, x, y, o) {
     c.fill();
     c.stroke();
   }
-  // arms
-  const hand = tint(L.gloves || L.skin);
+  // arms (o.carry raises the weapon arm so its hand rests at a shoulder carry point)
+  const hand = tint(L.gloves || L.skin),
+    cy0 = o.carry ? armY + o.carry.dy : 0,
+    raised = (sx: number, cx: number) => {
+      c.lineCap = 'round';
+      c.beginPath();
+      c.moveTo(sx, armY + 2);
+      c.lineTo(cx, cy0 + 3);
+      c.lineWidth = 6 + lw * 2;
+      c.strokeStyle = OUT;
+      c.stroke();
+      c.lineWidth = 6;
+      c.strokeStyle = sleeve;
+      c.stroke();
+      c.lineWidth = lw;
+      c.strokeStyle = OUT;
+      circ(c, cx, cy0, 3, hand);
+    };
   if (side) {
-    rr(c, -3 + sw * 5, armY, 6, 11, 3, sleeve);
-    circ(c, sw * 5, armY + 12, 3, hand);
+    if (o.carry) raised(0, o.carry.dx);
+    else {
+      rr(c, -3 + sw * 5, armY, 6, 11, 3, sleeve);
+      circ(c, sw * 5, armY + 12, 3, hand);
+    }
   } else {
-    const a1 = sw * 2;
-    rr(c, -13 * dw, armY - 1 + a1, 6, 11, 3, sleeve);
-    rr(c, 7 * dw, armY - 1 - a1, 6, 11, 3, sleeve);
-    circ(c, -10 * dw, armY + 11 + a1, 3, hand);
-    circ(c, 10 * dw, armY + 11 - a1, 3, hand);
+    const a1 = sw * 2,
+      carryR = o.carry && o.carry.dx > 0,
+      carryL = o.carry && o.carry.dx < 0;
+    if (carryL) raised(-10 * dw, o.carry.dx * dw);
+    else {
+      rr(c, -13 * dw, armY - 1 + a1, 6, 11, 3, sleeve);
+      circ(c, -10 * dw, armY + 11 + a1, 3, hand);
+    }
+    if (carryR) raised(10 * dw, o.carry.dx * dw);
+    else {
+      rr(c, 7 * dw, armY - 1 - a1, 6, 11, 3, sleeve);
+      circ(c, 10 * dw, armY + 11 - a1, 3, hand);
+    }
   }
   if (A && A.k >= 1) {
     const pr = A.k === 2 ? 5 : 3.8,
@@ -615,8 +642,8 @@ export function restAng(h, cls) {
   if (cls === 'mage' || cls === 'staff')
     return h.f === 'side' ? (h.flip ? -0.25 : 0.25) : h.f === 'down' ? 0.15 : -0.15;
   if (h.f === 'side') return h.flip ? Math.PI - 0.5 : 0.5;
-  // relaxed grip: blade hangs down beside the leg, tip tilted slightly outward
-  return h.f === 'down' ? Math.PI / 2 - 0.18 : Math.PI / 2 + 0.18;
+  // held low, angled ~45° outward so the tip ends around the knee
+  return h.f === 'down' ? Math.PI / 2 - 0.75 : Math.PI / 2 + 0.75;
 }
 /**
  * Axe head on a haft lying along +x, with its top end at `x`. The cutting edge faces -y:
@@ -785,4 +812,42 @@ export function handOver(c, x: number, y: number, look, s = 1) {
   c.strokeStyle = OUT;
   circ(c, x, y, 3 * s, look.gloves || look.skin);
   c.restore();
+}
+
+/**
+ * Guard stance for a sword/axe at rest: the weapon hand is raised to chest height just outside
+ * the body and the blade points up beside the head. Returns the hand position (relative to the
+ * feet), blade angle, whether the blade is drawn behind the body, and `arm`: the hand offset for
+ * drawHumanoid's o.carry (local, unflipped coordinates).
+ */
+export function carryPos(dx, dy, moving, walk, t, race, scale = 1) {
+  const { f, flip } = faceOf(dx, dy),
+    bob = moving ? Math.abs(Math.sin(walk)) * 2.2 : Math.sin(t * 2.4) * 0.6,
+    dw = race === 'dwarf' ? 1.15 : 1,
+    armY = -27 - bob + 4;
+  if (f === 'side') {
+    const s = flip ? -1 : 1;
+    return {
+      x: s * 6 * scale,
+      y: (armY + 5) * scale,
+      ang: -Math.PI / 2 + s * 0.3,
+      behind: false,
+      arm: { dx: 6, dy: 5 },
+    };
+  }
+  if (f === 'down')
+    return {
+      x: 12 * dw * scale,
+      y: (armY + 6) * scale,
+      ang: -Math.PI / 2 + 0.12,
+      behind: false,
+      arm: { dx: 12, dy: 6 },
+    };
+  return {
+    x: -12 * dw * scale,
+    y: (armY + 6) * scale,
+    ang: -Math.PI / 2 - 0.12,
+    behind: true,
+    arm: { dx: -12, dy: 6 },
+  };
 }

@@ -1,4 +1,4 @@
-import { drawHumanoid, drawWeapon, handOver, handPos, restAng } from '../art/humanoid';
+import { carryPos, drawHumanoid, drawWeapon, handOver, handPos, restAng } from '../art/humanoid';
 import { compareItem, fmtPct } from '../game/power';
 import { SFX } from '../audio/sfx';
 import { $ } from '../core/dom';
@@ -110,8 +110,10 @@ function drawPortrait(cv: HTMLCanvasElement) {
   // centre the whole figure (helmet top ≈ -48, feet ≈ +4, weapon slightly to the right)
   const k = 2 * 2.9;
   x.setTransform(k, 0, 0, k, cv.width / 2 - 2 * k, cv.height / 2 + 22 * k);
-  const hp = handPos(0, 1, false, 0, 0, game.P.race),
-    ang = restAng(hp, game.P.cls),
+  // warriors stand on guard (blade up); other classes hold their weapon at rest
+  const guard = game.P.cls === 'warrior' ? carryPos(0, 1, false, 0, 0, game.P.race) : null,
+    hp = guard || handPos(0, 1, false, 0, 0, game.P.race),
+    ang = guard ? guard.ang : restAng(hp, game.P.cls),
     wd = () =>
       drawWeapon(
         x,
@@ -124,7 +126,15 @@ function drawPortrait(cv: HTMLCanvasElement) {
         null, // no rarity glow on held weapons
         w ? w.style : 0,
       );
-  drawHumanoid(x, 0, 0, { look: game.P.look, dx: 0, dy: 1, moving: false, walk: 0, time: 0 });
+  drawHumanoid(x, 0, 0, {
+    look: game.P.look,
+    dx: 0,
+    dy: 1,
+    moving: false,
+    walk: 0,
+    time: 0,
+    carry: guard ? guard.arm : null,
+  });
   wd();
   handOver(x, hp.x, hp.y, game.P.look);
   x.setTransform(1, 0, 0, 1, 0, 0);
