@@ -3,6 +3,7 @@ import { $ } from '../core/dom';
 import { mulberry, strSeed } from '../core/math';
 import { RAR } from '../data/classes';
 import { ET } from '../data/enemies';
+import { FLAVOUR } from '../data/flavour';
 import { toast } from '../game/fx';
 import { QMAX, TRACK_MAX, abandonQuest, activeQuests, setTracked } from '../game/quests';
 import { game } from '../game/state';
@@ -34,27 +35,7 @@ function ago(t: number) {
 }
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
-/* ---------- flavour: a seeded line from whoever posted the bounty ---------- */
-const FLAVOUR = {
-  kill: [
-    'The farmers are desperate: their flocks vanish night after night.',
-    'Travellers refuse to take the road until something is done.',
-    'The hunters of the village are wounded or gone. Someone must step in.',
-    'A merchant lost a whole caravan. He pays well to see them thinned out.',
-  ],
-  boss: [
-    'Its shadow has fallen over the region for too long. End it.',
-    'Many have tried. The bounty board is covered in their names.',
-    'The elders say it will not stop until it is stopped.',
-    'Bring back proof, and the village will sing of you.',
-  ],
-  cave: [
-    'Old maps speak of a treasure at the bottom. Nobody has returned to confirm it.',
-    'Miners broke into it by accident and fled. Their tools are still down there.',
-    'Strange lights flicker at the entrance at night.',
-    'Whatever guards the treasure does not like visitors.',
-  ],
-};
+/* ---------- flavour: a seeded line from whoever posted the bounty (data/flavour.ts) ---------- */
 const flavourOf = (q) => {
   const l = FLAVOUR[q.type] || FLAVOUR.kill;
   return l[Math.floor(mulberry(strSeed(String(q.id) + q.name))() * l.length)];
