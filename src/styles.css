@@ -500,28 +500,48 @@ input.txt {
 #bAct {
   position: fixed;
   left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(env(safe-area-inset-bottom) + 30px);
+  top: 50%;
+  transform: translate(-50%, -100%);
+  margin-top: -12px;
   z-index: 7;
   display: none;
-  font: 700 17px var(--f);
+  font: 700 14px var(--f);
   background: var(--gold);
   color: var(--ink);
-  border: 3px solid #3a220c;
-  border-radius: 30px;
-  padding: 10px 24px;
-  box-shadow: 0 5px 0 #8a5a16;
+  border: 2.5px solid #3a220c;
+  border-radius: 20px;
+  padding: 6px 14px;
+  /* one shadow for the bubble and its tail */
+  filter: drop-shadow(0 3px 0 #8a5a16);
   animation: pop 0.25s;
   cursor: pointer;
+  white-space: nowrap;
 }
-@media (pointer: coarse) {
-  #bAct {
-    bottom: calc(env(safe-area-inset-bottom) + 262px);
-  }
+/* speech-bubble tail: dark outline triangle, gold fill covering the border seam */
+#bAct::before,
+#bAct::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-color: transparent;
+}
+#bAct::before {
+  top: calc(100% + 0.5px);
+  border-width: 9px 8px 0;
+  border-top-color: #3a220c;
+}
+#bAct::after {
+  top: calc(100% - 2px);
+  border-width: 8px 5.5px 0;
+  border-top-color: var(--gold);
 }
 @keyframes pop {
   from {
-    transform: translateX(-50%) scale(0.6);
+    transform: translate(-50%, -100%) scale(0.6);
   }
 }
 #skillbar {

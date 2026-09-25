@@ -1,5 +1,6 @@
+import { zoom } from '../render/render';
 import { clearBonusXp } from '../game/dungeons';
-import { $, W } from '../core/dom';
+import { $, H, W } from '../core/dom';
 import { clamp } from '../core/math';
 import { SKILLCD, TREES, pointsFree, rank } from '../data/skills';
 import { game, hero } from '../game/state';
@@ -94,4 +95,18 @@ export function updHud() {
     )
     .join('');
   $('#skillsBtn').classList.toggle('pulse', pointsFree() > 0);
+}
+
+/** Keep the interaction prompt floating over its target (called every frame). */
+export function placeAct() {
+  const a = $('#bAct'),
+    it = game.state === 'play' ? game.interact : null;
+  if (!it || it.ty == null || a.style.display === 'none') return;
+  const z = zoom(),
+    cx = game.camX + game.camKX + game.kickX,
+    cy = game.camY + game.camKY + game.kickY,
+    sx = W / 2 + (it.tx - cx) * z,
+    sy = H / 2 + (it.ty - cy) * z;
+  a.style.left = Math.round(clamp(sx, 70, W - 70)) + 'px';
+  a.style.top = Math.round(clamp(sy, 60, H - 20)) + 'px';
 }

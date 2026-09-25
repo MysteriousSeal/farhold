@@ -12,7 +12,7 @@ import { game } from './game/state';
 import { update } from './game/update';
 import { drawMini } from './render/minimap';
 import { render } from './render/render';
-import { updHud } from './ui/hud';
+import { placeAct, updHud } from './ui/hud';
 import { refreshMenu } from './ui/menus';
 import { drawPreview } from './ui/screens';
 /* ================= LOOP ================= */
@@ -38,7 +38,10 @@ function frame(now) {
   render();
   drawPreview(game.time);
   if (game.state === 'play' || game.state === 'modal' || game.state === 'inv') {
-    if (game.state === 'play') drawMini(dt);
+    if (game.state === 'play') {
+      drawMini(dt);
+      placeAct();
+    }
     game.hudT -= dt;
     if (game.hudT <= 0 && game.state === 'play') {
       game.hudT = 0.1;
