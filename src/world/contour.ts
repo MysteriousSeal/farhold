@@ -20,8 +20,9 @@ export function march(
   oy: number,
   level: number,
   seg: SegFn,
+  step = STEP,
 ) {
-  const n = size / STEP,
+  const n = size / step,
     w = n + 1;
   for (let j = 0; j < n; j++)
     for (let i = 0; i < n; i++) {
@@ -32,10 +33,10 @@ export function march(
       const k =
         (a > level ? 8 : 0) | (b > level ? 4 : 0) | (c > level ? 2 : 0) | (d > level ? 1 : 0);
       if (k === 0 || k === 15) continue;
-      const x = ox + i * STEP,
-        y = oy + j * STEP,
-        X = x + STEP,
-        Y = y + STEP,
+      const x = ox + i * step,
+        y = oy + j * step,
+        X = x + step,
+        Y = y + step,
         e = (x0: number, y0: number, h0: number, x1: number, y1: number, h1: number) => {
           const t = (level - h0) / (h1 - h0);
           return [x0 + (x1 - x0) * t, y0 + (y1 - y0) * t];

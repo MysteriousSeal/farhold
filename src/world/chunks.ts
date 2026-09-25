@@ -3,7 +3,7 @@ import { OUT, TAU, clamp, fbm, hs, lerp, mulberry, pick, rand, strSeed, vn } fro
 import { game } from '../game/state';
 import { traceCliffs } from './cliffs';
 import { sampleHeights } from './contour';
-import { traceShores } from './shores';
+import { tracePools, traceShores } from './shores';
 import { genDungeonChunk } from './dungeon';
 import { houseRoute, poiSolid, poisNear } from './poi';
 import { CH, PEAK_H, classify, corr, groundF, hField, peakF, terr, walkT } from './terrain';
@@ -29,8 +29,13 @@ function startGen(cx, cy) {
     img: new ImageData(FN, FN),
     types: new Uint8Array(FN * FN),
     bio: new Uint8Array(FN * FN),
+    // places in or near the chunk: swamp pools are kept out of them
+    pois: poisNear(cx * CH + CH / 2, cy * CH + CH / 2, CH * 0.75),
   };
 }
+/** Is (x, y) inside a village, lair or cave area (where swamp pools are not allowed)? */
+export const inPlace = (pois, x: number, y: number) =>
+  pois.some((p) => Math.hypot(x - p.x, (y - p.y) * 1.15) < p.r + 20);
 function stepGen(G, steps) {
   const ox = G.cx * CH,
     oy = G.cy * CH,
@@ -89,8 +94,9 @@ function stepGen(G, steps) {
           const c = corr(Math.hypot(wx, wy)),
             h = v[0],
             q = classify(h, v[1], v[2], c, v[3], v[4]),
-            t = q >> 3,
             b = q & 7,
+            // a swamp pool inside a place is plain ground instead
+            t = q >> 3 === 1 && b === 5 && h >= 0.425 && inPlace(G.pois, wx, wy) ? 3 : q >> 3,
             col = groundF(t, b, h, c, v[5], v[6], v[7], v[8], v[9], v[4]),
             p = j * FN + i,
             o = p * 4;
@@ -410,7 +416,10 @@ function finishGen(G) {
     hv = hasPeak || hasShore ? sampleHeights(ox, oy, CH) : null,
     cliffs = hasPeak ? traceCliffs(ox, oy, CH, hv) : [],
     shores = hasShore ? traceShores(ox, oy, CH, hv) : null;
-  return { cvs, decor, waves, cliffs, shores, last: 0 };
+  let hasPool = false;
+  for (let p = 0; p < types.length && !hasPool; p++) hasPool = types[p] === 1 && bio[p] === 5;
+  const pools = hasPool ? tracePools(ox, oy, CH, (x, y) => inPlace(G.pois, x, y)) : null;
+  return { cvs, decor, waves, cliffs, shores, pools, last: 0 };
 }
 const DECOR_R = {
   oak: 11,

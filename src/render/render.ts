@@ -37,7 +37,7 @@ import { game, hero, lights, weather } from '../game/state';
 import { joy } from '../input/input';
 import { bgStep, getChunk } from '../world/chunks';
 import { drawCliffs } from '../world/cliffs';
-import { drawShores } from '../world/shores';
+import { drawPools, drawShores } from '../world/shores';
 import { poisNear } from '../world/poi';
 import { CH, corr } from '../world/terrain';
 /* ================= RENDER ================= */
@@ -241,7 +241,8 @@ export function render() {
   game.genBudget = game.state === 'play' ? 1 : 2;
   const list = [],
     cliffs = [],
-    shores = [];
+    shores = [],
+    pools = [];
   for (let i = Math.floor((x0 - 40) / CH); i <= Math.floor((x1 + 40) / CH); i++)
     for (let j = Math.floor((y0 - 40) / CH); j <= Math.floor((y1 + 130) / CH); j++) {
       const ch = getChunk(i, j, true);
@@ -263,9 +264,11 @@ export function render() {
           list.push({ y: d.y, d });
       if (ch.cliffs) cliffs.push(...ch.cliffs);
       if (ch.shores) shores.push(ch.shores);
+      if (ch.pools) pools.push(ch.pools);
     }
   // crisp vector shorelines and cliffs on top of all ground chunks
   drawShores(g, shores, game.time);
+  drawPools(g, pools, game.time);
   drawCliffs(g, cliffs);
   if (game.genBudget > 0) {
     if (game.mode === 'world') bgStep(cx, cy);

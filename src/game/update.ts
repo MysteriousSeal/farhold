@@ -1,3 +1,5 @@
+import { inPlaceNow } from '../world/poi';
+import { WADE, isPool } from '../world/terrain';
 import { SFX } from '../audio/sfx';
 import { H, W } from '../core/dom';
 import { clamp, lerp, rand } from '../core/math';
@@ -85,7 +87,11 @@ function updateHero(dt) {
     return;
   }
   let vx, vy;
-  const spd = game.ST.spd * (hero.slow > 0 ? 0.55 : 1);
+  const wading =
+      game.mode === 'world' && isPool(terr(game.P.x, game.P.y)) && !inPlaceNow(game.P.x, game.P.y),
+    spd = game.ST.spd * (hero.slow > 0 ? 0.55 : 1) * (wading && hero.roll <= 0 ? WADE : 1);
+  if (wading && hero.moving && Math.random() < 0.12)
+    burst(game.P.x + rand(-6, 6), game.P.y + 2, 'rgba(215,235,200,.8)', 3, 50, 2.4, 30);
   if (hero.roll > 0) {
     hero.roll -= dt;
     vx = hero.rdx * spd * 2.7;

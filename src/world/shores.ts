@@ -1,3 +1,4 @@
+import { vn } from '../core/math';
 import { march } from './contour';
 import { COL, terr } from './terrain';
 /* ---------- Shorelines (vector, drawn every frame at full resolution) ---------- */
@@ -95,4 +96,116 @@ export function drawShores(c: CanvasRenderingContext2D, list: Shores[], t: numbe
         c.lineWidth = w;
         c.stroke(p);
       }
+}
+
+/* ---------- Swamp pools (wadeable) ---------- */
+const POOL_STEP = 8,
+  POOL_LEVEL = 0.66; // same threshold that turns marsh into pool water in classify()
+export type Pools = {
+  edge: number[];
+  ripple: number[];
+  reeds: number[];
+  paths?: { edge: Path2D; ripple: Path2D };
+};
+/** Trace the banks of swamp pools inside a size×size square. */
+export function tracePools(
+  ox: number,
+  oy: number,
+  size: number,
+  excluded: (x: number, y: number) => boolean = () => false,
+): Pools {
+  const n = size / POOL_STEP,
+    v = new Float32Array((n + 1) * (n + 1));
+  for (let j = 0; j <= n; j++)
+    for (let i = 0; i <= n; i++) {
+      const x = ox + i * POOL_STEP,
+        y = oy + j * POOL_STEP,
+        T = terr(x, y);
+      v[j * (n + 1) + i] =
+        T.b === 5 && T.h >= 0.425 && T.h < 0.6 && !excluded(x, y)
+          ? vn(x * 0.009, y * 0.009, 23)
+          : 0;
+    }
+  const edge: number[] = [],
+    ripple: number[] = [],
+    reeds: number[] = [];
+  march(
+    v,
+    size,
+    ox,
+    oy,
+    POOL_LEVEL,
+    (ax, ay, bx, by) => {
+      edge.push(ax, ay, bx, by);
+      const h = Math.sin(ax * 12.9898 + ay * 78.233) * 43758.5453;
+      if (h - Math.floor(h) < 0.14) reeds.push((ax + bx) / 2, (ay + by) / 2, h - Math.floor(h));
+    },
+    POOL_STEP,
+  );
+  march(
+    v,
+    size,
+    ox,
+    oy,
+    POOL_LEVEL + 0.022,
+    (ax, ay, bx, by) => ripple.push(ax, ay, bx, by),
+    POOL_STEP,
+  );
+  return { edge, ripple, reeds };
+}
+const toPath = (a: number[]) => {
+  const p = new Path2D();
+  for (let i = 0; i < a.length; i += 4) {
+    p.moveTo(a[i], a[i + 1]);
+    p.lineTo(a[i + 2], a[i + 3]);
+  }
+  return p;
+};
+/** Draw pool banks (muddy rim), a ripple line and reed clumps (world transform set). */
+export function drawPools(c: CanvasRenderingContext2D, list: Pools[], t: number) {
+  if (!list.length) return;
+  c.lineCap = 'round';
+  c.lineJoin = 'round';
+  for (const p of list) {
+    if (!p.paths) p.paths = { edge: toPath(p.edge), ripple: toPath(p.ripple) };
+    c.strokeStyle = 'rgba(210,235,190,' + (0.3 + 0.14 * Math.sin(t * 1.6)).toFixed(3) + ')';
+    c.lineWidth = 1.7;
+    c.stroke(p.paths.ripple);
+    c.strokeStyle = 'rgba(58,48,28,.9)';
+    c.lineWidth = 5;
+    c.stroke(p.paths.edge);
+    c.strokeStyle = 'rgba(128,108,64,.55)';
+    c.lineWidth = 1.6;
+    c.stroke(p.paths.edge);
+  }
+  // reed clumps on the banks
+  for (const p of list)
+    for (let i = 0; i < p.reeds.length; i += 3) {
+      const x = p.reeds[i],
+        y = p.reeds[i + 1],
+        q = p.reeds[i + 2];
+      for (let k = 0; k < 4; k++) {
+        const bx = x + (k - 1.5) * 3.2,
+          lean = (k - 1.5) * 1.8 + Math.sin(t * 1.5 + x * 0.1 + k) * 1.2,
+          ht = 13 + ((k * 7 + q * 20) % 6);
+        c.strokeStyle = '#2a1d2c';
+        c.lineWidth = 3.4;
+        c.beginPath();
+        c.moveTo(bx, y + 2);
+        c.quadraticCurveTo(bx + lean * 0.3, y - ht * 0.5, bx + lean, y - ht);
+        c.stroke();
+        c.strokeStyle = k % 2 ? '#5f8a3a' : '#4e7430';
+        c.lineWidth = 1.8;
+        c.stroke();
+        if (k % 2 === 0) {
+          c.fillStyle = '#7a4a2a';
+          c.strokeStyle = '#2a1d2c';
+          c.lineWidth = 1;
+          c.beginPath();
+          c.ellipse(bx + lean, y - ht - 3, 2, 4, lean * 0.05, 0, Math.PI * 2);
+          c.fill();
+          c.stroke();
+        }
+      }
+    }
 }

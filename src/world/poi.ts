@@ -381,6 +381,10 @@ export function poiSolid(p, x, y, r) {
   return false;
 }
 
+/** Is (x, y) inside one of the places near the player (dry ground, no swamp pools)? */
+export const inPlaceNow = (x: number, y: number) =>
+  game.activePois.some((p) => Math.hypot(x - p.x, (y - p.y) * 1.15) < p.r + 20);
+
 /* ---------- Street lamps ---------- */
 type Road = { pts: { x: number; y: number }[]; w: number };
 const segDist = (x: number, y: number, a, b) => {

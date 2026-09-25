@@ -1,3 +1,5 @@
+import { inPlaceNow } from '../world/poi';
+import { WADE, isPool } from '../world/terrain';
 import type { Enemy, Rec } from './types';
 import { CHEST_GOLD_SHARE, spawnBossChest } from './bossChest';
 import { SFX } from '../audio/sfx';
@@ -337,7 +339,12 @@ export function updateEnemies(dt) {
     e.cd -= dt;
     let mx = 0,
       my = 0;
-    const sp = e.spd * (e.slow > 0 ? 0.5 : 1);
+    const sp =
+      e.spd *
+      (e.slow > 0 ? 0.5 : 1) *
+      (game.mode === 'world' && !e.fly && isPool(terr(e.x, e.y)) && !inPlaceNow(e.x, e.y)
+        ? WADE
+        : 1);
     e.slow -= dt;
     const aggroR = game.mode === 'dungeon' ? 300 : 260;
     if ((d < aggroR || (e.aggro && d < 520)) && !pVillage && game.state === 'play') {

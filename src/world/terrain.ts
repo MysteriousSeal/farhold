@@ -49,7 +49,12 @@ export function terr(x, y) {
     q = classify(h, m, tp, c, bl, sw);
   return { h, m, tp, d, t: q >> 3, b: q & 7, c };
 }
-export const walkT = (T) => T.t === 2 || T.t === 3 || T.t === 4 || (T.t === 1 && T.b === 4);
+/** Swamp pools: shallow marsh water (not lakes) that can be waded through, slowly. */
+export const isPool = (T) => T.t === 1 && T.b === 5 && T.h >= 0.425;
+/** Speed factor while wading through a swamp pool. */
+export const WADE = 0.6;
+export const walkT = (T) =>
+  T.t === 2 || T.t === 3 || T.t === 4 || (T.t === 1 && T.b === 4) || isPool(T);
 export const dangerAt = (x, y) => 1 + Math.floor(Math.hypot(x, y) / 420);
 export const COL = {
   3: [
