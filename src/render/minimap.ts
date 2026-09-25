@@ -300,10 +300,10 @@ export function drawMini(dt) {
     mc.drawImage(D.miniImg, C - game.P.x * sc, C - game.P.y * sc);
     const at = (px: number, py: number) => [C + (px - game.P.x) * sc, C + (py - game.P.y) * sc];
     const [ex, ey] = at(D.exit.x, D.exit.y);
-    exitIcon(ex, ey);
+    big(ex, ey, () => exitIcon(ex, ey));
     if (!D.chest.open && !D.chest.hidden) {
       const [cx, cy] = at(D.chest.x, D.chest.y);
-      chestIcon(cx, cy);
+      big(cx, cy, () => chestIcon(cx, cy));
     }
     remainingEnemies(M, sc);
   } else if (game.mode === 'house') {
@@ -321,7 +321,7 @@ export function drawMini(dt) {
     mc.drawImage(I.miniImg, C - game.P.x * sc, C - game.P.y * sc);
     const at = (px: number, py: number) => [C + (px - game.P.x) * sc, C + (py - game.P.y) * sc];
     const [dx, dy] = at(I.door.x, I.door.y);
-    exitIcon(dx, dy);
+    big(dx, dy, () => exitIcon(dx, dy));
     for (const n of I.npcs) {
       const [nx, ny] = at(n.x, n.y);
       mc.fillStyle = '#8fe08a';
@@ -365,23 +365,27 @@ export function drawMini(dt) {
     for (const p of poisNear(game.P.x, game.P.y, R)) {
       const x = C + (p.x - game.P.x) * sc,
         y = C + (p.y - game.P.y) * sc;
-      if (p.kind === 'village') villageIcon(x, y, game.P.wps.includes(p.key), p.key === 'v0,0');
-      else if (p.kind === 'lair') lairIcon(x, y, !!game.P.cleared[p.key]);
-      else caveIcon(x, y, !!game.P.cleared[p.key]);
+      big(x, y, () => {
+        if (p.kind === 'village') villageIcon(x, y, game.P.wps.includes(p.key), p.key === 'v0,0');
+        else if (p.kind === 'lair') lairIcon(x, y, !!game.P.cleared[p.key]);
+        else caveIcon(x, y, !!game.P.cleared[p.key]);
+      });
     }
     for (const q of game.P.quests) {
       if (q.x == null || q.done || !q.tracked) continue;
-      const [x, y] = clampRim(q.x, q.y, sc, C - FRAME - 12);
-      star(mc, x, y, 9, '#ffd23a');
+      const [x, y] = clampRim(q.x, q.y, sc, C - FRAME - 20);
+      big(x, y, () => star(mc, x, y, 9, '#ffd23a'));
     }
     if (Math.hypot(game.P.x, game.P.y) > R && game.mode === 'world') {
       const w = game.P.wpInfo[game.P.home];
-      if (w && Math.hypot(w.x - game.P.x, w.y - game.P.y) * sc > C - FRAME - 10) {
-        const [x, y] = clampRim(w.x, w.y, sc, C - FRAME - 10);
-        mc.fillStyle = '#6ae4ff';
-        mc.strokeStyle = OUT;
-        mc.lineWidth = 2;
-        diamond(x, y, 6);
+      if (w && Math.hypot(w.x - game.P.x, w.y - game.P.y) * sc > C - FRAME - 16) {
+        const [x, y] = clampRim(w.x, w.y, sc, C - FRAME - 16);
+        big(x, y, () => {
+          mc.fillStyle = '#6ae4ff';
+          mc.strokeStyle = OUT;
+          mc.lineWidth = 2;
+          diamond(x, y, 6);
+        });
       }
     }
   }
@@ -473,6 +477,26 @@ const shadowDot = (x: number, y: number, rx: number) => {
   mc.ellipse(x + 1, y + rx * 0.9, rx, rx * 0.4, 0, 0, TAU);
   mc.fill();
 };
+/** Points of interest are drawn at this scale around their centre. */
+const POI_SCALE = 2;
+/** Draw a marker `POI_SCALE`× bigger over a soft light halo, so it reads on any biome. */
+function big(x: number, y: number, draw: () => void) {
+  const r = 13 * POI_SCALE,
+    g = mc.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, 'rgba(255,250,230,.55)');
+  g.addColorStop(0.55, 'rgba(255,250,230,.28)');
+  g.addColorStop(1, 'rgba(255,250,230,0)');
+  mc.fillStyle = g;
+  mc.beginPath();
+  mc.arc(x, y, r, 0, TAU);
+  mc.fill();
+  mc.save();
+  mc.translate(x, y);
+  mc.scale(POI_SCALE, POI_SCALE);
+  mc.translate(-x, -y);
+  draw();
+  mc.restore();
+}
 function villageIcon(x: number, y: number, known: boolean, city: boolean) {
   const s = city ? 1.25 : 1;
   shadowDot(x, y + 1, 9 * s);
