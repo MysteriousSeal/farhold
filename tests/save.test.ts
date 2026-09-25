@@ -67,6 +67,13 @@ describe('game/save', () => {
     expect(listSaves().map((s) => s.p.name)).toEqual(['Old']);
   });
 
+  it('turns former elves, dwarves and orcs into humans', () => {
+    const p = migrate({ inv: [], race: 'orc', skin: '#74a85a' });
+    expect(p.race).toBe('human');
+    expect(p.skin).toBe('#e6b187');
+    expect(migrate({ inv: [], race: 'elf', skin: '#c4895c' }).skin).toBe('#c4895c');
+  });
+
   it('skips a corrupt save', () => {
     store.set('farhold_slot:bad', '{nope');
     expect(loadSave()).toBeNull();

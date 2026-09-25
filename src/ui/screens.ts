@@ -11,7 +11,7 @@ import { backfillBossChests, refreshQuestTargets } from '../game/bossChest';
 import { audioInit } from '../audio/sfx';
 import { $ } from '../core/dom';
 import { pick, strSeed } from '../core/math';
-import { CLS, HAIRC, HAIRS, RACE, SKINS } from '../data/classes';
+import { CLS, HAIRC, HAIRS, SKINS } from '../data/classes';
 import { respawn } from '../game/combat';
 import { unstick } from '../game/enemies';
 import { banner } from '../game/fx';
@@ -71,16 +71,8 @@ function refreshCreate() {
   );
   $('#cClsD').textContent = CLS[C.cls].desc;
   chips(
-    $('#cRace'),
-    Object.keys(RACE).map((k) => [k, RACE[k].n]),
-    () => C.race,
-    (v) => (C.race = v),
-  );
-  $('#cRaceD').textContent = RACE[C.race].desc;
-  const sk = C.race === 'orc' ? SKINS.orc : SKINS.std;
-  chips(
     $('#cSkin'),
-    sk.map((c, i) => [i, 'Skin ' + (i + 1), c]),
+    SKINS.map((c, i) => [i, 'Skin ' + (i + 1), c]),
     () => C.skin,
     (v) => (C.skin = v),
     true,
@@ -98,15 +90,13 @@ function refreshCreate() {
     (v) => (C.hairC = v),
     true,
   );
-  $('#prevname').textContent =
-    ($('#cName').value || 'Nameless') + ', ' + RACE[C.race].n + ' ' + CLS[C.cls].n;
+  $('#prevname').textContent = ($('#cName').value || 'Nameless') + ', ' + CLS[C.cls].n;
 }
 function previewPlayer() {
-  const sk = C.race === 'orc' ? SKINS.orc : SKINS.std;
   return {
     cls: C.cls,
-    race: C.race,
-    skin: sk[C.skin],
+    race: 'human',
+    skin: SKINS[C.skin],
     hair: C.hair,
     hairC: HAIRC[C.hairC],
     eq: {},
@@ -231,8 +221,6 @@ function openLoad() {
       esc(p.name || 'Hero') +
       '</div><div class="scl">Level ' +
       (p.lvl || 1) +
-      ' ' +
-      (RACE[p.race] ? RACE[p.race].n : '') +
       ' ' +
       (CLS[p.cls] ? CLS[p.cls].n : '') +
       '</div><div class="smeta">' +

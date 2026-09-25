@@ -2,7 +2,7 @@ import { carryPos, drawHumanoid, drawWeapon, handOver, handPos, restAng } from '
 import { compareItem, fmtPct } from '../game/power';
 import { SFX } from '../audio/sfx';
 import { $ } from '../core/dom';
-import { CLS, MATS, RACE, RAR, SLOT_NAME } from '../data/classes';
+import { CLS, MATS, RAR, SLOT_NAME } from '../data/classes';
 import { BAGMAX } from '../game/drops';
 import { toast } from '../game/fx';
 import {
@@ -180,7 +180,7 @@ function renderChar() {
     need = xpNeed(P.lvl),
     el = $('#wChar');
   el.innerHTML =
-    winHead(P.name, 'Level ' + P.lvl + ' ' + RACE[P.race].n + ' ' + CLS[P.cls].n, 'char') +
+    winHead(P.name, 'Level ' + P.lvl + ' ' + CLS[P.cls].n, 'char') +
     '<div class="bar xp sheetxp"><i style="width:' +
     Math.min(100, (P.xp / need) * 100).toFixed(1) +
     '%"></i></div><div class="xpt">' +

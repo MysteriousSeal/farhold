@@ -1,6 +1,6 @@
 import type { Look, Stats } from './types';
 import { sh } from '../core/math';
-import { CLS, MATS, RACE, RAR, SLOTS } from '../data/classes';
+import { CLS, MATS, RAR, SLOTS } from '../data/classes';
 import { rank } from '../data/skills';
 import { itemStat } from './items';
 import { game } from './state';
@@ -30,7 +30,6 @@ export function computeStats(p = game.P): Stats {
     for (const k in o) s[k] += o[k];
   };
   ad(CLS[p.cls].st);
-  ad(RACE[p.race].st);
   const l = p.lvl - 1;
   s.hp += l * 14;
   s.atk += l * 2.2;

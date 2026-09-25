@@ -77,28 +77,28 @@ describe('game/items', () => {
 });
 
 describe('game/stats', () => {
-  it('base stats per class and race', () => {
+  it('base stats per class (heroes are human, no racial bonus)', () => {
     game.P = hero();
     calcStats();
-    expect(game.ST).toMatchObject({ hp: 150, atk: 11, def: 4, crit: 5, spd: 150 });
+    expect(game.ST).toMatchObject({ hp: 140, atk: 10, def: 4, crit: 5, spd: 150 });
 
-    game.P = hero({ cls: 'ranger', race: 'elf' });
+    game.P = hero({ cls: 'ranger' });
     calcStats();
-    expect(game.ST).toMatchObject({ hp: 100, atk: 11, crit: 16, spd: 176 });
+    expect(game.ST).toMatchObject({ hp: 100, atk: 11, crit: 11, spd: 164 });
 
-    game.P = hero({ cls: 'mage', race: 'dwarf' });
+    game.P = hero({ cls: 'mage' });
     calcStats();
-    expect(game.ST).toMatchObject({ hp: 120, atk: 14, def: 3, spd: 142 });
+    expect(game.ST).toMatchObject({ hp: 90, atk: 14, def: 0, spd: 150 });
   });
 
   it('levels, skills and gear feed into stats', () => {
     game.P = hero({ lvl: 5 });
     calcStats();
-    expect(game.ST).toMatchObject({ hp: 206, atk: 19.8, def: 7 });
+    expect(game.ST).toMatchObject({ hp: 196, atk: 18.8, def: 7 });
 
     game.P = hero({ lvl: 6, sp: { b0: 5 } });
     calcStats();
-    expect(game.ST.hp).toBe(Math.round((150 + 5 * 14) * 1.35));
+    expect(game.ST.hp).toBe(Math.round((140 + 5 * 14) * 1.35));
     expect(pointsFree()).toBe(0);
 
     game.P = hero();
@@ -168,10 +168,10 @@ describe('item power comparison', () => {
   it('scores weapons as damage and armor as toughness', async () => {
     const { compareItem, fmtPct } = await import('../src/game/power');
     game.P = hero();
-    const axe = { slot: 'weapon', r: 2, mat: 1, plus: 0, st: { atk: 11 }, name: 'Axe' };
+    const axe = { slot: 'weapon', r: 2, mat: 1, plus: 0, st: { atk: 10 }, name: 'Axe' };
     const vest = { slot: 'armor', r: 1, mat: 1, plus: 0, st: { def: 5, hp: 20 }, name: 'Vest' };
     const w = compareItem(axe);
-    expect(w.dmg).toBeCloseTo(1, 5); // 11 → 22 attack doubles damage
+    expect(w.dmg).toBeCloseTo(1, 5); // 10 → 20 attack doubles damage
     expect(w.tough).toBeCloseTo(0, 5);
     expect(w.overall).toBeCloseTo(0.5, 5); // warrior weighs damage 50%
     const a = compareItem(vest);

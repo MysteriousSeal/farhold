@@ -1,7 +1,7 @@
 import { SFX } from '../audio/sfx';
 import { $ } from '../core/dom';
 import { saveSettings, settings } from '../core/settings';
-import { CLS, RACE } from '../data/classes';
+import { CLS } from '../data/classes';
 import { SKILLCD, TREES, nodeUnlocked, pointsFree, rank } from '../data/skills';
 import { toast } from '../game/fx';
 import { loadSave, save } from '../game/save';
@@ -137,8 +137,6 @@ export function openPause() {
       game.P.name +
       ', level ' +
       game.P.lvl +
-      ' ' +
-      RACE[game.P.race].n +
       ' ' +
       CLS[game.P.cls].n +
       '. World seed ' +

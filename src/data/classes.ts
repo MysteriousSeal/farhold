@@ -29,31 +29,8 @@ export const CLS = {
     desc: 'Arcane staff. Bolts that burst and hit every foe nearby.',
   },
 };
-export const RACE = {
-  human: {
-    n: 'Human',
-    st: { hp: 10, atk: 1 },
-    xp: 1.15,
-    desc: 'Adaptable. Gains 15% more experience.',
-  },
-  elf: {
-    n: 'Elf',
-    st: { crit: 5, spd: 12 },
-    xp: 1,
-    desc: 'Swift and precise. +5% crit, faster movement.',
-  },
-  dwarf: {
-    n: 'Dwarf',
-    st: { hp: 30, def: 3, spd: -8 },
-    xp: 1,
-    desc: 'Stout and armored. +30 health, +3 armor.',
-  },
-  orc: { n: 'Orc', st: { atk: 3, hp: 15 }, xp: 1, desc: 'Brutal strength. +3 attack, +15 health.' },
-};
-export const SKINS = {
-  std: ['#f7d4b2', '#e6b187', '#c4895c', '#8a5838'],
-  orc: ['#93c46c', '#74a85a', '#a3ac6c', '#5d8c70'],
-};
+/** Hero skin tones (heroes are human). */
+export const SKINS = ['#f7d4b2', '#e6b187', '#c4895c', '#8a5838'];
 export const HAIRC = ['#2b1d14', '#6b3e1f', '#c9803a', '#f0d27a', '#e4e4e4', '#b83a3a', '#3a5bb8'];
 export const HAIRS = ['Short', 'Long', 'Ponytail', 'Bald'];
 export const MATS = [

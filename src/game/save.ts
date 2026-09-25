@@ -1,4 +1,4 @@
-import { SLOTS } from '../data/classes';
+import { SKINS, SLOTS } from '../data/classes';
 import { game } from './state';
 const KEY = 'farhold_save_v2',
   OLDKEY = 'farhold_save_v1';
@@ -40,6 +40,13 @@ export function migrate(p) {
       it.style = it.style || 0;
     }
   p.kills = p.kills || 0;
+  // heroes are human now: former elves, dwarves and orcs convert (orc green skin to a tone)
+  if (p.race && p.race !== 'human') {
+    const ORC = ['#93c46c', '#74a85a', '#a3ac6c', '#5d8c70'],
+      k = ORC.indexOf(p.skin);
+    if (k >= 0) p.skin = SKINS[k];
+  }
+  p.race = 'human';
   return p;
 }
 /* ---------- save slots ---------- */

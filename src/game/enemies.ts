@@ -7,7 +7,6 @@ import { SFX } from '../audio/sfx';
 import { TAU, clamp, lerp, pick, rand } from '../core/math';
 import { settings } from '../core/settings';
 import { BOSS } from '../data/bosses';
-import { RACE } from '../data/classes';
 import { ET, GOLEMCOL, TABLE, typesFor } from '../data/enemies';
 import { bossAI } from './bossAI';
 import { gainXp, hurtHero } from './combat';
@@ -175,9 +174,7 @@ export function killEnemy(e) {
   game.P.kills++;
   if (e.dg && game.mode === 'dungeon') dungeonKill(e);
   const D = ET[e.type];
-  const xp = Math.round(
-    D.xp * (8 + e.lvl * 6) * (e.elite ? 3 : 1) * (e.boss ? 12 : 1) * RACE[game.P.race].xp,
-  );
+  const xp = Math.round(D.xp * (8 + e.lvl * 6) * (e.elite ? 3 : 1) * (e.boss ? 12 : 1));
   gainXp(xp);
   ftext(e.x, e.y - (e.hbY || 40) * e.sc - 10, '+' + xp + ' xp', '#ffe38a');
   const lairBoss = e.boss && e.src && !e.src.mini,
