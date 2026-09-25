@@ -1,6 +1,9 @@
 import { mkCanvas } from '../core/dom';
 import { OUT, TAU, clamp, fbm, hs, lerp, mulberry, pick, rand, strSeed, vn } from '../core/math';
 import { game } from '../game/state';
+import { traceCliffs } from './cliffs';
+import { sampleHeights } from './contour';
+import { traceShores } from './shores';
 import { genDungeonChunk } from './dungeon';
 import { houseRoute, poiSolid, poisNear } from './poi';
 import { CH, PEAK_H, classify, corr, groundF, hField, peakF, terr, walkT } from './terrain';
@@ -15,7 +18,7 @@ const GS = 8,
   FN = CH / FR,
   NF = 10,
   AE = 0.0014,
-  HT = [0.352, 0.36, 0.384, 0.3915, 0.3965, 0.4, 0.4032, 0.407, 0.425, 0.431, 0.675, 0.68];
+  HT = [0.36, 0.675, 0.68];
 function startGen(cx, cy) {
   return {
     cx,
@@ -101,7 +104,7 @@ function stepGen(G, steps) {
                 (hField(wx, wy + e, Math.hypot(wx, wy + e)) -
                   hField(wx, wy - e, Math.hypot(wx, wy - e))) /
                 (2 * e);
-            peakF(col, t, b, h, hx, hy, wx);
+            peakF(col, t, b, h, hx, hy);
           }
           let r = col[0],
             gg = col[1],
@@ -395,7 +398,19 @@ function finishGen(G) {
     if (d) decor.push({ k: d, x: wx, y: wy, r: DECOR_R[d] || 0, ph: rnd() * TAU });
   }
   decor.sort((a, b) => a.y - b.y);
-  return { cvs, decor, waves, last: 0 };
+  // crisp vector edges (mountain cliffs, shorelines) are traced only where they occur
+  let lo = 1,
+    hi = 0;
+  for (let i = 0; i < G.F.length; i += NF) {
+    if (G.F[i] < lo) lo = G.F[i];
+    if (G.F[i] > hi) hi = G.F[i];
+  }
+  const hasPeak = hi > PEAK_H - 0.01,
+    hasShore = lo < 0.435 && hi > 0.35,
+    hv = hasPeak || hasShore ? sampleHeights(ox, oy, CH) : null,
+    cliffs = hasPeak ? traceCliffs(ox, oy, CH, hv) : [],
+    shores = hasShore ? traceShores(ox, oy, CH, hv) : null;
+  return { cvs, decor, waves, cliffs, shores, last: 0 };
 }
 const DECOR_R = {
   oak: 11,

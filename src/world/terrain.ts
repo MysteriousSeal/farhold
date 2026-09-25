@@ -122,10 +122,8 @@ export function groundF(t, b, h, c, s1, s2, s3, s4, s5, sw) {
   }
   if (t === 3) {
     s = (Math.floor(s1 * 3.2) / 3 - 0.4) * (b === 4 ? 10 : 20);
-    if (h < 0.431) s -= 7;
   } else if (t === 2) {
-    if (h < 0.4032) s = -44;
-    else if (h < 0.407) s = -18;
+    s = (Math.floor(s1 * 3) / 3 - 0.5) * 8; // edges are drawn as vector lines (world/shores.ts)
   } else if (t === 4) {
     s = (Math.floor(s2 * 3) / 3 - 0.4) * 18;
     if (h < 0.68) s -= 10;
@@ -142,23 +140,9 @@ export function groundF(t, b, h, c, s1, s2, s3, s4, s5, sw) {
         gg = lerp(gg, 70, 0.5);
         bb = lerp(bb, 40, 0.5);
       }
-    } else if (h > 0.3915) {
-      const f = h > 0.3965 ? 0.85 : 0.55;
-      r = lerp(r, 222, f);
-      gg = lerp(gg, 244, f);
-      bb = lerp(bb, 252, f);
-    } else if (h > 0.384) {
-      r = lerp(r, 190, 0.25);
-      gg = lerp(gg, 228, 0.25);
-      bb = lerp(bb, 245, 0.25);
-    } else s = (Math.floor(s3 * 3) / 3 - 0.5) * 12;
+    } else s = (Math.floor(s3 * 3) / 3 - 0.5) * 10;
   } else {
     s = (s4 - 0.5) * 10;
-    if (h > 0.352) {
-      r = lerp(r, COL[1][b][0], 0.35);
-      gg = lerp(gg, COL[1][b][1], 0.35);
-      bb = lerp(bb, COL[1][b][2], 0.35);
-    }
   }
   _gc[0] = r + s;
   _gc[1] = gg + s;
@@ -168,61 +152,29 @@ export function groundF(t, b, h, c, s1, s2, s3, s4, s5, sw) {
 
 /** Height at which impassable mountain peaks (terrain type 5) begin. */
 export const PEAK_H = 0.745;
-const OUTLINE = [42, 29, 44],
-  SNOW = [238, 242, 248];
+const SNOW = [238, 242, 248];
 /**
- * Restyle a ground colour on or around an impassable peak so it reads as a solid mountain:
- * a dark outline at the rim, a rock cliff on south-facing edges, north-west light, snow caps,
- * and a soft shadow on the walkable ground at the foot of the cliff.
- * `gx`/`gy` is the height gradient per world unit; `wx` the world x (for rock streaks).
- * Mutates and returns `col`.
+ * Soft ground shading on and around an impassable peak: north-west light and snow caps on the
+ * mountain, and a shadow on the walkable ground at the foot of south-facing cliffs. The crisp
+ * parts (outline, cliff face) are vector-drawn every frame by world/cliffs.ts.
+ * `gx`/`gy` is the height gradient per world unit. Mutates and returns `col`.
  */
-export function peakF(
-  col: number[],
-  t: number,
-  b: number,
-  h: number,
-  gx: number,
-  gy: number,
-  wx: number,
-) {
+export function peakF(col: number[], t: number, b: number, h: number, gx: number, gy: number) {
   const g = Math.hypot(gx, gy) || 1e-6,
     dist = (h - PEAK_H) / g, // world units inside the rim (negative outside)
-    south = clamp(-gy / g, 0, 1), // 1 where the edge faces the camera (south)
-    mix = (c: number[], f: number) => {
-      for (let i = 0; i < 3; i++) col[i] = lerp(col[i], c[i], f);
-    };
+    south = clamp(-gy / g, 0, 1); // 1 where the edge faces the camera (south)
   if (t !== 5) {
-    // shadow cast on walkable ground at the foot of a cliff
-    if (t >= 2 && t <= 4 && dist > -14 && south > 0) {
-      const k = (1 + dist / 14) * south * 0.28;
+    if (t >= 2 && t <= 4 && dist > -16 && south > 0) {
+      const k = (1 + dist / 16) * south * 0.3;
       for (let i = 0; i < 3; i++) col[i] *= 1 - k;
     }
-    // antialiased outer edge of the outline
-    if (dist > -1.6) mix(OUTLINE, 1 + dist / 1.6);
     return col;
   }
-  const wall = 26 * south;
-  if (dist < wall) {
-    // cliff face: darker rock with vertical streaks, lighter lip at the top
-    const streak = (vn(wx * 0.35, 0.5, 91) - 0.5) * 26,
-      depth = 0.62 + (dist / wall) * 0.18;
-    for (let i = 0; i < 3; i++) col[i] = col[i] * depth + streak;
-    if (dist > wall - 3) for (let i = 0; i < 3; i++) col[i] += 34;
-  } else {
-    // plateau / slopes: north-west light, faint strata, crisp snow caps on high summits
-    const light = clamp((gx + gy) * 1300, -1, 1) * 26,
-      strata = Math.floor(h * 110) % 2 ? -5 : 5;
-    for (let i = 0; i < 3; i++) col[i] += light + strata - 10;
-    if (b !== 3 && b !== 6) {
-      const sd = (h - 0.815) / g; // distance inside the snow line
-      if (sd > -1.5) {
-        mix(SNOW, clamp(1 + sd / 1.5, 0, 1) * 0.9);
-        if (sd < 3) mix([150, 170, 200], 0.35 * clamp(1 - Math.abs(sd - 1) / 2, 0, 1));
-      }
-    }
+  const light = clamp((gx + gy) * 1300, -1, 1) * 24;
+  for (let i = 0; i < 3; i++) col[i] += light - 8;
+  if (b !== 3 && b !== 6) {
+    const f = clamp((h - 0.8) / 0.03, 0, 1) * 0.9;
+    for (let i = 0; i < 3; i++) col[i] = lerp(col[i], SNOW[i] + light * 0.4, f);
   }
-  // outline at the rim, antialiased on the inside
-  if (dist < 3.2) mix(OUTLINE, clamp((3.2 - dist) / 1.4, 0, 1));
   return col;
 }

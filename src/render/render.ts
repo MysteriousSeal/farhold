@@ -26,13 +26,13 @@ import { offers } from '../game/quests';
 import { game, hero, lights, weather } from '../game/state';
 import { joy } from '../input/input';
 import { bgStep, getChunk } from '../world/chunks';
+import { drawCliffs } from '../world/cliffs';
+import { drawShores } from '../world/shores';
 import { poisNear } from '../world/poi';
 import { CH, corr } from '../world/terrain';
 /* ================= RENDER ================= */
 export const zoom = () => clamp(Math.min(W, H) / 370, 1, 2.1);
-let lightC = null,
-  lctx = null,
-  vign = null;
+let vign = null;
 const WX = { rain: [], snow: [] };
 function drawTele(c, t) {
   const k = clamp(t.t / t.max, 0, 1),
@@ -229,7 +229,9 @@ export function render() {
     y0 = cy - vh,
     y1 = cy + vh;
   game.genBudget = game.state === 'play' ? 1 : 2;
-  const list = [];
+  const list = [],
+    cliffs = [],
+    shores = [];
   for (let i = Math.floor((x0 - 40) / CH); i <= Math.floor((x1 + 40) / CH); i++)
     for (let j = Math.floor((y0 - 40) / CH); j <= Math.floor((y1 + 130) / CH); j++) {
       const ch = getChunk(i, j, true);
@@ -249,7 +251,12 @@ export function render() {
       for (const d of ch.decor)
         if (d.x > x0 - 60 && d.x < x1 + 60 && d.y > y0 - 10 && d.y < y1 + 130)
           list.push({ y: d.y, d });
+      if (ch.cliffs) cliffs.push(...ch.cliffs);
+      if (ch.shores) shores.push(ch.shores);
     }
+  // crisp vector shorelines and cliffs on top of all ground chunks
+  drawShores(g, shores, game.time);
+  drawCliffs(g, cliffs);
   if (game.genBudget > 0) {
     if (game.mode === 'world') bgStep(cx, cy);
     else {
@@ -422,41 +429,11 @@ export function render() {
     }
     g.globalCompositeOperation = 'source-over';
   }
-  // lighting overlay
+  // night: an even, light tint (no darkness spotlight around the hero)
   g.setTransform(DPR, 0, 0, DPR, 0, 0);
   if (game.dark > 0.02) {
-    const LW = Math.ceil(W / 2),
-      LH = Math.ceil(H / 2);
-    if (!lightC || lightC.width !== LW || lightC.height !== LH) {
-      lightC = mkCanvas(LW, LH);
-      lctx = lightC.getContext('2d');
-    }
-    lctx.globalCompositeOperation = 'source-over';
-    lctx.clearRect(0, 0, LW, LH);
-    lctx.fillStyle =
-      game.mode === 'dungeon'
-        ? 'rgba(8,6,18,' + game.dark + ')'
-        : 'rgba(10,14,42,' + game.dark + ')';
-    lctx.fillRect(0, 0, LW, LH);
-    lctx.globalCompositeOperation = 'destination-out';
-    const toS = (x, y) => [(W / 2 + (x - cx) * z) / 2, (H / 2 + (y - cy) * z) / 2];
-    const hl =
-      game.P && game.state !== 'menu' && game.state !== 'create' && game.state !== 'help'
-        ? [{ x: game.P.x, y: game.P.y - 20, r: game.mode === 'dungeon' ? 165 : 140, i: 1 }]
-        : [];
-    for (const l of hl.concat(lights)) {
-      const [a, b] = toS(l.x, l.y),
-        r = (l.r * z) / 2;
-      if (a < -r || b < -r || a > LW + r || b > LH + r) continue;
-      const gr = lctx.createRadialGradient(a, b, 0, a, b, r);
-      const ii = clamp(l.i, 0, 1);
-      gr.addColorStop(0, 'rgba(0,0,0,' + ii + ')');
-      gr.addColorStop(0.45, 'rgba(0,0,0,' + ii * 0.75 + ')');
-      gr.addColorStop(1, 'rgba(0,0,0,0)');
-      lctx.fillStyle = gr;
-      lctx.fillRect(a - r, b - r, r * 2, r * 2);
-    }
-    g.drawImage(lightC, 0, 0, W, H);
+    g.fillStyle = 'rgba(20,28,70,' + (game.dark * 0.3).toFixed(3) + ')';
+    g.fillRect(0, 0, W, H);
   }
   if (game.dusk > 0.02) {
     g.fillStyle = 'rgba(255,110,50,' + game.dusk * 0.13 + ')';
