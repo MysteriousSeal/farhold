@@ -1,3 +1,4 @@
+import { drawHumanoid } from '../art/humanoid';
 import { zoom } from '../render/render';
 import { clearBonusXp, fmtClock, resetLeft } from '../game/dungeons';
 import { $, H, W } from '../core/dom';
@@ -9,6 +10,33 @@ import { isTouch } from '../input/input';
 import { mini } from '../render/minimap';
 import { dangerAt } from '../world/terrain';
 /* ================= HUD ================= */
+const fmt = (n: number) => n.toLocaleString('en-US');
+
+/** Hero face in the unit frame's medallion; redrawn only when the look changes. */
+let portKey = '';
+function drawPortrait() {
+  const look = game.P.look;
+  if (!look) return;
+  const key = JSON.stringify(look);
+  if (key === portKey) return;
+  portKey = key;
+  const cv = $('#portC') as HTMLCanvasElement,
+    x = cv.getContext('2d'),
+    k = 4.3; // head (radius ≈ 10.5, centred ≈ 35 above the feet) fills the circle
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  x.clearRect(0, 0, cv.width, cv.height);
+  x.setTransform(k, 0, 0, k, cv.width / 2, cv.height / 2 + 32 * k);
+  drawHumanoid(x, 0, 0, {
+    look,
+    dx: 0,
+    dy: 1,
+    moving: false,
+    walk: 0,
+    time: 0,
+    noShadow: true,
+  });
+  x.setTransform(1, 0, 0, 1, 0, 0);
+}
 
 export function setHud(on) {
   $('#hud').classList.toggle('on', on);
@@ -25,16 +53,24 @@ export function setHud(on) {
   }
 }
 export function updHud() {
-  $('#hpb').style.width = clamp((game.P.hp / game.ST.hp) * 100, 0, 100) + '%';
-  $('#hpt').textContent = Math.ceil(game.P.hp) + ' / ' + game.ST.hp;
-  $('#xpb').style.width = (game.P.xp / xpNeed(game.P.lvl)) * 100 + '%';
-  $('#lvt').textContent = 'Lv ' + game.P.lvl;
+  const hpK = clamp(game.P.hp / game.ST.hp, 0, 1),
+    need = xpNeed(game.P.lvl),
+    xpK = clamp(game.P.xp / need, 0, 1);
+  $('#hpb').style.width = hpK * 100 + '%';
+  $('#hpt').textContent = fmt(Math.ceil(game.P.hp)) + ' / ' + fmt(game.ST.hp);
+  $('#hud').classList.toggle('low', hpK > 0 && hpK < 0.3);
+  $('#xpb').style.width = xpK * 100 + '%';
+  $('#xpt').textContent = Math.floor(xpK * 100) + '%';
+  $('#xpbar').title = 'Experience: ' + fmt(Math.floor(game.P.xp)) + ' / ' + fmt(need);
+  $('#lvt').textContent = String(game.P.lvl);
   $('#nmt').textContent = game.P.name;
-  $('#gdt').textContent = game.P.gold;
+  $('#gdt').textContent = fmt(game.P.gold);
   $('#ptt').textContent = game.P.pot;
   $('#ptt2').textContent = game.P.pot;
-  $('#dgt').textContent =
-    '⚔ ' + (game.mode === 'dungeon' ? game.DG.lvl : dangerAt(game.P.x, game.P.y));
+  $('#dgt').textContent = String(
+    game.mode === 'dungeon' ? game.DG.lvl : dangerAt(game.P.x, game.P.y),
+  );
+  drawPortrait();
   for (const n of [1, 2]) {
     const r = rank('s' + n),
       cdMax = SKILLCD[game.P.cls][n - 1] * (1 - game.ST.cdr / 100),
@@ -87,7 +123,7 @@ export function updHud() {
   const bars = (bossOn ? 1 : 0) + (db.style.display === 'block' ? 1 : 0);
   const q = $('#quests');
   q.style.top =
-    bars && W <= 640 ? 'calc(env(safe-area-inset-top) + ' + (100 + bars * 50) + 'px)' : '';
+    bars && W <= 640 ? 'calc(env(safe-area-inset-top) + ' + (122 + bars * 50) + 'px)' : '';
   q.innerHTML = game.P.quests
     .map(
       (o) =>
