@@ -38,6 +38,92 @@ function startGen(cx, cy) {
 /** Is (x, y) inside a village, lair or cave area (where swamp pools are not allowed)? */
 export const inPlace = (pois, x: number, y: number) =>
   pois.some((p) => Math.hypot(x - p.x, (y - p.y) * 1.15) < p.r + 20);
+/** How far (world units) a biome border blends into its neighbour on either side. */
+const BLEND_W = 12;
+const _soft = [0, 0, 0];
+/**
+ * Soft biome borders on land: where another biome is within BLEND_W (judged from the local
+ * gradients of moisture, temperature and blight, which are continuous across chunks), the
+ * colour is a tent-weighted average of the biomes around, instead of a pixel staircase.
+ */
+function softBorder(F, a, b2, c2, h, c, v, t, b, col) {
+  const gm = Math.hypot(F[b2 + 1] - F[a + 1], F[c2 + 1] - F[a + 1]) / GS,
+    gt = Math.hypot(F[b2 + 2] - F[a + 2], F[c2 + 2] - F[a + 2]) / GS,
+    gb = Math.hypot(F[b2 + 3] - F[a + 3], F[c2 + 3] - F[a + 3]) / GS,
+    dm = gm * BLEND_W,
+    dt = gt * BLEND_W,
+    db = gb * BLEND_W;
+  let near = false;
+  for (const [sx, sy] of [
+    [1, 1],
+    [1, -1],
+    [-1, 1],
+    [-1, -1],
+  ])
+    if ((classify(h, v[1] + sx * dm, v[2] + sy * dt, c, v[3] + sx * db, v[4]) & 7) !== b) {
+      near = true;
+      break;
+    }
+  if (!near) return col;
+  const r0 = col[0],
+    g0 = col[1],
+    b0 = col[2];
+  let sr = 0,
+    sg = 0,
+    sb = 0,
+    ws = 0;
+  for (let i = -2; i <= 2; i++)
+    for (let k = -2; k <= 2; k++) {
+      const q2 = classify(
+        h,
+        v[1] + (i / 2) * dm,
+        v[2] + (k / 2) * dt,
+        c,
+        v[3] + (i / 2) * db,
+        v[4],
+      );
+      if (q2 >> 3 !== t) continue;
+      const w = (3 - Math.abs(i)) * (3 - Math.abs(k)),
+        cc = (q2 & 7) === b ? null : groundF(t, q2 & 7, h, c, v[5], v[6], v[7], v[8], v[9], v[4]);
+      sr += (cc ? cc[0] : r0) * w;
+      sg += (cc ? cc[1] : g0) * w;
+      sb += (cc ? cc[2] : b0) * w;
+      ws += w;
+    }
+  _soft[0] = sr / ws;
+  _soft[1] = sg / ws;
+  _soft[2] = sb / ws;
+  return _soft;
+}
+const _sand = [0, 0, 0];
+/**
+ * In the desert, beach sand and desert ground meet without an outline (sand on sand): blend
+ * the two across the sand line (height 0.425) over about BLEND_W either side.
+ */
+function desertSand(F, a, b2, c2, h, c, v, col) {
+  const gh = Math.hypot(F[b2] - F[a], F[c2] - F[a]) / GS,
+    dh = gh * BLEND_W,
+    d = h - 0.425;
+  if (!(dh > 0) || Math.abs(d) >= dh) return col;
+  const k = 0.5 + 0.5 * (d / dh), // 0 on the beach side, 1 on the desert side
+    w = k * k * (3 - 2 * k),
+    r0 = col[0],
+    g0 = col[1],
+    b0 = col[2],
+    onDesert = d >= 0, // this pixel is desert ground; the other side is beach sand
+    o = groundF(onDesert ? 2 : 3, 3, h, c, v[5], v[6], v[7], v[8], v[9], v[4]),
+    // desert ground colour (dr, dg, db) and beach colour (br, bg, bb)
+    dr = onDesert ? r0 : o[0],
+    dg = onDesert ? g0 : o[1],
+    db = onDesert ? b0 : o[2],
+    br = onDesert ? o[0] : r0,
+    bg = onDesert ? o[1] : g0,
+    bb = onDesert ? o[2] : b0;
+  _sand[0] = br + (dr - br) * w;
+  _sand[1] = bg + (dg - bg) * w;
+  _sand[2] = bb + (db - bb) * w;
+  return _sand;
+}
 function stepGen(G, steps) {
   const ox = G.cx * CH,
     oy = G.cy * CH,
@@ -99,9 +185,11 @@ function stepGen(G, steps) {
             b = q & 7,
             // a swamp pool inside a place is plain ground instead
             t = q >> 3 === 1 && b === 5 && h >= 0.425 && inPlace(G.pois, wx, wy) ? 3 : q >> 3,
-            col = groundF(t, b, h, c, v[5], v[6], v[7], v[8], v[9], v[4]),
             p = j * FN + i,
             o = p * 4;
+          let col = groundF(t, b, h, c, v[5], v[6], v[7], v[8], v[9], v[4]);
+          if (t >= 2) col = softBorder(F, a, b2, c2, h, c, v, t, b, col);
+          if (b === 3 && (t === 2 || t === 3)) col = desertSand(F, a, b2, c2, h, c, v, col);
           if (h > PEAK_H - 0.012) {
             const e = 3,
               hx =
