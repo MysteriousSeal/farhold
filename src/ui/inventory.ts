@@ -4,15 +4,17 @@ import { $ } from '../core/dom';
 import { MATS, RAR, SLOTS } from '../data/classes';
 import { BAGMAX } from '../game/drops';
 import { toast } from '../game/fx';
-import { itemName, itemStat } from '../game/items';
+import { itemName, itemStat, salvageAll, salvageValue, salvageable } from '../game/items';
 import { game } from '../game/state';
 import { calcStats } from '../game/stats';
 import { btn, hdr, iconCanvas, openModal, statLines, wireClose } from './modal';
 /* inventory */
-let selItem = null;
+let selItem = null,
+  salvageArmed = false;
 export function openInv() {
   if (game.state !== 'play') return;
   selItem = null;
+  salvageArmed = false;
   openModal('<div id="invroot"></div>');
   game.state = 'inv';
   renderInv();
@@ -59,7 +61,7 @@ function renderInv() {
     game.P.inv.length +
     '/' +
     BAGMAX +
-    '</span></h3><div class="bag" id="iBag"></div><div id="detail"></div></div></div>';
+    '</span></h3><div class="bag" id="iBag"></div><div class="acts" id="iBulk"></div><div id="detail"></div></div></div>';
   wireClose();
   drawDoll();
   const sl = $('#iSlots');
@@ -102,6 +104,7 @@ function renderInv() {
     }
     d.onclick = () => {
       selItem = { it };
+      salvageArmed = false;
       renderInv();
     };
     bg.appendChild(d);
@@ -112,6 +115,31 @@ function renderInv() {
     d.style.opacity = '.35';
     bg.appendChild(d);
   }
+  const junk = salvageable(game.P.inv);
+  if (junk.length) {
+    const gold = junk.reduce((a, it) => a + salvageValue(it), 0);
+    $('#iBulk').appendChild(
+      btn(
+        salvageArmed
+          ? 'Tap again: salvage ' + junk.length + ' items for ' + gold + ' gold'
+          : 'Salvage all except Epic & Legendary (' + junk.length + ')',
+        () => {
+          if (!salvageArmed) {
+            salvageArmed = true;
+            renderInv();
+            return;
+          }
+          const r = salvageAll(game.P);
+          salvageArmed = false;
+          if (selItem && !selItem.eq && !game.P.inv.includes(selItem.it)) selItem = null;
+          SFX.coin();
+          toast('Salvaged ' + r.count + ' items for ' + r.gold + ' gold');
+          renderInv();
+        },
+        salvageArmed ? '' : 'alt',
+      ),
+    );
+  } else salvageArmed = false;
   $('#iStats').innerHTML = [
     ['Level', game.P.lvl],
     ['Health', Math.ceil(game.P.hp) + ' / ' + game.ST.hp],
@@ -178,9 +206,9 @@ function renderInv() {
     );
     bx.appendChild(
       btn(
-        'Salvage for ' + Math.ceil(it.val / 2) + ' gold',
+        'Salvage for ' + salvageValue(it) + ' gold',
         () => {
-          game.P.gold += Math.ceil(it.val / 2);
+          game.P.gold += salvageValue(it);
           game.P.inv.splice(game.P.inv.indexOf(it), 1);
           selItem = null;
           SFX.coin();

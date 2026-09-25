@@ -130,3 +130,17 @@ export const itemStat = (it, k) => {
 export const itemName = (it) => (it.plus ? '+' + it.plus + ' ' : '') + it.name;
 export const upCost = (it) =>
   Math.round((20 + it.lvl * 12) * RAR[it.r].m * Math.pow(1.45, it.plus || 0));
+/** Salvaging an item yields half its merchant value. */
+export const salvageValue = (it) => Math.ceil(it.val / 2);
+/** Rarity at and above which bulk salvage keeps items (Epic, Legendary). */
+export const SALVAGE_KEEP_R = 3;
+/** Bag items that "salvage all" would remove (equipped gear is never included). */
+export const salvageable = (inv) => inv.filter((it) => it.r < SALVAGE_KEEP_R);
+/** Salvage every bag item below Epic; returns how many items went and the gold gained. */
+export function salvageAll(p) {
+  const junk = salvageable(p.inv),
+    gold = junk.reduce((a, it) => a + salvageValue(it), 0);
+  p.inv = p.inv.filter((it) => it.r >= SALVAGE_KEEP_R);
+  p.gold += gold;
+  return { count: junk.length, gold };
+}

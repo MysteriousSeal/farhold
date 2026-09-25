@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MATS, SLOTS } from '../src/data/classes';
 import { mulberry } from '../src/core/math';
 import { pointsFree } from '../src/data/skills';
-import { genItem, itemStat, upCost } from '../src/game/items';
+import { genItem, itemStat, salvageAll, salvageable, upCost } from '../src/game/items';
 import { game } from '../src/game/state';
 import { CLS } from '../src/data/classes';
 import { UNDERWEAR, calcStats, lookOfPlayer, xpNeed } from '../src/game/stats';
@@ -54,6 +54,20 @@ describe('game/items', () => {
     expect(itemStat(it, 'def')).toBe(Math.round(it.st.def * 1.5));
     expect(itemStat(it, 'def')).toBeGreaterThanOrEqual(base);
     expect(upCost({ ...it, plus: 3 })).toBeGreaterThan(upCost({ ...it, plus: 2 }));
+  });
+
+  it('salvage all keeps Epic and Legendary items and equipped gear', () => {
+    const mk = (r: number, val: number) => ({ slot: 'ring', r, val, st: {}, name: 'R' + r });
+    const bag = [mk(0, 5), mk(1, 9), mk(2, 20), mk(3, 60), mk(4, 150), mk(2, 3)];
+    const worn = mk(0, 7);
+    const p: any = { ...hero({ gold: 10, inv: bag }), eq: { ring: worn } };
+    expect(salvageable(p.inv).map((it) => it.r)).toEqual([0, 1, 2, 2]);
+    const res = salvageAll(p);
+    expect(res).toEqual({ count: 4, gold: 3 + 5 + 10 + 2 });
+    expect(p.gold).toBe(10 + 20);
+    expect(p.inv.map((it) => it.r)).toEqual([3, 4]);
+    expect(p.eq.ring).toBe(worn);
+    expect(salvageAll(p)).toEqual({ count: 0, gold: 0 });
   });
 
   it('xp curve', () => {
