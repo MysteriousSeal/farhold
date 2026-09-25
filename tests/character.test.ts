@@ -7,8 +7,17 @@ import { game } from '../src/game/state';
 import { calcStats, xpNeed } from '../src/game/stats';
 
 const hero = (o: Record<string, unknown> = {}) => ({
-  cls: 'warrior', race: 'human', lvl: 1, hp: 1, skin: '#f7d4b2', hair: 0, hairC: '#2b1d14',
-  eq: Object.fromEntries(SLOTS.map(s => [s, null])), inv: [], sp: {}, ...o,
+  cls: 'warrior',
+  race: 'human',
+  lvl: 1,
+  hp: 1,
+  skin: '#f7d4b2',
+  hair: 0,
+  hairC: '#2b1d14',
+  eq: Object.fromEntries(SLOTS.map((s) => [s, null])),
+  inv: [],
+  sp: {},
+  ...o,
 });
 
 describe('game/items', () => {
@@ -21,7 +30,8 @@ describe('game/items', () => {
 
   it('generated items respect rarity, caps and slot stats', () => {
     for (let i = 0; i < 800; i++) {
-      const lvl = 1 + (i % 40), minR = i % 3;
+      const lvl = 1 + (i % 40),
+        minR = i % 3;
       const it = genItem(lvl, 0, undefined, minR);
       expect(SLOTS).toContain(it.slot);
       expect(it.r).toBeGreaterThanOrEqual(minR);

@@ -19,7 +19,8 @@ describe('core/math', () => {
   });
 
   it('mulberry is a deterministic [0,1) generator', () => {
-    const a = mulberry(42), b = mulberry(42);
+    const a = mulberry(42),
+      b = mulberry(42);
     for (let i = 0; i < 100; i++) {
       const v = a();
       expect(v).toBe(b());
@@ -38,8 +39,10 @@ describe('core/math', () => {
 
   it('noise stays in [0,1]', () => {
     for (let i = 0; i < 500; i++) {
-      const x = (i * 37.1) % 997, y = (i * 91.7) % 991;
-      const v = vn(x, y, 5), f = fbm(x, y, 4, 1);
+      const x = (i * 37.1) % 997,
+        y = (i * 91.7) % 991;
+      const v = vn(x, y, 5),
+        f = fbm(x, y, 4, 1);
       expect(v).toBeGreaterThanOrEqual(0);
       expect(v).toBeLessThanOrEqual(1);
       expect(f).toBeGreaterThanOrEqual(0);

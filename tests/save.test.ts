@@ -5,12 +5,14 @@ import { game } from '../src/game/state';
 
 const store = new Map<string, string>();
 globalThis.localStorage = {
-  getItem: k => store.get(k) ?? null,
+  getItem: (k) => store.get(k) ?? null,
   setItem: (k, v) => void store.set(k, String(v)),
-  removeItem: k => void store.delete(k),
+  removeItem: (k) => void store.delete(k),
   clear: () => store.clear(),
-  key: i => [...store.keys()][i] ?? null,
-  get length() { return store.size; },
+  key: (i) => [...store.keys()][i] ?? null,
+  get length() {
+    return store.size;
+  },
 } as Storage;
 
 describe('game/save', () => {
@@ -37,7 +39,14 @@ describe('game/save', () => {
   });
 
   it('saves the cave entrance position and drops derived data', () => {
-    game.P = migrate({ name: 'Brom', x: 5, y: 6, inv: [], look: { skin: '#fff' }, ret: { x: 100, y: 200 } });
+    game.P = migrate({
+      name: 'Brom',
+      x: 5,
+      y: 6,
+      inv: [],
+      look: { skin: '#fff' },
+      ret: { x: 100, y: 200 },
+    });
     game.mode = 'dungeon';
     save();
     const s = JSON.parse(store.get('farhold_save_v2')!);

@@ -63,15 +63,16 @@ describe('world/poi', () => {
     useSeed('delta');
     const pick = () => {
       const out: string[] = [];
-      for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) {
-        const p = poiAt(i, j);
-        out.push(p ? `${p.kind}:${p.name}:${Math.round(p.x)},${Math.round(p.y)}` : '-');
-      }
+      for (let i = -3; i <= 3; i++)
+        for (let j = -3; j <= 3; j++) {
+          const p = poiAt(i, j);
+          out.push(p ? `${p.kind}:${p.name}:${Math.round(p.x)},${Math.round(p.y)}` : '-');
+        }
       return out;
     };
     const first = pick();
     useSeed('delta');
     expect(pick()).toEqual(first);
-    expect(first.some(s => s !== '-' && !s.startsWith('village:Hearthfire'))).toBe(true);
+    expect(first.some((s) => s !== '-' && !s.startsWith('village:Hearthfire'))).toBe(true);
   });
 });
