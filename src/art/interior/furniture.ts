@@ -642,36 +642,51 @@ function bigforge(c: Ctx, f: Furn, t: number) {
   rr(c, x - 40, y - 8, 80, 8, 2, sh(BRICK, -0.2));
 }
 function bellows(c: Ctx, f: Furn, t: number) {
-  if (f.flip) {
-    // mirrored around its own centre so the nozzle points left
-    c.translate(f.x * 2, 0);
-    c.scale(-1, 1);
-  }
-  const x = f.x,
-    y = f.y - 6,
-    pump = Math.max(0, Math.sin(t * 2.2)) * 4;
-  shadow(c, x, y + 4, 14, 4);
+  // an upright leather bellows on a wooden frame against the wall, its nozzle reaching into
+  // the forge beside it (f.flip: the forge is on the left)
+  const d = f.flip ? -1 : 1,
+    x = f.x,
+    y = f.y,
+    pump = Math.max(0, Math.sin(t * 2.2)) * 5;
+  rr(c, x - 13, y - 64, 4, 64, 1, WOOD_D);
+  rr(c, x + 9, y - 64, 4, 64, 1, WOOD_D);
+  rr(c, x - 14, y - 66, 28, 5, 1.5, WOOD);
+  // leather body between two boards; the top board rises and falls
   c.beginPath();
-  c.moveTo(x - 14, y - 4);
-  c.quadraticCurveTo(x - 8, y - 20 + pump, x + 8, y - 16 + pump);
-  c.lineTo(x + 14, y - 8);
-  c.quadraticCurveTo(x + 4, y + 2, x - 14, y - 4);
+  c.moveTo(x - 9, y - 50 - pump);
+  c.lineTo(x + 9, y - 50 - pump);
+  c.quadraticCurveTo(x + 12, y - 36, x + 5, y - 22);
+  c.lineTo(x - 5, y - 22);
+  c.quadraticCurveTo(x - 12, y - 36, x - 9, y - 50 - pump);
   c.closePath();
   c.fillStyle = '#8a5a3a';
   c.fill();
   c.stroke();
   c.strokeStyle = 'rgba(40,20,10,.45)';
   c.lineWidth = 1.2;
-  for (const k of [-6, 0, 6]) {
+  for (const k of [0.3, 0.55, 0.8]) {
+    const yy = y - 50 - pump + (28 + pump) * k;
     c.beginPath();
-    c.moveTo(x + k - 3, y - 12 + pump * 0.5);
-    c.lineTo(x + k + 2, y - 4);
+    c.moveTo(x - 8, yy);
+    c.lineTo(x + 8, yy);
     c.stroke();
   }
   c.strokeStyle = OUT;
   c.lineWidth = 2;
-  rr(c, x + 12, y - 11, 10, 4, 1.5, IRON); // nozzle toward the forge
-  rr(c, x - 22, y - 7, 10, 3, 1.5, WOOD_D); // handle
+  rr(c, x - 11, y - 54 - pump, 22, 5, 1.5, WOOD_L);
+  rr(c, x - 7, y - 24, 14, 5, 1.5, WOOD_L);
+  // nozzle into the forge
+  c.beginPath();
+  c.moveTo(x + d * 4, y - 20);
+  c.lineTo(x + d * 22, y - 17);
+  c.lineTo(x + d * 22, y - 13);
+  c.lineTo(x + d * 4, y - 15);
+  c.closePath();
+  c.fillStyle = IRON;
+  c.fill();
+  c.stroke();
+  // pump handle
+  rr(c, x - 2, y - 64 - pump, 4, 12, 1, WOOD_D);
 }
 function trough(c: Ctx, f: Furn, t: number) {
   const x = f.x,
@@ -717,42 +732,72 @@ function anvilPiece(c: Ctx, f: Furn) {
   rr(c, x - 7, y - 29, 13, 3, 1.5, '#ff9a3a');
 }
 function grind(c: Ctx, f: Furn, t: number) {
+  // an upright grinding wheel on an axle between two posts, its lower edge in a water trough,
+  // with a crank on the axle
   const x = f.x,
     y = f.y - 4;
-  shadow(c, x, y + 2, 14, 4);
-  rr(c, x - 12, y - 10, 4, 10, 1, WOOD_D);
-  rr(c, x + 8, y - 10, 4, 10, 1, WOOD_D);
-  rr(c, x - 13, y - 14, 26, 5, 2, WOOD);
-  c.save();
-  c.translate(x, y - 24);
-  c.rotate(t * 3);
-  ell(c, 0, 0, 11, 11, '#b8b0a4');
-  c.strokeStyle = 'rgba(60,50,40,.4)';
-  c.lineWidth = 1;
-  for (let k = 0; k < 4; k++) {
-    c.beginPath();
-    c.moveTo(0, 0);
-    c.lineTo(Math.cos((k * TAU) / 4) * 10, Math.sin((k * TAU) / 4) * 10);
-    c.stroke();
-  }
-  c.restore();
+  shadow(c, x, y + 2, 16, 4.5);
+  rr(c, x - 14, y - 34, 4, 34, 1, WOOD_D);
+  rr(c, x + 10, y - 34, 4, 34, 1, WOOD_D);
+  // the wheel: a stone disc seen face-on, with a turning mark
+  const wy = y - 22,
+    a = t * 3;
+  c.fillStyle = '#b8b0a4';
+  c.beginPath();
+  c.arc(x, wy, 12, 0, TAU);
+  c.fill();
+  c.stroke();
+  c.strokeStyle = 'rgba(60,50,40,.35)';
+  c.lineWidth = 1.2;
+  c.beginPath();
+  c.arc(x, wy, 8, 0, TAU);
+  c.stroke();
+  c.strokeStyle = 'rgba(255,255,255,.5)';
+  c.lineWidth = 1.6;
+  c.beginPath();
+  c.arc(x, wy, 10.5, a, a + 0.9);
+  c.stroke();
   c.strokeStyle = OUT;
   c.lineWidth = 2;
-  ell(c, x, y - 24, 3, 3, IRON);
-  rr(c, x + 10, y - 26, 8, 3, 1, WOOD_D); // crank
+  // axle and crank
+  rr(c, x - 14, wy - 1.5, 30, 3, 1, IRON);
+  const cx = x + 16 + Math.cos(a) * 3,
+    cy = wy + Math.sin(a) * 3;
+  c.beginPath();
+  c.moveTo(x + 16, wy);
+  c.lineTo(cx, cy + 6);
+  c.lineWidth = 2.6;
+  c.stroke();
+  c.lineWidth = 2;
+  // water trough the wheel dips into
+  rr(c, x - 12, y - 12, 24, 12, 2, WOOD);
+  c.fillStyle = '#3a6a9a';
+  c.fillRect(x - 9, y - 11, 18, 3);
 }
 function smithbench(c: Ctx, f: Furn) {
+  // a heavy workbench like the counter: legs, a front apron and a top surface seen from above,
+  // with work laid out on it
   const { x, y } = f,
     w = f.cw * IT - 12;
-  for (const lx of [-w / 2 + 4, w / 2 - 8]) rr(c, x + lx, y - 16, 4, 16, 1, WOOD_D);
-  rr(c, x - w / 2, y - 26, w, 12, 2, WOOD);
-  // tools and half-finished pieces
+  for (const lx of [-w / 2 + 3, w / 2 - 8]) rr(c, x + lx, y - 16, 5, 16, 1, WOOD_D);
+  rr(c, x - w / 2, y - 34, w, 12, 2, WOOD_L); // top surface
+  rr(c, x - w / 2, y - 22, w, 8, 2, WOOD); // front apron
+  c.strokeStyle = 'rgba(40,24,14,.35)';
+  c.lineWidth = 1;
+  for (const k of [0.33, 0.66]) {
+    c.beginPath();
+    c.moveTo(x - w / 2 + w * k, y - 33);
+    c.lineTo(x - w / 2 + w * k, y - 23);
+    c.stroke();
+  }
+  c.strokeStyle = OUT;
   c.lineWidth = 1.6;
-  rr(c, x - w / 2 + 6, y - 31, 22, 4, 1.5, STEEL); // blade blank
-  rr(c, x - w / 2 + 26, y - 32, 5, 6, 1, WOOD_D);
-  ell(c, x + 8, y - 28, 7, 3, '#8a8a92'); // a dished helm
-  rr(c, x + 18, y - 33, 3, 8, 1, WOOD_D); // tongs
-  rr(c, x + 21, y - 33, 3, 8, 1, WOOD_D);
+  // a blade blank and its tang, a dished helm, tongs
+  rr(c, x - w / 2 + 6, y - 31, 22, 4, 1.5, STEEL);
+  rr(c, x - w / 2 + 27, y - 31, 6, 3, 1, WOOD_D);
+  ell(c, x + 10, y - 29, 7, 3.4, '#8a8a92');
+  rr(c, x + 20, y - 33, 2.5, 9, 1, IRON);
+  rr(c, x + 23.5, y - 33, 2.5, 9, 1, IRON);
   c.lineWidth = 2;
 }
 function counter(c: Ctx, f: Furn) {

@@ -237,7 +237,15 @@ export function genInterior(v, h, idx: number): Interior {
 }
 
 /** Tall pieces that stand flush against the back wall, and how deep they reach into the room. */
-const WALL_TALL = new Set(['hearth', 'shelf', 'cupboard', 'stove', 'bigforge', 'smithbench']),
+const WALL_TALL = new Set([
+    'hearth',
+    'shelf',
+    'cupboard',
+    'stove',
+    'bigforge',
+    'smithbench',
+    'bellows',
+  ]),
   WALL_DEPTH = 18;
 /* ---------- furnishing ---------- */
 function furnish(I: Interior, rnd: () => number) {
