@@ -3,7 +3,7 @@ import { inPlaceNow } from '../world/poi';
 import { WADE, isPool } from '../world/terrain';
 import { SFX } from '../audio/sfx';
 import { H, W } from '../core/dom';
-import { clamp, lerp, rand } from '../core/math';
+import { angDiff, clamp, lerp, rand } from '../core/math';
 import { settings } from '../core/settings';
 import { rank } from '../data/skills';
 import { damageEnemy, heroAttack } from './combat';
@@ -22,6 +22,8 @@ import { regionName, solidAt } from '../world/chunks';
 import { poisNear } from '../world/poi';
 import { BIOMES, dangerAt, terr } from '../world/terrain';
 /* ================= UPDATE ================= */
+/** Seconds a new facing must be held before the hero turns (diagonal release grace). */
+const FACE_HOLD = 0.1;
 function updateHero(dt) {
   let mx = 0,
     my = 0;
@@ -44,9 +46,21 @@ function updateHero(dt) {
   if (hero.moving && hero.warp) cancelWarp();
   updateWarp(dt);
   if (hero.moving && hero.atk <= 0) {
-    hero.dx = mx;
-    hero.dy = my;
-    hero.aim = Math.atan2(my, mx);
+    // a new facing must hold for a moment before it sticks, so releasing a diagonal (two keys
+    // never lift in the same frame) keeps the diagonal instead of snapping to one axis
+    const want = Math.atan2(my, mx);
+    if (Math.abs(angDiff(want, Math.atan2(hero.dy, hero.dx))) < 0.2) hero.faceT = 0;
+    else if ((hero.faceT = (hero.faceT || 0) + dt) > FACE_HOLD) {
+      hero.faceT = 0;
+      hero.face = want;
+    }
+    if (hero.faceT === 0) {
+      const f = hero.face ?? want;
+      hero.dx = Math.cos(f);
+      hero.dy = Math.sin(f);
+      hero.aim = f;
+      hero.face = undefined;
+    }
   }
   if (hero.moving) hero.walk += dt * 10 * (game.ST.spd / 150) * Math.min(1, l + 0.3);
   if (mouseAim && mouseAtk && game.atkHeld) {

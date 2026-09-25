@@ -71,6 +71,8 @@ export const hero = {
   slow: 0,
   stepT: 0,
   warp: null as any,
+  faceT: 0,
+  face: undefined as number | undefined,
 };
 export const lights = [];
 

@@ -1,17 +1,34 @@
 import { circ, ell, rr, shadow } from '../core/dom';
 import { OUT, TAU, clamp, mixCol, sh } from '../core/math';
 /* ================= ART: humanoid ================= */
+/**
+ * Facing in 8 directions: side (right/left), down, up, and the four diagonals, which are drawn
+ * as 3/4 views of the front ('down') or back ('up') pose. Left-facing poses are mirrored.
+ */
 function faceOf(dx, dy) {
-  if (Math.abs(dx) > Math.abs(dy) * 1.1) return { f: 'side', flip: dx < 0 };
-  return { f: dy < 0 ? 'up' : 'down', flip: false };
+  if (!dx && !dy) return { f: 'down', flip: false, diag: false };
+  const o = ((Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) % 8) + 8) % 8;
+  // 0 right, 1 down-right, 2 down, 3 down-left, 4 left, 5 up-left, 6 up, 7 up-right
+  return [
+    { f: 'side', flip: false, diag: false },
+    { f: 'down', flip: false, diag: true },
+    { f: 'down', flip: false, diag: false },
+    { f: 'down', flip: true, diag: true },
+    { f: 'side', flip: true, diag: false },
+    { f: 'up', flip: true, diag: true },
+    { f: 'up', flip: false, diag: false },
+    { f: 'up', flip: false, diag: true },
+  ][o];
 }
 export function drawHumanoid(c, x, y, o) {
   const L = o.look,
     s = o.scale || 1,
     t = o.time || 0,
-    { f, flip } = faceOf(o.dx, o.dy),
+    { f, flip, diag } = faceOf(o.dx, o.dy),
     side = f === 'side',
-    up = f === 'up';
+    up = f === 'up',
+    fd = diag && !up, // front 3/4 view (turned toward +x)
+    E = fd ? 3 : 0; // how far facial features shift toward the facing side
   c.save();
   c.translate(x, y);
   if (!o.noShadow) {
@@ -44,6 +61,12 @@ export function drawHumanoid(c, x, y, o) {
     armY = by + 4;
   // cape behind
   if (L.cape && !up) {
+    c.save();
+    if (fd) {
+      // front 3/4: the cape shows behind the back side of the body
+      c.translate(-5, 0);
+      c.scale(0.8, 1);
+    }
     c.fillStyle = tint(L.cape);
     c.beginPath();
     if (side) {
@@ -60,6 +83,7 @@ export function drawHumanoid(c, x, y, o) {
     }
     c.fill();
     c.stroke();
+    c.restore();
   }
   // legs / robe
   if (L.robe) {
@@ -100,6 +124,24 @@ export function drawHumanoid(c, x, y, o) {
         rr(c, -3, 8, 7, 5, 2, bc);
         c.restore();
       }
+    } else if (diag) {
+      // 3/4 legs: closer together, the far leg a step back and darker, feet pointing toward the
+      // facing side (+x); they swing along the walking direction
+      const farX = up ? -2.5 : 3,
+        nearX = up ? 3.5 : -3,
+        toe = up ? 0.5 : 2;
+      for (const [lx, far] of [
+        [farX, 1],
+        [nearX, 0],
+      ]) {
+        const k = far ? 1 : -1,
+          len = 13 - Math.max(0, k * sw) * 3;
+        c.save();
+        c.translate(lx * dw + k * sw * 2, -13 - (far ? 1 : 0));
+        rr(c, -3, 0, 6, len, 3, far ? sh(pc, -0.18) : pc);
+        rr(c, -3 + toe, len - 4, 7.5, 5, 2.5, far ? sh(bc, -0.12) : bc);
+        c.restore();
+      }
     } else {
       const l1 = 13 - Math.max(0, sw) * 3,
         l2 = 13 - Math.max(0, -sw) * 3;
@@ -111,12 +153,28 @@ export function drawHumanoid(c, x, y, o) {
   }
   // long hair behind
   if (L.hair === 1 && !L.hood && !L.helm && !L.cowl) {
-    rr(c, side ? -12 : -11, hy - 4, side ? 12 : 22, up ? 20 : 17, 7, tint(L.hairC));
+    rr(
+      c,
+      side ? -12 : diag ? (up ? -10 : -12) : -11,
+      hy - 4,
+      side ? 12 : diag ? 19 : 22,
+      up ? 20 : 17,
+      7,
+      tint(L.hairC),
+    );
   }
-  if (L.hair === 2 && (up || side) && !L.hood && !L.cowl) {
+  if (L.hair === 2 && (up || side || diag) && !L.hood && !L.cowl) {
     c.fillStyle = tint(L.hairC);
     c.beginPath();
-    c.ellipse(side ? -10 : 0, hy + 6, 3.5, 7, side ? 0.5 : 0, 0, TAU);
+    c.ellipse(
+      side ? -10 : diag ? (up ? -2 : -8) : 0,
+      hy + 6,
+      3.5,
+      7,
+      side || diag ? 0.5 : 0,
+      0,
+      TAU,
+    );
     c.fill();
     c.stroke();
   }
@@ -124,9 +182,26 @@ export function drawHumanoid(c, x, y, o) {
     circ(c, 0, hy + 1, 12.5, tint(L.cowl));
   }
   if (side) rr(c, -3 + sw * -5, armY, 6, 11, 3, sh(sleeve, -0.25));
-  // body
+  const carryR = o.carry && o.carry.dx > 0,
+    carryL = o.carry && o.carry.dx < 0,
+    // 3/4: the far arm (+x in front views, -x in back views) is mostly hidden behind the torso
+    farArm = diag ? (up ? -1 : 1) : 0;
+  if (farArm && !(farArm > 0 ? carryR : carryL)) {
+    const fx = farArm * 8 * dw,
+      a2 = -farArm * sw * 1.5;
+    rr(c, fx - 3, armY - 1 + a2, 6, 11, 3, sh(sleeve, -0.22));
+    circ(c, fx, armY + 11 + a2, 3, tint(L.gloves || L.skin));
+  }
+  // body; in 3/4 views the torso turns: a wide darker side panel on the near side and a narrow
+  // front (or back) panel turned toward the facing side
+  const ts = diag ? (up ? -2.5 : 2.5) : 0;
+  if (diag) {
+    const sideCol = A ? sh(tint(A.col), -0.35) : sh(cloth, -0.3);
+    rr(c, up ? -1 * dw : -9 * dw, by, 10 * dw, 16, 5, sideCol);
+  }
   c.save();
-  c.scale(dw, 1);
+  c.translate(ts, 0);
+  c.scale(dw * (diag ? 0.74 : 1), 1);
   rr(c, -9, by, 18, 16, 6, cloth);
   if (L.bones) {
     c.strokeStyle = '#8a8272';
@@ -187,9 +262,17 @@ export function drawHumanoid(c, x, y, o) {
   if (L.shorts) {
     const uc = tint(L.shorts);
     if (side) rr(c, -5, -15, 10, 8, 3, uc);
-    else rr(c, -8.5 * dw, -15, 17 * dw, 8, 3, uc);
+    else if (diag) {
+      rr(c, (up ? 0 : -8) * dw, -15, 8 * dw, 8, 3, sh(uc, -0.15));
+      rr(c, ts - 6.7 * dw, -15, 13.4 * dw, 8, 3, uc);
+    } else rr(c, -8.5 * dw, -15, 17 * dw, 8, 3, uc);
   }
   if (L.cape && up) {
+    c.save();
+    if (diag) {
+      c.translate(-3, 0);
+      c.scale(0.85, 1);
+    }
     c.fillStyle = tint(L.cape);
     c.beginPath();
     c.moveTo(-9 * dw, by + 1);
@@ -199,6 +282,7 @@ export function drawHumanoid(c, x, y, o) {
     c.closePath();
     c.fill();
     c.stroke();
+    c.restore();
   }
   // arms (o.carry raises the weapon arm so its hand rests at a shoulder carry point)
   const hand = tint(L.gloves || L.skin),
@@ -226,17 +310,18 @@ export function drawHumanoid(c, x, y, o) {
     }
   } else {
     const a1 = sw * 2,
-      carryR = o.carry && o.carry.dx > 0,
-      carryL = o.carry && o.carry.dx < 0;
+      // 3/4: the near arm sits a little in front of the turned torso
+      nearL = diag && !up ? 1 : 0,
+      nearR = diag && up ? 1 : 0;
     if (carryL) raised(-10 * dw, o.carry.dx * dw);
-    else {
-      rr(c, -13 * dw, armY - 1 + a1, 6, 11, 3, sleeve);
-      circ(c, -10 * dw, armY + 11 + a1, 3, hand);
+    else if (farArm >= 0) {
+      rr(c, (-13 + nearL) * dw, armY - 1 + a1, 6, 11, 3, sleeve);
+      circ(c, (-10 + nearL) * dw, armY + 11 + a1, 3, hand);
     }
     if (carryR) raised(10 * dw, o.carry.dx * dw);
-    else {
-      rr(c, 7 * dw, armY - 1 - a1, 6, 11, 3, sleeve);
-      circ(c, 10 * dw, armY + 11 - a1, 3, hand);
+    else if (farArm <= 0) {
+      rr(c, (7 - nearR) * dw, armY - 1 - a1, 6, 11, 3, sleeve);
+      circ(c, (10 - nearR) * dw, armY + 11 - a1, 3, hand);
     }
   }
   if (A && A.k >= 1) {
@@ -244,15 +329,21 @@ export function drawHumanoid(c, x, y, o) {
       pc2 = tint(A.col),
       pads = side
         ? [[sw * 5 - 0.5, armY + 1]]
-        : [
-            [-10 * dw, armY + 1],
-            [10 * dw, armY + 1],
-          ];
-    for (const [px, py] of pads) {
+        : diag
+          ? [
+              [(up ? -8.5 : -10) * dw, armY + 1, up ? 0.82 : 1],
+              [(up ? 10 : 8.5) * dw, armY + 1, up ? 1 : 0.82],
+            ]
+          : [
+              [-10 * dw, armY + 1, 1],
+              [10 * dw, armY + 1, 1],
+            ];
+    for (const [px, py, k = 1] of pads) {
+      const r2 = pr * k;
       c.beginPath();
-      c.ellipse(px, py, pr + 1, pr, 0, Math.PI, 0);
-      c.lineTo(px + pr + 1, py + 2);
-      c.lineTo(px - pr - 1, py + 2);
+      c.ellipse(px, py, r2 + 1, r2, 0, Math.PI, 0);
+      c.lineTo(px + r2 + 1, py + 2);
+      c.lineTo(px - r2 - 1, py + 2);
       c.closePath();
       c.fillStyle = pc2;
       c.fill();
@@ -269,6 +360,9 @@ export function drawHumanoid(c, x, y, o) {
       }
     }
   }
+  // head turns slightly toward the facing side in 3/4 views
+  c.save();
+  if (diag) c.translate(fd ? 1.5 : 1, 0);
   // ears
   if (L.race === 'elf' && !L.helm && !L.cowl) {
     c.fillStyle = skin;
@@ -283,7 +377,7 @@ export function drawHumanoid(c, x, y, o) {
     };
     if (side) ear(-1);
     else {
-      ear(-1);
+      if (!diag) ear(-1);
       ear(1);
     }
   }
@@ -300,7 +394,7 @@ export function drawHumanoid(c, x, y, o) {
     };
     if (side) ear(-1);
     else {
-      ear(-1);
+      if (!diag) ear(-1);
       ear(1);
     }
   }
@@ -318,14 +412,14 @@ export function drawHumanoid(c, x, y, o) {
     if (!up) {
       c.fillStyle = '#120c1c';
       c.beginPath();
-      c.ellipse(side ? 3 : 0, hy + 1, 6.5, 7, 0, 0, TAU);
+      c.ellipse(side ? 3 : E, hy + 1, 6.5, 7, 0, 0, TAU);
       c.fill();
       c.fillStyle = L.eyes || '#7ef0ff';
       c.beginPath();
       if (side) c.arc(5, hy, 1.8, 0, TAU);
       else {
-        c.arc(-2.6, hy, 1.7, 0, TAU);
-        c.arc(2.6, hy, 1.7, 0, TAU);
+        c.arc(-2.6 + E, hy, 1.7, 0, TAU);
+        c.arc(2.6 + E, hy, 1.7, 0, TAU);
       }
       c.fill();
     }
@@ -350,17 +444,50 @@ export function drawHumanoid(c, x, y, o) {
         c.lineTo(HR, hy - 3);
         c.quadraticCurveTo(4, hy - 5, 1, hy - 2);
         c.quadraticCurveTo(-1, hy + 3, -2, hy + HR);
+      } else if (fd) {
+        // front 3/4: the hair wraps the back of the head (-x); the fringe sweeps toward the face
+        c.moveTo(-HR, hy + HR);
+        c.lineTo(-HR, hy - HR);
+        c.lineTo(HR, hy - HR);
+        c.lineTo(HR, hy - 1);
+        c.quadraticCurveTo(HR - 3, hy - 5, 4, hy - 4);
+        c.quadraticCurveTo(0, hy - 3, -2, hy - 5);
+        c.quadraticCurveTo(-4, hy - 1, -4.5, hy + 7);
+        c.lineTo(-4.5, hy + HR);
       } else {
         c.moveTo(-HR, hy + 2);
         c.lineTo(-HR, hy - HR);
         c.lineTo(HR, hy - HR);
         c.lineTo(HR, hy + 2);
-        c.quadraticCurveTo(HR - 2, hy - 4, 5, hy - 4);
-        c.quadraticCurveTo(2, hy - 2, 0, hy - 5);
-        c.quadraticCurveTo(-3, hy - 2, -6, hy - 4);
-        c.quadraticCurveTo(-HR + 2, hy - 4, -HR, hy + 2);
+        // in a 3/4 view the parting turns toward the facing side
+        c.quadraticCurveTo(HR - 2, hy - 4, 5 + E, hy - 4);
+        c.quadraticCurveTo(2 + E, hy - 2, E, hy - 5);
+        c.quadraticCurveTo(-3 + E, hy - 2, -6 + E * 0.5, hy - 4);
+        c.quadraticCurveTo(-HR + 2, hy - 4, -HR, hy + (fd ? 5 : 2));
       }
       c.fill();
+      if (up && diag) {
+        // back 3/4: a sliver of cheek shows on the near side
+        c.fillStyle = skin;
+        c.beginPath();
+        c.ellipse(HR - 1, hy + 2.5, 3.4, 6, 0, 0, TAU);
+        c.fill();
+      }
+      if (diag && L.race !== 'elf' && L.race !== 'goblin') {
+        // 3/4: the ear sits between the hair and the face
+        const ex = fd ? -6.2 : 6.2;
+        c.fillStyle = skin;
+        c.beginPath();
+        c.ellipse(ex, hy + 2, 2.2, 3.2, 0, 0, TAU);
+        c.fill();
+        c.lineWidth = 1.4;
+        c.stroke();
+        c.fillStyle = sh(skin, -0.2);
+        c.beginPath();
+        c.ellipse(ex + (fd ? 0.4 : -0.4), hy + 2.2, 0.9, 1.7, 0, 0, TAU);
+        c.fill();
+        c.lineWidth = lw;
+      }
       c.fillStyle = 'rgba(255,255,255,.25)';
       c.beginPath();
       c.ellipse(-3, hy - 7, 4, 1.6, -0.3, 0, TAU);
@@ -395,44 +522,49 @@ export function drawHumanoid(c, x, y, o) {
         c.ellipse(5.5, hy + 1.5, 1.5, 2.1, 0, 0, TAU);
         c.fill();
       } else {
+        // 3/4: the far eye moves in and narrows, the near eye moves toward the edge
+        const ex1 = fd ? -1 : -3.6,
+          ex2 = fd ? 5.6 : 3.6,
+          er1 = fd ? 1.1 : 1.5;
         c.beginPath();
-        c.ellipse(-3.6, hy + 1.5, 1.5, 2.1, 0, 0, TAU);
-        c.ellipse(3.6, hy + 1.5, 1.5, 2.1, 0, 0, TAU);
+        c.ellipse(ex1, hy + 1.5, er1, 2.1, 0, 0, TAU);
+        c.ellipse(ex2, hy + 1.5, 1.5, 2.1, 0, 0, TAU);
         c.fill();
         if (!L.eyes) {
           c.fillStyle = '#fff';
           c.beginPath();
-          c.arc(-3.1, hy + 0.8, 0.6, 0, TAU);
-          c.arc(4.1, hy + 0.8, 0.6, 0, TAU);
+          c.arc(ex1 + 0.5, hy + 0.8, 0.5, 0, TAU);
+          c.arc(ex2 + 0.5, hy + 0.8, 0.6, 0, TAU);
           c.fill();
         }
       }
       if (L.angry && !side) {
         c.lineWidth = 1.6;
         c.beginPath();
-        c.moveTo(-6, hy - 2.5);
-        c.lineTo(-1.5, hy - 0.8);
-        c.moveTo(6, hy - 2.5);
-        c.lineTo(1.5, hy - 0.8);
+        c.moveTo(-6 + E * 1.3, hy - 2.5);
+        c.lineTo(-1.5 + E, hy - 0.8);
+        c.moveTo(6 + E * 0.6, hy - 2.5);
+        c.lineTo(1.5 + E, hy - 0.8);
         c.stroke();
         c.lineWidth = lw;
       }
       if (!L.bones && !L.wraps && !side && !L.eyes) {
         c.fillStyle = 'rgba(255,110,110,.35)';
         c.beginPath();
-        c.arc(-6, hy + 5, 1.8, 0, TAU);
-        c.arc(6, hy + 5, 1.8, 0, TAU);
+        if (!fd) c.arc(-6, hy + 5, 1.8, 0, TAU);
+        else c.moveTo(7.3 + E * 0.5, hy + 5);
+        c.arc(6 + E * 0.5, hy + 5, 1.8, 0, TAU);
         c.fill();
       }
       if (L.bones) {
         c.fillStyle = OUT;
-        c.fillRect(side ? 3 : -3, hy + 5, side ? 4 : 6, 1.5);
+        c.fillRect(side ? 3 : -3 + E, hy + 5, side ? 4 : 6, 1.5);
       }
       if (L.tusks) {
         c.fillStyle = '#fffbe8';
         c.lineWidth = 1;
         for (const k of side ? [1] : [-1, 1]) {
-          const bx = side ? 4 : 0;
+          const bx = side ? 4 : E;
           c.beginPath();
           c.moveTo(k * 2.5 + bx, hy + 7);
           c.lineTo(k * 3.4 + bx, hy + 3.5);
@@ -452,10 +584,10 @@ export function drawHumanoid(c, x, y, o) {
         c.quadraticCurveTo(11, hy + 3, 8, hy + 13);
         c.quadraticCurveTo(3, hy + 11, 1, hy + 3);
       } else {
-        c.moveTo(-8, hy + 3);
-        c.quadraticCurveTo(-7, hy + 15, 0, hy + 16);
-        c.quadraticCurveTo(7, hy + 15, 8, hy + 3);
-        c.quadraticCurveTo(0, hy + 8, -8, hy + 3);
+        c.moveTo(-8 + E, hy + 3);
+        c.quadraticCurveTo(-7 + E, hy + 15, E, hy + 16);
+        c.quadraticCurveTo(7 + E * 0.6, hy + 15, 8, hy + 3);
+        c.quadraticCurveTo(E, hy + 8, -8 + E, hy + 3);
       }
       c.fill();
       c.stroke();
@@ -534,7 +666,7 @@ export function drawHumanoid(c, x, y, o) {
       c.beginPath();
       c.ellipse(-4, hy - 6, 3, 1.8, -0.5, 0, TAU);
       c.fill();
-      if (!up && !side) rr(c, -1.2, hy - 1, 2.4, 5, 1, tint(L.helm));
+      if (!up && !side) rr(c, -1.2 + (fd ? 3.3 : 0), hy - 1, 2.4, 5, 1, tint(L.helm));
       if (L.plume) {
         c.fillStyle = tint(L.plume);
         c.beginPath();
@@ -546,6 +678,7 @@ export function drawHumanoid(c, x, y, o) {
       }
     }
   }
+  c.restore();
   c.restore();
 }
 function armorBody(c, A, by, up, side, tint, lw) {
@@ -615,7 +748,7 @@ function armorBody(c, A, by, up, side, tint, lw) {
   c.strokeStyle = OUT;
 }
 export function handPos(dx, dy, moving, walk, t, race, scale = 1) {
-  const { f, flip } = faceOf(dx, dy),
+  const { f, flip, diag } = faceOf(dx, dy),
     bob = moving ? Math.abs(Math.sin(walk)) * 2.2 : Math.sin(t * 2.4) * 0.6,
     sw = moving ? Math.sin(walk) : 0,
     dw = race === 'dwarf' ? 1.15 : 1,
@@ -623,9 +756,11 @@ export function handPos(dx, dy, moving, walk, t, race, scale = 1) {
     armY = by + 4;
   if (f === 'side')
     return { x: (flip ? -1 : 1) * sw * 5 * scale, y: (armY + 12) * scale, f, flip, behind: false };
+  const m = flip ? -1 : 1, // mirrored 3/4 views
+    hx = diag ? 8 : 10; // in 3/4 views the weapon hand is the far arm, tucked in
   if (f === 'down')
-    return { x: 10 * dw * scale, y: (armY + 11 - sw * 2) * scale, f, flip, behind: false };
-  return { x: -10 * dw * scale, y: (armY + 11 + sw * 2) * scale, f, flip, behind: true };
+    return { x: m * hx * dw * scale, y: (armY + 11 - sw * 2) * scale, f, flip, behind: false };
+  return { x: m * -hx * dw * scale, y: (armY + 11 + sw * 2) * scale, f, flip, behind: true };
 }
 const MELEE = ['warrior', 'sword', 'axe', 'club'];
 /**
@@ -636,6 +771,11 @@ export function weaponBehind(h, kind, aiming = false) {
   return h.behind && (aiming || (kind !== 'ranger' && kind !== 'bow' && !MELEE.includes(kind)));
 }
 export function restAng(h, cls) {
+  const a = restAng0(h, cls);
+  // mirrored 3/4 views mirror the angle too
+  return h.flip && h.f !== 'side' ? Math.PI - a : a;
+}
+function restAng0(h, cls) {
   // Bows are carried upright at the side, belly facing away from the body.
   if (cls === 'ranger' || cls === 'bow')
     return h.f === 'side' ? (h.flip ? Math.PI : 0) : h.f === 'down' ? 0 : Math.PI;
@@ -824,29 +964,30 @@ export function carryPos(dx, dy, moving, walk, t, race, scale = 1) {
   const { f, flip } = faceOf(dx, dy),
     bob = moving ? Math.abs(Math.sin(walk)) * 2.2 : Math.sin(t * 2.4) * 0.6,
     dw = race === 'dwarf' ? 1.15 : 1,
-    armY = -27 - bob + 4;
-  if (f === 'side') {
-    const s = flip ? -1 : 1;
+    armY = -27 - bob + 4,
+    m = flip ? -1 : 1,
+    // mirrored poses mirror the blade angle
+    mir = (ang: number) => (flip ? Math.PI - ang : ang);
+  if (f === 'side')
     return {
-      x: s * 6 * scale,
+      x: m * 6 * scale,
       y: (armY + 5) * scale,
-      ang: -Math.PI / 2 + s * 0.3,
+      ang: -Math.PI / 2 + m * 0.3,
       behind: false,
       arm: { dx: 6, dy: 5 },
     };
-  }
   if (f === 'down')
     return {
-      x: 12 * dw * scale,
+      x: m * 12 * dw * scale,
       y: (armY + 6) * scale,
-      ang: -Math.PI / 2 + 0.12,
+      ang: mir(-Math.PI / 2 + 0.12),
       behind: false,
       arm: { dx: 12, dy: 6 },
     };
   return {
-    x: -12 * dw * scale,
+    x: m * -12 * dw * scale,
     y: (armY + 6) * scale,
-    ang: -Math.PI / 2 - 0.12,
+    ang: mir(-Math.PI / 2 - 0.12),
     behind: true,
     arm: { dx: -12, dy: 6 },
   };
