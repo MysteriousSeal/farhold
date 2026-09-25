@@ -147,3 +147,20 @@ describe('player look', () => {
     expect(L.helm).toBe(MATS[1][1]);
   });
 });
+
+describe('item power comparison', () => {
+  it('scores weapons as damage and armor as toughness', async () => {
+    const { compareItem, fmtPct } = await import('../src/game/power');
+    game.P = hero();
+    const axe = { slot: 'weapon', r: 2, mat: 1, plus: 0, st: { atk: 11 }, name: 'Axe' };
+    const vest = { slot: 'armor', r: 1, mat: 1, plus: 0, st: { def: 5, hp: 20 }, name: 'Vest' };
+    const w = compareItem(axe);
+    expect(w.dmg).toBeCloseTo(1, 5); // 11 → 22 attack doubles damage
+    expect(w.tough).toBeCloseTo(0, 5);
+    expect(w.overall).toBeCloseTo(0.5, 5); // warrior weighs damage 50%
+    const a = compareItem(vest);
+    expect(a.tough).toBeGreaterThan(0);
+    expect(a.dmg).toBeCloseTo(0, 5);
+    expect([fmtPct(0.144), fmtPct(-0.05), fmtPct(0.001)]).toEqual(['+14%', '−5%', '±0%']);
+  });
+});

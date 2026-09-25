@@ -1,14 +1,31 @@
 import { drawHumanoid, drawWeapon, handPos, restAng } from '../art/humanoid';
+import { compareItem, fmtPct } from '../game/power';
 import { SFX } from '../audio/sfx';
 import { $ } from '../core/dom';
 import { MATS, RAR, SLOTS } from '../data/classes';
 import { BAGMAX } from '../game/drops';
 import { toast } from '../game/fx';
-import { itemName, itemStat, salvageAll, salvageValue, salvageable } from '../game/items';
+import { itemName, salvageAll, salvageValue, salvageable } from '../game/items';
 import { game } from '../game/state';
 import { calcStats } from '../game/stats';
 import { btn, hdr, iconCanvas, openModal, statLines, wireClose } from './modal';
 /* inventory */
+const pctSpan = (x: number) =>
+  '<span class="' + (x < 0 ? 'dn' : 'up') + '">' + fmtPct(x) + '</span>';
+/** Headline "+14% overall" plus a damage / toughness breakdown for a bag item. */
+function powerLines(it, equipped: boolean) {
+  if (equipped) return '';
+  const r = compareItem(it);
+  return (
+    '<div style="margin-top:6px;font-weight:700;font-size:16px">' +
+    pctSpan(r.overall) +
+    ' overall</div><div style="opacity:.85;font-size:13px">Damage ' +
+    pctSpan(r.dmg) +
+    ' · Toughness ' +
+    pctSpan(r.tough) +
+    '</div>'
+  );
+}
 let selItem = null,
   salvageArmed = false;
 export function openInv() {
@@ -91,15 +108,13 @@ function renderInv() {
     d.className = 'cell' + (selItem && selItem.it === it ? ' sel' : '');
     d.style.borderColor = RAR[it.r].c;
     d.appendChild(iconCanvas(it));
-    const cur = game.P.eq[it.slot];
-    if (
-      !cur ||
-      itemStat(it, 'atk') + itemStat(it, 'def') + itemStat(it, 'hp') / 5 >
-        itemStat(cur, 'atk') + itemStat(cur, 'def') + itemStat(cur, 'hp') / 5
-    ) {
+    // overall change if this item were equipped
+    const pw = compareItem(it).overall;
+    if (Math.abs(pw) >= 0.005) {
       const u = document.createElement('span');
       u.className = 'upg';
-      u.textContent = '▲';
+      u.textContent = fmtPct(pw);
+      if (pw < 0) u.style.color = '#ff7d70';
       d.appendChild(u);
     }
     d.onclick = () => {
@@ -157,7 +172,7 @@ function renderInv() {
   const dt = $('#detail');
   if (!selItem) {
     dt.innerHTML =
-      '<span style="opacity:.75">Tap an item to inspect it. ▲ marks likely upgrades.</span>';
+      '<span style="opacity:.75">Tap an item to inspect it. Badges show how much stronger (or weaker) it would make you.</span>';
     return;
   }
   const it = selItem.it,
@@ -173,7 +188,9 @@ function renderInv() {
     it.slot +
     ', item level ' +
     it.lvl +
-    '</div><div class="stats">' +
+    '</div>' +
+    powerLines(it, selItem.eq) +
+    '<div class="stats">' +
     statLines(it, cur) +
     '</div><div class="acts"></div>';
   const bx = dt.querySelector('.acts');

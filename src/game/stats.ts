@@ -4,7 +4,8 @@ import { CLS, MATS, RACE, RAR, SLOTS } from '../data/classes';
 import { rank } from '../data/skills';
 import { itemStat } from './items';
 import { game } from './state';
-export function calcStats() {
+/** Final stats for a hero `p` (class, race, level, gear, skills) without touching game state. */
+export function computeStats(p = game.P): Stats {
   const s: Stats = {
     hp: 100,
     atk: 10,
@@ -28,17 +29,17 @@ export function calcStats() {
   const ad = (o) => {
     for (const k in o) s[k] += o[k];
   };
-  ad(CLS[game.P.cls].st);
-  ad(RACE[game.P.race].st);
-  const l = game.P.lvl - 1;
+  ad(CLS[p.cls].st);
+  ad(RACE[p.race].st);
+  const l = p.lvl - 1;
   s.hp += l * 14;
   s.atk += l * 2.2;
   s.def += l * 0.8;
   for (const k of SLOTS) {
-    const it = game.P.eq[k];
+    const it = p.eq[k];
     if (it) for (const n in it.st) s[n] += itemStat(it, n);
   }
-  const c = game.P.cls;
+  const c = p.cls;
   if (c === 'warrior') {
     s.dmgMul += 0.06 * rank('a0');
     s.arc += 0.15 * rank('a1');
@@ -75,6 +76,10 @@ export function calcStats() {
   s.spd = Math.round(Math.min(280, s.spd));
   s.cdr = Math.min(50, s.cdr);
   s.leech = Math.min(15, s.leech);
+  return s;
+}
+export function calcStats() {
+  const s = computeStats(game.P);
   game.ST = s;
   game.P.look = lookOfPlayer(game.P);
   if (game.P.hp > s.hp) game.P.hp = s.hp;
