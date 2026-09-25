@@ -98,86 +98,122 @@ function renderShop(v) {
     renderShop(v);
   };
   const body = $('#shopbody');
-  if (shopTab === 'buy') {
-    const row = document.createElement('div');
-    row.className = 'row2';
-    row.innerHTML =
-      '<div class="potic">🧪</div><div style="flex:1"><div class="nm">Health potion</div><div class="desc">Restores 45% of your health. You carry ' +
-      game.P.pot +
-      '.</div></div>';
-    row.appendChild(
+  if (shopTab === 'buy') renderBuy(v, body, s, pp);
+  else renderSell(v, body);
+}
+
+/* ---------- buy tab: potions on top, the stock as a grid, details + buy on the right ---------- */
+const ICO_POT =
+  '<svg viewBox="0 0 20 20"><path d="M7.6 2.6 H12.4 V6.6 L16 13.4 Q17 17.4 13 17.6 H7 Q3 17.4 4 13.4 L7.6 6.6 Z" fill="#e8f2ff" stroke="#241a2e" stroke-width="1.8" stroke-linejoin="round"/><path d="M5.6 12 H14.4 L15.3 13.8 Q16 16.2 13 16.3 H7 Q4 16.2 4.7 13.8 Z" fill="#e0443a"/><rect x="7" y="1.6" width="6" height="2.4" rx="1" fill="#9a6a3a" stroke="#241a2e" stroke-width="1.4"/><circle cx="8.6" cy="13.8" r="1" fill="#ffb0a0"/></svg>';
+let buySel = null;
+const fmt = (n: number) => n.toLocaleString('en-US');
+function renderBuy(v, body, s, pp) {
+  const priceOf = (it) => it.val * (shopFine ? 6 : 4),
+    full = game.P.inv.length >= BAGMAX;
+  if (!s.items.includes(buySel)) buySel = s.items[0] || null;
+  body.innerHTML =
+    '<div class="potbar">' +
+    ICO_POT +
+    '<div class="pinf"><div class="nm">Health potion</div><div class="desc">Restores 45% of your health · you carry <b>' +
+    game.P.pot +
+    '</b></div></div><div class="pbtns"></div></div><div class="sellwrap"><div><div class="buyhead"><span>' +
+    (shopFine ? 'Fine goods' : 'Wares') +
+    ' · ' +
+    s.items.length +
+    '</span><span class="desc">' +
+    (full ? '<span style="color:#ff7a6a">Bag full</span> · ' : '') +
+    'Bag ' +
+    game.P.inv.length +
+    '/' +
+    BAGMAX +
+    ' · new stock in ' +
+    Math.max(1, Math.ceil((300 - (game.time - s.t)) / 60)) +
+    ' min</span></div><div class="sellgrid" id="bGrid"></div></div><div class="selldet" id="bDet"></div></div>';
+  const pb = body.querySelector('.pbtns');
+  for (const n of [1, 5]) {
+    const cost = pp * n;
+    pb.appendChild(
       btn(
-        'Buy for ' + pp,
+        'Buy ' + n + ' · ' + fmt(cost),
         () => {
-          if (game.P.gold < pp) {
-            toast('Not enough gold');
-            return;
-          }
-          game.P.gold -= pp;
-          game.P.pot++;
+          game.P.gold -= cost;
+          game.P.pot += n;
           SFX.buy();
           renderShop(v);
         },
-        '',
-        game.P.gold < pp,
+        n === 1 ? '' : 'alt',
+        game.P.gold < cost,
       ),
     );
-    body.appendChild(row);
-    for (const it of s.items) {
-      const price = it.val * (shopFine ? 6 : 4),
-        cur = game.P.eq[equipSlot(it, game.P.eq)],
-        r2 = document.createElement('div');
-      r2.className = 'row2';
-      const ic = document.createElement('div');
-      ic.className = 'cell';
-      ic.style.width = '56px';
-      ic.style.borderColor = RAR[it.r].c;
-      ic.appendChild(iconCanvas(it));
-      r2.appendChild(ic);
-      const inf = document.createElement('div');
-      inf.style.flex = '1';
-      inf.innerHTML =
-        '<div class="nm" style="color:' +
-        RAR[it.r].c +
-        '">' +
-        itemName(it) +
-        '</div>' +
-        powerLines(it, false) +
-        '<div class="stats sm">' +
-        statLines(it, cur) +
-        '</div>';
-      r2.appendChild(inf);
-      r2.appendChild(
-        btn(
-          'Buy for ' + price,
-          () => {
-            if (game.P.gold < price) {
-              toast('Not enough gold');
-              return;
-            }
-            if (game.P.inv.length >= BAGMAX) {
-              toast('Bag is full');
-              return;
-            }
-            game.P.gold -= price;
-            game.P.inv.push(it);
-            s.items.splice(s.items.indexOf(it), 1);
-            SFX.buy();
-            toast('Bought ' + it.name);
-            renderShop(v);
-          },
-          '',
-          game.P.gold < price,
-        ),
-      );
-      body.appendChild(r2);
-    }
-    if (!s.items.length)
-      body.insertAdjacentHTML(
-        'beforeend',
-        '<div class="desc">Sold out. New stock arrives in a few minutes.</div>',
-      );
-  } else renderSell(v, body);
+  }
+  const grid = body.querySelector('#bGrid');
+  for (const it of s.items) {
+    const d = document.createElement('div'),
+      price = priceOf(it);
+    d.className =
+      'cell scell' + (buySel === it ? ' sel' : '') + (game.P.gold < price ? ' poor' : '');
+    d.style.borderColor = RAR[it.r].c;
+    d.appendChild(iconCanvas(it));
+    if (isUpgrade(it))
+      d.insertAdjacentHTML('beforeend', '<i class="up" title="Better than what you wear">▲</i>');
+    d.insertAdjacentHTML('beforeend', '<b class="price">' + fmt(price) + '</b>');
+    d.onclick = () => {
+      buySel = it;
+      renderShop(v);
+    };
+    grid.appendChild(d);
+  }
+  if (!s.items.length)
+    grid.innerHTML =
+      '<div class="sempty">' +
+      ICO_BAG +
+      '<b>Sold out</b><small>New stock arrives in a few minutes.</small></div>';
+  const det = body.querySelector('#bDet');
+  if (!buySel) {
+    det.innerHTML = '<div class="desc" style="opacity:.75">Come back later for new wares.</div>';
+    return;
+  }
+  const it = buySel,
+    price = priceOf(it),
+    short = price - game.P.gold;
+  det.innerHTML =
+    '<div class="nm" style="color:' +
+    RAR[it.r].c +
+    '">' +
+    itemName(it) +
+    '</div><div class="desc">' +
+    RAR[it.r].n +
+    ' ' +
+    (SLOT_NAME[it.slot] || it.slot).toLowerCase() +
+    ' · level ' +
+    it.lvl +
+    '</div>' +
+    powerLines(it, false) +
+    '<div class="stats">' +
+    statLines(it, game.P.eq[equipSlot(it, game.P.eq)]) +
+    '</div>' +
+    (short > 0
+      ? '<div class="warnpoor">You need ' + fmt(short) + ' more gold</div>'
+      : full
+        ? '<div class="warnpoor">Your bag is full — sell something first</div>'
+        : '') +
+    '<div class="acts"></div>';
+  det.querySelector('.acts').appendChild(
+    btn(
+      'Buy for ' + fmt(price) + ' gold',
+      () => {
+        game.P.gold -= price;
+        game.P.inv.push(it);
+        s.items.splice(s.items.indexOf(it), 1);
+        buySel = null;
+        SFX.buy();
+        toast('Bought ' + itemName(it));
+        renderShop(v);
+      },
+      '',
+      short > 0 || full,
+    ),
+  );
 }
 
 /* empty-state icons, in the same outlined style as the HUD buttons (index.html) */
