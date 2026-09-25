@@ -1,4 +1,4 @@
-import { SKINS, SLOTS } from '../data/classes';
+import { SLOTS } from '../data/classes';
 import { game } from './state';
 const KEY = 'farhold_save_v2',
   OLDKEY = 'farhold_save_v1';
@@ -43,8 +43,9 @@ export function migrate(p) {
   // heroes are human now: former elves, dwarves and orcs convert (orc green skin to a tone)
   if (p.race && p.race !== 'human') {
     const ORC = ['#93c46c', '#74a85a', '#a3ac6c', '#5d8c70'],
+      HUMAN = ['#f7d4b2', '#e6b187', '#c4895c', '#8a5838'], // the matching human tones
       k = ORC.indexOf(p.skin);
-    if (k >= 0) p.skin = SKINS[k];
+    if (k >= 0) p.skin = HUMAN[k];
   }
   p.race = 'human';
   // heroes from before gender choice are male, clean-shaven

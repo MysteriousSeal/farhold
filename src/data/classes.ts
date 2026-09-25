@@ -4,26 +4,6 @@
  * (see game/style.ts). The outfit worn under armor is a traveller's tunic and cloak.
  */
 export const OUTFIT = { cloth: '#8a5a3a', cloth2: '#5e3c22', cape: '#6b2a24' };
-/** Hero skin tones (heroes are human). */
-export const SKINS = ['#f7d4b2', '#e6b187', '#c4895c', '#8a5838'];
-export const HAIRC = ['#2b1d14', '#6b3e1f', '#c9803a', '#f0d27a', '#e4e4e4', '#b83a3a', '#3a5bb8'];
-/** Hair styles per gender: [look.hair code, label] (codes are drawn by art/humanoid*.ts). */
-export const HAIRS = {
-  m: [
-    [0, 'Short'],
-    [1, 'Long'],
-    [2, 'Ponytail'],
-    [3, 'Bald'],
-  ],
-  f: [
-    [4, 'Bob'],
-    [1, 'Long'],
-    [2, 'Ponytail'],
-    [5, 'Braid'],
-    [6, 'Bun'],
-  ],
-} as Record<string, [number, string][]>;
-export const BEARDS = ['None', 'Stubble', 'Full beard'];
 export const MATS = [
   ['Rusty', '#a07a58'],
   ['Iron', '#9aa3ad'],

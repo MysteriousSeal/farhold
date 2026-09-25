@@ -4,7 +4,8 @@ import { backfillBossChests, refreshQuestTargets } from '../game/bossChest';
 import { audioInit } from '../audio/sfx';
 import { $ } from '../core/dom';
 import { pick, strSeed } from '../core/math';
-import { BEARDS, HAIRC, HAIRS, MATS, SKINS } from '../data/classes';
+import { BEARDS, HAIRC, HAIRS, SKINS } from '../data/appearance';
+import { MATS } from '../data/classes';
 import { NAMES } from '../data/names';
 import { respawn } from '../game/combat';
 import { unstick } from '../game/enemies';
@@ -35,7 +36,14 @@ export function closeAll() {
   setHud(true);
   save();
 }
-const C = { race: 'human', gender: 'm', skin: 0, hair: 0, hairC: 1, beard: 0 };
+const C = {
+  race: 'human',
+  gender: 'm',
+  skin: SKINS.indexOf('#f7d4b2'), // default look: light skin, brown hair
+  hair: 0,
+  hairC: HAIRC.indexOf('#6b3e1f'),
+  beard: 0,
+};
 const randSeed = () =>
   pick(['Oak', 'Ember', 'Raven', 'Frost', 'Stone', 'Wyrm', 'Thorn', 'Gale']) +
   '-' +
