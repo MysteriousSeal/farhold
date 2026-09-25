@@ -1,17 +1,10 @@
 import { resetCityGround } from '../art/city';
-import {
-  drawHumanoid,
-  drawWeapon,
-  handOver,
-  handPos,
-  restAng,
-  weaponBehind,
-} from '../art/humanoid';
+import { carryPos, drawHumanoid, drawWeapon, handOver } from '../art/humanoid';
 import { backfillBossChests, refreshQuestTargets } from '../game/bossChest';
 import { audioInit } from '../audio/sfx';
 import { $ } from '../core/dom';
 import { pick, strSeed } from '../core/math';
-import { HAIRC, HAIRS, SKINS } from '../data/classes';
+import { HAIRC, HAIRS, MATS, SKINS } from '../data/classes';
 import { respawn } from '../game/combat';
 import { unstick } from '../game/enemies';
 import { banner } from '../game/fx';
@@ -110,15 +103,22 @@ export function drawPreview(t) {
     ],
     di = dirs[Math.floor(t / 1.6) % 4],
     walk = t * 9;
-  const hp = handPos(di[0], di[1], true, walk, t, C.race),
-    ang = restAng(hp, 'sword'),
-    wd = () => drawWeapon(pc, hp.x, hp.y, ang, 'sword', 0);
-  const behind = weaponBehind(hp, 'sword');
-  if (behind) wd();
-  drawHumanoid(pc, 0, 0, { look: L, dx: di[0], dy: di[1], moving: true, walk, time: t });
-  if (!behind) {
+  // the rusty sword held on guard, blade up, exactly as the hero carries it in game
+  const g = carryPos(di[0], di[1], true, walk, t, C.race),
+    wd = () => drawWeapon(pc, g.x, g.y, g.ang, 'sword', 0, MATS[0][1], null, 0);
+  if (g.behind) wd();
+  drawHumanoid(pc, 0, 0, {
+    look: L,
+    dx: di[0],
+    dy: di[1],
+    moving: true,
+    walk,
+    time: t,
+    carry: g.arm,
+  });
+  if (!g.behind) {
     wd();
-    handOver(pc, hp.x, hp.y, L);
+    handOver(pc, g.x, g.y, L);
   }
   pc.setTransform(1, 0, 0, 1, 0, 0);
 }
