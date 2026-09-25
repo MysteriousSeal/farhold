@@ -46,6 +46,8 @@ import { drawNpc } from '../game/npcs';
 import { offers } from '../game/quests';
 import { houseBack, houseFront, houseItems } from './interior';
 import { drawFlora } from '../art/flora';
+import { drawRoads } from '../art/roads';
+import { roadsOf } from '../world/roads';
 import { game, hero, lights, weather } from '../game/state';
 import { joy } from '../input/input';
 import { bgStep, getChunk } from '../world/chunks';
@@ -329,6 +331,17 @@ export function render() {
   drawPools(g, pools, game.time);
   drawCliffs(g, cliffs);
   const windK = 1 + weather.k * (weather.type === 'rain' ? 2 : 0);
+  if (game.mode === 'world') {
+    // dirt roads of the places around, under the grass and everything standing
+    const roads = [];
+    for (const p of game.activePois)
+      if (p.kind === 'village') {
+        const R = roadsOf(p);
+        roads.push(R);
+        flora.push(R.flora);
+      }
+    drawRoads(g, roads);
+  }
   drawFlora(g, flora, x0, y0, x1, y1, game.time, windK);
   if (game.mode === 'house') houseBack(g);
   if (game.mode === 'dungeon') for (const m of moss) drawMoss(g, m, game.DG.b === 6, game.time);

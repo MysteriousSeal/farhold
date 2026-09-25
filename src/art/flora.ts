@@ -46,12 +46,16 @@ export function drawFlora(
         ph = a[i + 3],
         b = a[i + 4];
       const P = paths[b] || (paths[b] = [new Path2D(), new Path2D()]),
-        nb = 3 + (Math.floor(ph * 7) % 3),
+        nb = b === 3 ? 2 + (Math.floor(ph * 7) % 2) : 3 + (Math.floor(ph * 7) % 3), // dry grass is sparser
         sway = Math.sin(t * 1.7 + ph + x * 0.015) * 1.1 * wind + lean;
       for (let k = 0; k < nb; k++) {
-        const ang = -0.8 + (1.6 * k) / (nb - 1) + Math.sin(ph * 3 + k) * 0.12,
-          len = (6.5 + 3.5 * (1 - Math.abs(ang))) * s * (0.9 + ((ph * 13 + k) % 1) * 0.3),
-          bx = x + (k - (nb - 1) / 2) * 1.1,
+        // irregular fan: uneven angles and lengths, the whole tuft leaning a little, so tufts
+        // read as grass rather than a neat (hand-like) fan
+        const r1 = (ph * 13.7 + k * 3.1) % 1,
+          r2 = (ph * 7.3 + k * 5.7) % 1,
+          ang = -0.75 + (1.5 * k) / (nb - 1) + (r1 - 0.5) * 0.5 + Math.sin(ph) * 0.2,
+          len = (5 + 4.5 * (1 - Math.abs(ang)) * (0.55 + r2 * 0.7)) * s,
+          bx = x + (k - (nb - 1) / 2) * 1.4 + (r2 - 0.5) * 1.5,
           tx = bx + Math.sin(ang) * len + (sway * len) / 9,
           ty = y - Math.cos(ang) * len,
           cx = bx + Math.sin(ang) * len * 0.15,

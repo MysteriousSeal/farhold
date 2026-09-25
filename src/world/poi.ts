@@ -263,15 +263,7 @@ function makeVillage(x, y, key, home?) {
   }
   placeLamps(
     v,
-    [
-      {
-        pts: [
-          { x, y },
-          { x, y: y + 150 },
-        ],
-        w: 22,
-      },
-    ],
+    [], // no road leaves the village: lamps ring the plaza and line the house lanes
     v.houses.map((h) => ({ pts: houseRoute(v, h), w: 26 })),
     { x, y: y + 10, rx: 128, ry: 96 },
   );

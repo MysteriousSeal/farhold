@@ -1,13 +1,14 @@
 import { mkCanvas } from '../core/dom';
-import { OUT, TAU, clamp, fbm, hs, lerp, mulberry, pick, rand, strSeed, vn } from '../core/math';
+import { OUT, TAU, clamp, fbm, hs, lerp, mulberry, pick, rand, vn } from '../core/math';
 import { game } from '../game/state';
 import { traceCliffs } from './cliffs';
 import { sampleHeights } from './contour';
 import { tracePools, traceShores } from './shores';
 import { genFlora } from './flora';
+import { roadHit, roadsOf } from './roads';
 import { IT } from './interior';
 import { genDungeonChunk } from './dungeon';
-import { houseRoute, poiSolid, poisNear } from './poi';
+import { poiSolid, poisNear } from './poi';
 import { CH, PEAK_H, classify, corr, groundF, hField, peakF, terr, walkT } from './terrain';
 /* ---------- World chunks ---------- */
 export const WCH = new Map();
@@ -514,7 +515,9 @@ function finishGen(G) {
     cy,
     CH,
     (lx, ly) => (onIsland(ox + lx, oy + ly) ? [2, at(lx, ly)[1]] : at(lx, ly)),
-    (wx, wy) => inPoi(wx, wy, -10),
+    (wx, wy) =>
+      inPoi(wx, wy, -10) ||
+      pois.some((p) => p.kind === 'village' && roadHit(roadsOf(p), wx, wy, 4)),
   );
   return { cvs, decor, waves, cliffs, shores, pools, flora, last: 0 };
 }
@@ -536,93 +539,14 @@ const DECOR_R = {
   palm: 7,
   log: 10,
 };
-/** Dirt road from (sx, sy) heading along (dx, dy): solid for `full`, then a fading trail. */
-function paintRoad(x, key, sx, sy, dx, dy, full, fade, dirt) {
-  x.fillStyle = dirt;
-  x.strokeStyle = dirt;
-  x.lineCap = 'round';
-  x.lineWidth = 24;
-  x.beginPath();
-  x.moveTo(sx, sy);
-  x.lineTo(sx + dx * full, sy + dy * full);
-  x.stroke();
-  const tr = mulberry(strSeed(key));
-  let off = 0;
-  for (let d = full; d < full + fade; d += 8) {
-    const k = (d - full) / fade;
-    off += (tr() - 0.5) * 3;
-    const skip = tr() < k * 0.75,
-      rw = 12 * (1 - k * 0.7) * (0.8 + tr() * 0.4),
-      j = off + (tr() - 0.5) * 8 * k;
-    if (skip) continue;
-    x.beginPath();
-    x.ellipse(sx + dx * d - dy * j, sy + dy * d + dx * j, dy ? rw : 6, dy ? 6 : rw, 0, 0, TAU);
-    x.fill();
-  }
-}
 function paintPoiGround(x, p) {
   x.save();
-  if (p.kind === 'village' && p.city) {
-    // Hearthfire's paving is drawn crisply by art/city.ts; only the country roads are baked
-    const dirt = p.b === 4 ? '#c9c2b8' : p.b === 3 ? '#d9b884' : '#c9a26e';
-    paintRoad(x, p.key + 'rs', 0, 500, 0, 1, 170, 200, dirt);
-    paintRoad(x, p.key + 'rw', -600, 20, -1, 0, 170, 200, dirt);
-    paintRoad(x, p.key + 're', 600, 20, 1, 0, 170, 200, dirt);
+  // village plazas, lanes and roads are crisp vectors (world/roads.ts, art/roads.ts)
+  if (p.kind === 'village') {
     x.restore();
     return;
   }
-  if (p.kind === 'village') {
-    const dirt = p.b === 4 ? '#c9c2b8' : p.b === 3 ? '#d9b884' : '#c9a26e';
-    x.fillStyle = dirt;
-    x.beginPath();
-    x.ellipse(p.x, p.y + 10, 128, 96, 0, 0, TAU);
-    x.fill();
-    x.strokeStyle = dirt;
-    x.lineCap = 'round';
-    x.lineJoin = 'round';
-    x.lineWidth = 24;
-    for (const h of p.houses) {
-      const r = houseRoute(p, h);
-      x.beginPath();
-      x.moveTo(r[0].x, r[0].y);
-      for (let i = 1; i < r.length - 1; i++) x.arcTo(r[i].x, r[i].y, r[i + 1].x, r[i + 1].y, 26);
-      x.lineTo(r[r.length - 1].x, r[r.length - 1].y);
-      x.stroke();
-    }
-    // road south of the plaza that thins out into a worn trail
-    x.lineWidth = 22;
-    x.beginPath();
-    x.moveTo(p.x, p.y);
-    x.lineTo(p.x, p.y + 150);
-    x.stroke();
-    const tr = mulberry(strSeed(p.key + 'trail'));
-    let tx = p.x;
-    for (let ty = p.y + 150; ty < p.y + 340; ty += 8) {
-      const k = (ty - p.y - 150) / 190;
-      tx += (tr() - 0.5) * 3;
-      const skip = tr() < k * 0.75,
-        rw = 11 * (1 - k * 0.7) * (0.8 + tr() * 0.4),
-        jx = (tr() - 0.5) * 8 * k;
-      if (skip) continue;
-      x.beginPath();
-      x.ellipse(tx + jx, ty, rw, 6, 0, 0, TAU);
-      x.fill();
-    }
-    const r2 = mulberry(strSeed(p.key + 'cob'));
-    x.fillStyle = 'rgba(120,90,60,.3)';
-    for (let i = 0; i < 120; i++) {
-      const a = r2() * TAU,
-        d = Math.sqrt(r2()) * 110;
-      x.beginPath();
-      x.ellipse(p.x + Math.cos(a) * d, p.y + 10 + Math.sin(a) * d * 0.75, 4, 2.6, 0, 0, TAU);
-      x.fill();
-    }
-    x.strokeStyle = 'rgba(255,255,255,.18)';
-    x.lineWidth = 3;
-    x.beginPath();
-    x.ellipse(p.x, p.y + 10, 128, 96, 0, 0, TAU);
-    x.stroke();
-  } else if (p.kind === 'lair') {
+  if (p.kind === 'lair') {
     const gr = x.createRadialGradient(p.x, p.y, 20, p.x, p.y, 200);
     gr.addColorStop(0, 'rgba(40,20,30,.65)');
     gr.addColorStop(0.7, 'rgba(50,30,40,.4)');
