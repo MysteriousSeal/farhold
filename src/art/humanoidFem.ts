@@ -2,7 +2,7 @@ import { rr } from '../core/dom';
 import { OUT, TAU, sh } from '../core/math';
 /* ================= ART: humanoid details by gender and hair style ================= */
 // Called from drawHumanoid (art/humanoid.ts). Hair style codes (look.hair):
-//   0 short · 1 long · 2 ponytail · 3 bald · 7 buzz cut · 8 mohawk · 9 curly · 10 topknot  (male)
+//   0 short · 3 bald · 7 buzz cut · 8 mohawk                                               (male)
 //   4 bob · 1 long · 2 ponytail · 5 braid · 6 bun · 11 pigtails · 9 curly · 12 pixie        (female)
 // look.fem marks a female figure: a softer torso (narrower shoulders, fuller hips, same size),
 // lashes, a linen top when bare-chested, and subtly shaped armor. look.stubble / look.beard give

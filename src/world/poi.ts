@@ -411,9 +411,7 @@ export function villagerLook(rnd: () => number): Record<string, any> {
     fem = rnd() < 0.5,
     L: Record<string, any> = {
       skin: skins[(rnd() * 4) | 0],
-      hair: fem
-        ? [4, 12, 1, 2, 5, 11, 9, 6][(rnd() * 8) | 0]
-        : [0, 7, 1, 2, 9, 10, 8, 3][(rnd() * 8) | 0],
+      hair: fem ? [4, 12, 1, 2, 5, 11, 9, 6][(rnd() * 8) | 0] : [0, 7, 8, 3][(rnd() * 4) | 0],
       hairC: hairs[(rnd() * 5) | 0],
       race: 'human',
       cloth: cl[(rnd() * cl.length) | 0],

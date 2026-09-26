@@ -16,6 +16,9 @@ export function migrate(p) {
   p.cleared = p.cleared || {};
   // lair bosses beaten so far (each first defeat gives a skill point)
   p.bossDone = p.bossDone || Object.keys(p.cleared).filter((k) => k[0] === 'l');
+  // long hair, ponytails, curls and the topknot (a bun) are women's looks now: men with one
+  // get the short cut
+  if (p.gender !== 'f' && [1, 2, 9, 10].includes(p.hair)) p.hair = 0;
   // the passive skill tree replaced the old skill grid: every point spent comes back once
   p.tree = p.tree || [];
   if (p.treeV !== 1) {

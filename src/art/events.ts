@@ -12,7 +12,7 @@ const WOOD = '#8a5a36',
 
 const MERCHANT = {
   skin: '#e6b187',
-  hair: 1,
+  hair: 0,
   hairC: '#e4e4e4',
   beard: true,
   cloth: '#3f6f8a',

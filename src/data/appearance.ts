@@ -52,10 +52,6 @@ export const HAIRS = {
   m: [
     [0, 'Short'],
     [7, 'Buzz cut'],
-    [1, 'Long'],
-    [2, 'Ponytail'],
-    [9, 'Curly'],
-    [10, 'Topknot'],
     [8, 'Mohawk'],
     [3, 'Bald'],
   ],
