@@ -1325,6 +1325,10 @@ input.txt {
 .sheetxp {
   margin: 8px 0 0;
 }
+/* (the same purple as the HUD's experience bar) */
+.sheetxp i {
+  background: linear-gradient(#e2d2ff, #9a6ae8 60%, #6a3ec0);
+}
 .xpt {
   font-size: 12px;
   opacity: 0.7;
@@ -1784,11 +1788,32 @@ input.txt {
   color: var(--gold);
   letter-spacing: 0.3px;
 }
-/* the preview stays in view while scrolling through the options (wide layout) */
+/* wide layout: the options scroll inside their column while the header, the preview and the
+   footer (Begin journey) stay in view */
 @media (min-width: 681px) {
+  #create .panel.crp {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    overflow: hidden;
+  }
+  .crbody {
+    overflow: auto;
+    padding-right: 4px;
+    touch-action: pan-y;
+  }
   #prevwrap {
-    position: sticky;
-    top: 0;
     align-self: start;
+  }
+}
+@media (min-width: 681px) and (max-height: 900px) {
+  #create .panel.crp {
+    height: 100%;
+    padding: 14px 18px;
+    gap: 10px 20px;
+  }
+  .crbody {
+    gap: 8px;
+  }
+  .crs {
+    padding: 10px 12px 12px;
   }
 }

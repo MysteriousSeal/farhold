@@ -1,4 +1,6 @@
 import { game } from '../game/state';
+/** A name's possessive: "Oakes'" and "Pell's". */
+export const poss = (n: string) => n + (/s$/i.test(n) ? "'" : "'s");
 export const TAU = Math.PI * 2,
   OUT = '#2a1d2c';
 export const clamp = (v, a, b) => (v < a ? a : v > b ? b : v),

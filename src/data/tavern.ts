@@ -217,7 +217,7 @@ export const TASK_SAYS = {
   deliver: [
     'Take this parcel to the barmaid at {place}. Do not open it.',
     'My sister runs errands at {place}. Get this letter to their barmaid?',
-    'This bottle is owed to {place}. Their barmaid will know.',
+    'This parcel is owed to {place}. Their barmaid will know.',
     'A package for {place}, nothing dangerous. Mostly nothing.',
   ],
   find: [

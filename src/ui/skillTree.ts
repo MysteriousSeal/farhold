@@ -49,9 +49,9 @@ function render() {
       'Skill tree',
       '<b class="stpts">' +
         free +
-        '</b> point' +
-        (free === 1 ? '' : 's') +
-        ' to spend · one per level, one per lair boss (' +
+        '</b> <span class="stptw">' +
+        (free === 1 ? 'point' : 'points') +
+        '</span> to spend · one per level, one per lair boss (' +
         bossPoints() +
         ' so far)',
     ) +
@@ -75,6 +75,9 @@ function side() {
   const free = pointsFree(),
     pts = document.querySelector('.stpts');
   if (pts) pts.textContent = String(free);
+  // the word follows the count as points are spent ("1 point", "0 points")
+  const w = document.querySelector('.stptw');
+  if (w) w.textContent = free === 1 ? 'point' : 'points';
   actives(free);
   details(free);
   summary();

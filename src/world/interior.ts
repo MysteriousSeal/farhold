@@ -1,4 +1,4 @@
-import { mulberry, sh, strSeed } from '../core/math';
+import { mulberry, poss, sh, strSeed } from '../core/math';
 import { game } from '../game/state';
 import { BIOME_LINES, HALL_LINES, LINES } from '../data/dialogue';
 import { NAMES } from '../data/names';
@@ -192,9 +192,9 @@ export function genInterior(v, h, idx: number): Interior {
     kind === 'hall'
       ? v.name + ' Hall'
       : kind === 'hut'
-        ? sur + "'s hut"
+        ? poss(sur) + ' hut'
         : kind === 'tower'
-          ? sur + "'s tower"
+          ? poss(sur) + ' tower'
           : 'The ' + sur + ' house';
   if (kind === 'tavern') {
     I.name = h.name || 'The Tavern';
@@ -202,7 +202,7 @@ export function genInterior(v, h, idx: number): Interior {
     I.village = v;
     furnishTavern(I, rnd, !!h.big);
   } else if (kind === 'smithy') {
-    I.name = sur + "'s Smithy";
+    I.name = poss(sur) + ' Smithy';
     I.pal.wall = sh(I.pal.wall, -0.12);
     I.pal.floor = '#7a746e';
     I.village = v;

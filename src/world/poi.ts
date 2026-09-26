@@ -41,16 +41,16 @@ const CPRE = [
   CSUF = ['hollow', 'deep', 'warren', 'grotto', 'pit', 'caverns', 'den'];
 const BNAMES = [
   'Gorvak',
-  'Morgra',
+  'Mordek',
   'Skarn',
   'Vexis',
   'Ulgoth',
   'Thrask',
-  'Nyssa',
+  'Draven',
   'Korrin',
   'Zalthor',
-  'Bryn',
-  'Hagra',
+  'Brakk',
+  'Grask',
   'Oskel',
 ];
 function checkVillage(v) {

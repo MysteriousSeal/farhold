@@ -13,6 +13,7 @@ import { game } from '../game/state';
 import { calcStats } from '../game/stats';
 import { btn, goldPill, hdr, itemCard, iconCanvas, openModal, statLines, wireClose } from './modal';
 import { closeAll } from './screens';
+import { arrivalY } from '../game/interactions';
 import { poisNear } from '../world/poi';
 /* shop */
 /** Each stall restocks its whole list every 10 real minutes, even while the game is closed. */
@@ -63,7 +64,9 @@ export function openPotions(v) {
     const row = document.createElement('div');
     row.className = 'row2';
     row.innerHTML =
-      '<div class="potic">🧪</div><div style="flex:1"><div class="nm">' +
+      '<div class="potic">' +
+      ICO_POT +
+      '</div><div style="flex:1"><div class="nm">' +
       (n > 1 ? n + ' health potions' : 'Health potion') +
       '</div><div class="desc">Each restores 45% of your health. You carry ' +
       game.P.pot +
@@ -632,7 +635,7 @@ export function openTravel(v) {
           closeAll();
           doFade(() => {
             game.P.x = w.x;
-            game.P.y = w.y + 70;
+            game.P.y = arrivalY(w);
             unstick(game.P);
             game.camX = game.P.x;
             game.camY = game.P.y;
