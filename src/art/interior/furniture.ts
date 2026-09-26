@@ -497,24 +497,58 @@ function worktable(c: Ctx, f: Furn) {
   ell(c, x - 5, y - 21, 3, 2.4, '#8aba4a');
 }
 function stair(c: Ctx, f: Furn) {
-  const cx = f.x,
-    cy = f.y - IT;
-  shadow(c, cx, cy + 34, 34, 9);
-  // a spiral of wedge steps rising toward the back
-  for (let k = 7; k >= 0; k--) {
-    const a0 = -Math.PI / 2 + k * 0.72,
-      a1 = a0 + 0.72,
-      lift = k * 7;
+  // a spiral stair seen from above at an angle: flattened wedge steps with a visible
+  // thickness, climbing around a post in the corner, from the front, round the left, to the back wall
+  // (the post stands near the back-right corner of its 2×2 cells, against both walls)
+  const cx = f.x + 14,
+    cy = f.y - IT - 14,
+    R = 34,
+    r0 = 5,
+    SQ = 0.55, // depth squash of the floor plan
+    n = 7,
+    // from the front-right, round the front and the left, to the back wall; no steps on
+    // the wall side
+    start = Math.PI * 0.3,
+    span = Math.PI * 1.45,
+    step = span / n,
+    rise = 9,
+    thick = 5,
+    top = (n - 1) * rise + 4;
+  shadow(c, cx - 8, cy + R * SQ + 2, R, 9);
+  const wedge = (a0: number, a1: number, y: number) => {
     c.beginPath();
-    c.moveTo(cx, cy - lift);
-    c.arc(cx, cy - lift, 34, a0, a1);
+    c.moveTo(cx + Math.cos(a0) * r0, y + Math.sin(a0) * r0 * SQ);
+    c.ellipse(cx, y, R, R * SQ, 0, a0, a1);
+    c.lineTo(cx + Math.cos(a1) * r0, y + Math.sin(a1) * r0 * SQ);
     c.closePath();
-    c.fillStyle = sh(STONE, -0.18 + k * 0.03);
+  };
+  const steps = Array.from({ length: n }, (_, k) => {
+    // step 0 at the front-right, climbing clockwise on screen
+    const a0 = start + k * step,
+      a1 = a0 + step;
+    return { k, a0, a1, mid: (a0 + a1) / 2 };
+  });
+  const drawStep = (st) => {
+    const y = cy - st.k * rise;
+    // the step's thickness, then its tread
+    wedge(st.a0, st.a1, y + thick);
+    c.fillStyle = sh(STONE, -0.32);
     c.fill();
     c.stroke();
-  }
-  ell(c, cx, cy - 56, 7, 5, sh(STONE, 0.1));
-  rr(c, cx - 4, cy - 58, 8, 58, 2, sh(STONE, -0.05)); // newel post
+    wedge(st.a0, st.a1, y);
+    c.fillStyle = sh(STONE, -0.1 + st.k * 0.025);
+    c.fill();
+    c.stroke();
+  };
+  // steps behind the post first, then the post, then the steps in front; within each group
+  // the farther (and, for equal depth, the lower) step goes first
+  const back = steps.filter((st) => Math.sin(st.mid) < 0),
+    front = steps.filter((st) => Math.sin(st.mid) >= 0);
+  const order = (a, b) => Math.sin(a.mid) - Math.sin(b.mid) || a.k - b.k;
+  back.sort(order).forEach(drawStep);
+  rr(c, cx - 4, cy - top, 8, top + thick, 2, sh(STONE, -0.05)); // newel post
+  ell(c, cx, cy - top, 5, 3, sh(STONE, 0.12));
+  front.sort(order).forEach(drawStep);
 }
 function pillar(c: Ctx, f: Furn) {
   const x = f.x,
