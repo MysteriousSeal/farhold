@@ -13,6 +13,7 @@ import {
 import {
   HEAD_K,
   drawArm,
+  drawBust,
   drawCape,
   drawLeg,
   drawNeck,
@@ -83,6 +84,7 @@ export function drawHumanoid(c, x, y, o) {
   drawTorso(c, R, K, L, lw, tint);
   if (L.cape && up) drawCape(c, R, tint(L.cape), lw, sw, true);
   for (const a of R.arms) if (!a.far) drawArm(c, R, a, K, lw, L);
+  drawBust(c, R, K, L, tint);
   drawPauldrons(c, R, A, tint, lw);
   head(() => drawHead(c, L, V, E, tint, c.lineWidth));
   c.restore();

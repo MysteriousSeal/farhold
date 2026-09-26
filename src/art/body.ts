@@ -410,7 +410,11 @@ export function drawArm(c: Ctx, R: Rig, A: Limb, K: Paint, lw: number, L) {
 }
 
 /** The torso outline (front, back or side), including the hips down to the crotch. */
-function torsoPath(R: Rig, fem: boolean, bottom?: number) {
+/**
+ * The torso outline (front, back or side), down to the crotch. `open` leaves out the bottom
+ * edge (for outlining bare hips, where the thighs carry on from the torso).
+ */
+function torsoPath(R: Rig, fem: boolean, bottom?: number, open = false) {
   const W = R.W,
     p = new Path2D(),
     { shY, waistY, hipY } = R,
@@ -426,12 +430,16 @@ function torsoPath(R: Rig, fem: boolean, bottom?: number) {
     if (fem) p.bezierCurveTo(ch + 3.4, shY + 5, ch + 4, shY + 10.2, ch - 0.4, shY + 10.8);
     p.quadraticCurveTo(wa + bel + 0.6, waistY - 2, wa + bel * 0.8, waistY + 1);
     p.quadraticCurveTo(hp * 0.95, hipY, hp * 0.8, Math.min(by, hipY + 2));
-    p.lineTo(hp * 0.7, by);
-    p.lineTo(-hp * 0.9, by);
+    if (open) p.moveTo(-hp * 0.9, Math.min(by, hipY + 2));
+    else {
+      p.lineTo(hp * 0.7, by);
+      p.lineTo(-hp * 0.9, by);
+    }
     p.quadraticCurveTo(-hp - 0.4, hipY, -wa + 0.4, waistY);
     p.quadraticCurveTo(-ch - 0.6, shY + 5, -ch + 1.2, shY + 0.6);
     p.quadraticCurveTo(-2.4, shY - 1.8, -1.6, shY - 1.8);
-    p.closePath();
+    if (open) p.lineTo(1.8, shY - 1.6);
+    else p.closePath();
     return p;
   }
   const s = W.sh,
@@ -443,15 +451,18 @@ function torsoPath(R: Rig, fem: boolean, bottom?: number) {
   p.quadraticCurveTo(-ch - 0.2, shY + 6, fem ? -wa - 0.2 : -ch + 0.4, shY + 8.5);
   p.quadraticCurveTo(-wa - 0.3, waistY - 1, -wa, waistY);
   p.quadraticCurveTo(-hp - 0.3, hipY - 1.5, -hp, Math.min(by, hipY + 1.5));
-  p.lineTo(-hp + 0.6, by);
-  p.lineTo(hp - 0.6, by);
-  p.lineTo(hp, Math.min(by, hipY + 1.5));
+  if (open) p.moveTo(hp, Math.min(by, hipY + 1.5));
+  else {
+    p.lineTo(-hp + 0.6, by);
+    p.lineTo(hp - 0.6, by);
+    p.lineTo(hp, Math.min(by, hipY + 1.5));
+  }
   p.quadraticCurveTo(hp + 0.3, hipY - 1.5, wa, waistY);
   p.quadraticCurveTo(wa + 0.3, waistY - 1, fem ? wa + 0.2 : ch - 0.4, shY + 8.5);
   p.quadraticCurveTo(ch + 0.2, shY + 6, s, shY + 2.4);
   p.quadraticCurveTo(s - 1.4, shY - 1.2, 3, shY - 1.8);
   p.quadraticCurveTo(0, shY - 0.8, -3, shY - 1.8);
-  p.closePath();
+  if (!open) p.closePath();
   return p;
 }
 /** In 3/4 views the torso turns: draw `fn` squeezed toward the facing side. */
@@ -495,11 +506,46 @@ export function drawTorso(c: Ctx, R: Rig, K: Paint, L, lw: number, tint: (c: str
       drawParts(c, [{ p: sp, col: sh(A ? tint(A.col) : top, -0.3) }], lw);
       c.restore();
     }
-    drawParts(c, [{ p: body, col: top, shade: side ? 1.6 : 2.2 }], lw);
+    // under the briefs the hips run straight into the thighs: no line across the crotch
+    const openHips = fem && !!L.shorts;
+    if (openHips) {
+      c.lineWidth = lw * 2;
+      c.strokeStyle = OUT;
+      c.stroke(torsoPath(R, fem, undefined, true));
+    }
+    drawParts(c, [{ p: body, col: top, shade: side ? 1.6 : 2.2, noLine: openHips }], lw);
     c.save();
     c.clip(body);
     // shorts over the hips when bare-legged or bare-chested
-    if (L.shorts) {
+    if (L.shorts && fem) {
+      // women: snug linen briefs, sitting lower and cut high at the sides (full coverage)
+      const col = tint(L.shorts),
+        y0 = waistY + 3.2,
+        br = new Path2D();
+      if (side) {
+        br.moveTo(-20, y0);
+        br.lineTo(20, y0);
+        br.lineTo(20, hipY + 5);
+        br.lineTo(W.hpD * 0.2, hipY + 5);
+        br.quadraticCurveTo(-W.hpD * 0.2, hipY + 0.2, -20, hipY + 1.5);
+      } else {
+        const hw = W.hips + 1;
+        br.moveTo(-20, y0);
+        br.lineTo(20, y0);
+        br.lineTo(20, hipY - 0.5);
+        br.lineTo(hw, hipY - 0.5);
+        br.quadraticCurveTo(hw * 0.35, hipY + 0.5, hw * 0.25, hipY + 5);
+        br.lineTo(-hw * 0.25, hipY + 5);
+        br.quadraticCurveTo(-hw * 0.35, hipY + 0.5, -hw, hipY - 0.5);
+        br.lineTo(-20, hipY - 0.5);
+      }
+      br.closePath();
+      c.fillStyle = col;
+      c.fill(br);
+      c.strokeStyle = sh(col, -0.35);
+      c.lineWidth = 1;
+      c.stroke(br);
+    } else if (L.shorts) {
       c.fillStyle = tint(L.shorts);
       c.fillRect(-20, waistY + 1.5, 40, 20);
       c.strokeStyle = sh(tint(L.shorts), -0.3);
@@ -515,21 +561,9 @@ export function drawTorso(c: Ctx, R: Rig, K: Paint, L, lw: number, tint: (c: str
     }
     if (K.bareTop && !L.bones && !L.wraps && !L.fur) bareChest(c, R, L, fem, tint);
     if (A) armour(c, R, A, tint, lw);
-    if (fem && !R.up && !L.bones && !L.wraps)
-      bust(
-        c,
-        R,
-        A
-          ? A.k === 0
-            ? tint(mixCol(A.col, '#8a5a36', 0.55))
-            : tint(A.col)
-          : K.bareTop
-            ? L.top
-              ? tint(L.top)
-              : K.skin
-            : K.cloth,
-        A ? A.k : -1,
-      );
+    // in profile the bust belongs to the torso outline; from the front it is drawn after
+    // the arms (drawBust), standing out in front of them
+    if (fem && side && !L.bones && !L.wraps) bust(c, R, bustCol(K, L, tint), A ? A.k : -1);
     if (L.bones) {
       c.strokeStyle = '#8a8272';
       c.lineWidth = 1.4;
@@ -592,6 +626,24 @@ export function drawTorso(c: Ctx, R: Rig, K: Paint, L, lw: number, tint: (c: str
       drawParts(c, [{ p: am, col: tint(L.amulet) }], lw * 0.8);
     }
   });
+}
+/** The colour of whatever covers the bust: armour, the linen top, the tunic or skin. */
+function bustCol(K: Paint, L, tint: (c: string) => string) {
+  const A = L.armor;
+  return A
+    ? A.k === 0
+      ? tint(mixCol(A.col, '#8a5a36', 0.55))
+      : tint(A.col)
+    : K.bareTop
+      ? L.top
+        ? tint(L.top)
+        : K.skin
+      : K.cloth;
+}
+/** A woman's bust seen from the front or 3/4, over the arms (called after they are drawn). */
+export function drawBust(c: Ctx, R: Rig, K: Paint, L, tint: (c: string) => string) {
+  if (!L.fem || R.up || R.side || L.bones || L.wraps) return;
+  turned(c, R, () => bust(c, R, bustCol(K, L, tint), L.armor ? L.armor.k : -1));
 }
 /**
  * A woman's bust in whatever covers it (linen top, tunic, leather, mail or plate): two rounded
