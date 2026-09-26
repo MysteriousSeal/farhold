@@ -64,6 +64,8 @@ export function findInteract() {
   }
   return best;
 }
+/** Where the hero arrives at a waystone: just south of it, or of Hearthfire's fountain. */
+export const arrivalY = (w) => w.y + (!w.x && !w.y ? 164 : 70);
 export function visitPois() {
   for (const p of game.activePois) {
     const d = Math.hypot(game.P.x - p.x, game.P.y - p.y);

@@ -11,6 +11,20 @@ export const keys: Record<string, boolean> = {};
 export let mouseAim = null,
   mouseAtk = false;
 export const joy = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
+/** The movement direction held right now: WASD / arrow keys, or the touch stick. */
+export function moveInput(): [number, number] {
+  let mx = 0,
+    my = 0;
+  if (keys.KeyW || keys.ArrowUp) my--;
+  if (keys.KeyS || keys.ArrowDown) my++;
+  if (keys.KeyA || keys.ArrowLeft) mx--;
+  if (keys.KeyD || keys.ArrowRight) mx++;
+  if (joy.id !== null) {
+    mx = joy.x;
+    my = joy.y;
+  }
+  return [mx, my];
+}
 export const isTouch = matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window;
 addEventListener('keydown', (e) => {
   keys[e.code] = true;

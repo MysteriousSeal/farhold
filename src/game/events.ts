@@ -1,4 +1,5 @@
 import { SFX } from '../audio/sfx';
+import { solidAt } from '../world/chunks';
 import { TAU, pick, rand } from '../core/math';
 import { TABLE, typesFor } from '../data/enemies';
 import { BAGMAX } from './drops';
@@ -57,6 +58,9 @@ function openSpot() {
       T = terr(x, y);
     if (!walkT(T) || T.t === 1 || T.t >= 4 || Math.hypot(x, y) < 800) continue;
     if (poisNear(x, y, 260).length) continue;
+    // clear ground: no tree, rock or cliff anywhere under the wagon (or the crater)
+    if ([-60, -30, 0, 30, 60].some((dx) => [-30, 0, 30].some((dy) => solidAt(x + dx, y + dy, 24))))
+      continue;
     return { x, y };
   }
   return null;
@@ -135,8 +139,9 @@ export function startEvent(only?: string) {
       }
     }
     game.ev = ev;
-    return;
+    return true;
   }
+  return false;
 }
 
 /** Advance the world event (called every frame while playing in the open world). */

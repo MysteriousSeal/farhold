@@ -207,14 +207,14 @@ function renderChar() {
   drawPortrait($('#sHero'));
   $('#sStats').innerHTML = [
     ['Health', Math.ceil(P.hp) + ' / ' + game.ST.hp],
-    ['Attack', game.ST.atk],
+    ['Attack', Math.round(game.ST.atk)],
     ['Armor', game.ST.def],
     ['Crit chance', game.ST.crit + '%'],
     ['Crit damage', '+' + game.ST.critd + '%'],
     ['Attack speed', '+' + game.ST.aspd + '%'],
     ['Speed', game.ST.spd],
     ['Life steal', game.ST.leech + '%'],
-    ['Skill cooldown', '-' + game.ST.cdr + '%'],
+    ['Skill cooldown', game.ST.cdr ? '-' + game.ST.cdr + '%' : '0%'],
     ['Gold', P.gold],
   ]
     .map((r) => '<div>' + r[0] + ' <b>' + r[1] + '</b></div>')
@@ -253,21 +253,23 @@ function renderBags() {
     d.style.opacity = '.35';
     bg.appendChild(d);
   }
-  const junk = salvageable(game.P.inv);
+  // items that would make the hero stronger (the ▲ badge) are never bulk-salvaged
+  const isUp = (it) => compareItem(it).overall > 0.005,
+    junk = salvageable(game.P.inv).filter((it) => !isUp(it));
   if (junk.length) {
     const gold = junk.reduce((a, it) => a + salvageValue(it), 0);
     $('#iBulk').appendChild(
       btn(
         salvageArmed
           ? 'Tap again: salvage ' + junk.length + ' items for ' + gold + ' gold'
-          : 'Salvage all except Epic & Legendary (' + junk.length + ')',
+          : 'Salvage all except Epic, Legendary and upgrades (' + junk.length + ')',
         () => {
           if (!salvageArmed) {
             salvageArmed = true;
             render();
             return;
           }
-          const r = salvageAll(game.P);
+          const r = salvageAll(game.P, isUp);
           salvageArmed = false;
           if (selItem && !selItem.eq && !game.P.inv.includes(selItem.it)) selItem = null;
           SFX.coin();

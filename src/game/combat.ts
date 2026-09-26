@@ -14,16 +14,20 @@ import { game, hero } from './state';
 import { calcStats, xpNeed } from './stats';
 import { setHud } from '../ui/hud';
 import { showScreen } from '../ui/screens';
+import { moveInput } from '../input/input';
+import { arrivalY } from './interactions';
 import { regionName, solidAt } from '../world/chunks';
 /* ================= COMBAT: hero ================= */
 function nearestEnemy(x, y, maxd, cone?, coneW = 1.3) {
   let best = null,
     bd = maxd;
+  const face = Math.atan2(hero.dy, hero.dx);
   for (const e of game.enemies) {
     if (e.dying > 0) continue;
     const dx = e.x - x,
       dy = e.y - y,
-      d = Math.hypot(dx, dy) - e.r;
+      // on near ties, the enemy ahead of the hero wins
+      d = Math.hypot(dx, dy) - e.r - 8 * Math.cos(angDiff(Math.atan2(dy, dx), face));
     if (d < bd) {
       if (cone != null && Math.abs(angDiff(Math.atan2(dy, dx), cone)) > coneW && d > 30) continue;
       bd = d;
@@ -164,8 +168,9 @@ export function heroAttack() {
 export function heroRoll() {
   if (hero.rollCd > 0 || hero.roll > 0 || hero.leap) return;
   cancelWarp();
-  let dx = hero.vx,
-    dy = hero.vy;
+  // the direction held right now (a key pressed in the same frame as the roll counts), else
+  // the way the hero faces
+  let [dx, dy] = moveInput();
   if (!dx && !dy) {
     dx = hero.dx;
     dy = hero.dy;
@@ -180,7 +185,7 @@ export function heroRoll() {
   burst(game.P.x, game.P.y, '#e8dcc0', 8, 80, 3);
 }
 function skillTarget(max) {
-  const e = nearestEnemy(game.P.x, game.P.y - 12, max);
+  const e = nearestEnemy(game.P.x, game.P.y, max);
   return e
     ? { x: e.x, y: e.y }
     : { x: game.P.x + Math.cos(hero.aim) * 180, y: game.P.y + Math.sin(hero.aim) * 180 };
@@ -220,7 +225,7 @@ export function useSkill(n) {
     };
     SFX.roll();
   } else if (c === 'ranger' && n === 1) {
-    const tg = nearestEnemy(game.P.x, game.P.y - 12, 340);
+    const tg = nearestEnemy(game.P.x, game.P.y, 340);
     const a0 = tg ? Math.atan2(tg.y - game.P.y, tg.x - game.P.x) : hero.aim,
       cnt = 6 + r;
     SFX.shoot();
@@ -365,7 +370,7 @@ export function respawn() {
   if (game.mode === 'dungeon') leaveDungeon(true);
   if (game.mode === 'house') leaveHouse(true);
   game.P.x = w.x;
-  game.P.y = w.y + 70;
+  game.P.y = arrivalY(w);
   unstick(game.P);
   game.P.hp = game.ST.hp;
   game.enemies = [];

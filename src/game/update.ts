@@ -22,7 +22,7 @@ import { updateProjs, updateTeles, updateZones } from './projectiles';
 import { save } from './save';
 import { game, hero } from './state';
 import { updateDay, updateWeather } from './worldTick';
-import { joy, keys, mouseAim, mouseAtk } from '../input/input';
+import { mouseAim, mouseAtk, moveInput } from '../input/input';
 import { updateWeatherFx, zoom } from '../render/render';
 import { regionName, solidAt } from '../world/chunks';
 import { poisNear } from '../world/poi';
@@ -31,16 +31,7 @@ import { BIOMES, dangerAt, terr } from '../world/terrain';
 /** Seconds a new facing must be held before the hero turns (diagonal release grace). */
 const FACE_HOLD = 0.1;
 function updateHero(dt) {
-  let mx = 0,
-    my = 0;
-  if (keys.KeyW || keys.ArrowUp) my--;
-  if (keys.KeyS || keys.ArrowDown) my++;
-  if (keys.KeyA || keys.ArrowLeft) mx--;
-  if (keys.KeyD || keys.ArrowRight) mx++;
-  if (joy.id !== null) {
-    mx = joy.x;
-    my = joy.y;
-  }
+  let [mx, my] = moveInput();
   const l = Math.hypot(mx, my);
   if (l > 1) {
     mx /= l;

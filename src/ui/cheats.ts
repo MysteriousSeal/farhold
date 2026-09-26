@@ -3,6 +3,7 @@ import { ET } from '../data/enemies';
 import { makeEnemy } from '../game/enemies';
 import { game } from '../game/state';
 import { startEvent } from '../game/events';
+import { toast } from '../game/fx';
 import { solidAt } from '../world/chunks';
 /* ================= CHEATS (dev builds only, loaded from main.ts) ================= */
 // A button in the bottom-left corner opens a panel to spawn any regular enemy, at the
@@ -62,7 +63,14 @@ for (const [kind, label] of [
 ]) {
   const b = document.createElement('button');
   b.textContent = label;
-  b.onclick = () => startEvent(kind);
+  b.onclick = () => {
+    if (!startEvent(kind))
+      toast(
+        kind === 'raid'
+          ? 'No village close enough for a raid'
+          : 'No clear spot nearby for this event, move a little',
+      );
+  };
   panel.querySelector('.grid.ev').appendChild(b);
 }
 btn.onclick = () => panel.classList.toggle('on');

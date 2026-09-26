@@ -160,11 +160,14 @@ export const salvageValue = (it) => Math.ceil(it.val / 2);
 export const SALVAGE_KEEP_R = 3;
 /** Bag items that "salvage all" would remove (equipped gear is never included). */
 export const salvageable = (inv) => inv.filter((it) => it.r < SALVAGE_KEEP_R);
-/** Salvage every bag item below Epic; returns how many items went and the gold gained. */
-export function salvageAll(p) {
-  const junk = salvageable(p.inv),
+/**
+ * Salvage every bag item below Epic, except those `keep` spares (the caller keeps upgrades);
+ * returns how many items went and the gold gained.
+ */
+export function salvageAll(p, keep: (it) => boolean = () => false) {
+  const junk = salvageable(p.inv).filter((it) => !keep(it)),
     gold = junk.reduce((a, it) => a + salvageValue(it), 0);
-  p.inv = p.inv.filter((it) => it.r >= SALVAGE_KEEP_R);
+  p.inv = p.inv.filter((it) => !junk.includes(it));
   p.gold += gold;
   return { count: junk.length, gold };
 }
