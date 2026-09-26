@@ -14,6 +14,16 @@ export function migrate(p) {
   if (p.quests.every((q) => q.tracked === undefined))
     p.quests.forEach((q, i) => (q.tracked = i < 5));
   p.cleared = p.cleared || {};
+  // lair bosses beaten so far (each first defeat gives a skill point)
+  p.bossDone = p.bossDone || Object.keys(p.cleared).filter((k) => k[0] === 'l');
+  // the passive skill tree replaced the old skill grid: every point spent comes back once
+  p.tree = p.tree || [];
+  if (p.treeV !== 1) {
+    if (Object.keys(p.sp).length) p.treeNote = 1;
+    p.sp = {};
+    p.tree = [];
+    p.treeV = 1;
+  }
   p.chests = p.chests || {};
   p.dgClear = p.dgClear || {};
   // one-time reset of cave progress: guardians, chests and full-clear bonuses come back

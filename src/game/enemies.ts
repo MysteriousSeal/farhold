@@ -10,7 +10,7 @@ import { BOSS } from '../data/bosses';
 import { ET, GOLEMCOL, TABLE, typesFor } from '../data/enemies';
 import { bossAI } from './bossAI';
 import { gainXp, hurtHero } from './combat';
-import { banner, burst, ftext, ring } from './fx';
+import { banner, burst, ftext, ring, toast } from './fx';
 import { genItem } from './items';
 import { questEvent, wantedTypes } from './quests';
 import { save } from './save';
@@ -191,7 +191,13 @@ export function killEnemy(e) {
     gold = lairBoss ? Math.round(total * (1 - CHEST_GOLD_SHARE)) : total,
     coins = Math.min(e.boss ? 16 : 8, 2 + ((gold / 6) | 0));
   for (let i = 0; i < coins; i++)
-    dropAt(e.x, e.y, { kind: 'gold', amt: Math.max(1, Math.round(gold / coins)) });
+    dropAt(e.x, e.y, {
+      kind: 'gold',
+      amt: Math.max(1, Math.round((gold * (game.ST.goldMul || 1)) / coins)),
+    });
+  // Bloodthirst: each kill heals a little
+  if (game.ST.killHeal && game.P.hp > 0)
+    game.P.hp = Math.min(game.ST.hp, game.P.hp + (game.ST.hp * game.ST.killHeal) / 100);
   if (lairBoss) spawnBossChest(e.src, e.lvl, total - gold);
   if (e.boss) {
     if (!lairBoss) {
@@ -208,6 +214,12 @@ export function killEnemy(e) {
     if (e.src && !e.src.mini) {
       game.P.cleared[e.src.key] = 1;
       questEvent('boss', e.src.key);
+      // each lair boss's first defeat is worth a skill point
+      game.P.bossDone = game.P.bossDone || [];
+      if (!game.P.bossDone.includes(e.src.key)) {
+        game.P.bossDone.push(e.src.key);
+        setTimeout(() => toast('+1 skill point for defeating ' + e.name), 1600);
+      }
     }
     if (e.src && e.src.mini) game.DG.guardDead = true;
     game.curBoss = null;

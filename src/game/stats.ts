@@ -1,7 +1,7 @@
 import type { Look, Stats } from './types';
 import { sh } from '../core/math';
 import { MATS, OUTFIT, RAR, SLOTS } from '../data/classes';
-import { rank } from '../data/skills';
+import { treeFx } from '../data/skills';
 import { itemStat } from './items';
 import { game } from './state';
 /** Final stats for a hero `p` (level, gear, skills) without touching game state. */
@@ -34,16 +34,30 @@ export function computeStats(p = game.P): Stats {
     const it = p.eq[k];
     if (it) for (const n in it.st) s[n] += itemStat(it, n);
   }
-  // shared skill tree (data/skills.ts)
-  s.dmgMul += 0.06 * rank('a0');
-  s.arc += 0.15 * rank('a1');
-  s.rad += 0.15 * rank('a1');
-  s.pierce += rank('a1');
-  s.critd += 25 * rank('a2');
-  s.hpMul += 0.07 * rank('b0');
-  s.defMul += 0.12 * rank('b1');
-  s.regenPct = 0.4 * rank('b2');
-  s.cdr += 10 * rank('c1');
+  // the passive skill tree (data/tree.ts)
+  const F = treeFx(p),
+    f = (k: string) => F[k] || 0;
+  s.dmgMul += f('dmg') / 100;
+  s.hpMul += f('hp') / 100;
+  s.defMul += f('armor') / 100;
+  s.crit += f('crit');
+  s.critd += f('critd');
+  s.aspd += f('aspd');
+  s.leech += f('leech');
+  s.regenPct = f('regen');
+  s.cdr += f('cdr');
+  s.rollCd *= 1 - f('roll') / 100;
+  s.arc += 0.15 * f('reach');
+  s.rad += 0.15 * f('reach');
+  s.pierce += f('reach');
+  s.spd *= 1 + f('spd') / 100;
+  s.goldMul = 1 + f('gold') / 100;
+  s.xpMul = 1 + f('xp') / 100;
+  s.dodge = f('dodge');
+  s.dr = f('dr');
+  s.killHeal = f('killHeal');
+  s.potMul = 1 + f('pot') / 100;
+  s.last = f('last');
   // tavern drink (ui/tavern.ts): one buff at a time
   const bk = p.buff && p.buff.t > 0 ? p.buff.k : '';
   if (bk === 'ale') s.dmgMul += 0.1;

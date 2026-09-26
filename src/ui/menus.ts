@@ -1,128 +1,15 @@
 import { SFX } from '../audio/sfx';
-import { STYLE_NAME, heroStyle } from '../game/style';
 import { $ } from '../core/dom';
 import { saveSettings, settings } from '../core/settings';
-import { SKILLCD, nodeUnlocked, pointsFree, rank, skillTree } from '../data/skills';
-import { toast } from '../game/fx';
 import { loadSave, save } from '../game/save';
 import { game } from '../game/state';
-import { calcStats } from '../game/stats';
 import { setHud } from './hud';
 import { btn, hdr, openModal, wireClose } from './modal';
 import { closeAll, showScreen } from './screens';
-/* skills */
-let skSel = null;
+import { openSkillTree } from './skillTree';
+/* skills: the skill tree (ui/skillTree.ts) */
 export function openSkills() {
-  if (game.state !== 'play') return;
-  skSel = null;
-  renderSkills();
-}
-function renderSkills() {
-  const T = skillTree(),
-    free = pointsFree();
-  openModal(
-    hdr(
-      'Skills · ' + STYLE_NAME[heroStyle()].toLowerCase() + ' techniques',
-      free + ' point' + (free === 1 ? '' : 's') + ' to spend. You earn one each level.',
-    ) + '<div class="tree" id="tree"></div><div id="skd"></div>',
-  );
-  wireClose();
-  const tr = $('#tree');
-  T.cols.forEach((cn, ci) => {
-    const col = document.createElement('div');
-    col.className = 'tcol';
-    col.innerHTML = '<div class="tct">' + cn + '</div>';
-    T.nodes
-      .filter((n) => n.c === ci)
-      .sort((a, b) => a.r - b.r)
-      .forEach((n) => {
-        const r = rank(n.id),
-          un = nodeUnlocked(n),
-          b = document.createElement('button');
-        b.className =
-          'node' +
-          (r ? ' has' : '') +
-          (un ? '' : ' lock') +
-          (n.act ? ' act' : '') +
-          (skSel === n ? ' sel' : '');
-        b.innerHTML =
-          '<span class="ni">' +
-          n.ic +
-          '</span><span class="nr">' +
-          r +
-          '/' +
-          n.max +
-          '</span><span class="nn">' +
-          n.n +
-          '</span>';
-        b.onclick = () => {
-          skSel = n;
-          renderSkills();
-        };
-        col.appendChild(b);
-      });
-    tr.appendChild(col);
-  });
-  const d = $('#skd');
-  if (!skSel) {
-    d.innerHTML =
-      '<div class="desc">Tap a skill. Active skills go on your skill buttons. The last row opens at level 6.</div>';
-  } else {
-    const n = skSel,
-      r = rank(n.id),
-      un = nodeUnlocked(n);
-    d.innerHTML =
-      '<div class="nm">' +
-      n.n +
-      (n.act ? ' <span class="tag">Active skill ' + n.act + '</span>' : '') +
-      '</div><div class="desc">' +
-      (r ? 'Now: ' + n.d(r) : 'Not learned') +
-      '</div>' +
-      (r < n.max ? '<div class="desc" style="color:#ffe38a">Next: ' + n.d(r + 1) + '</div>' : '') +
-      (n.act ? '<div class="desc">Cooldown ' + SKILLCD[heroStyle()][n.act - 1] + 's</div>' : '') +
-      '<div class="acts"></div>';
-    const why = !un
-      ? n.r === 2 && game.P.lvl < 6
-        ? 'Requires level 6'
-        : 'Learn the skill above first'
-      : r >= n.max
-        ? 'Maxed'
-        : free <= 0
-          ? 'No points left'
-          : '';
-    d.querySelector('.acts').appendChild(
-      btn(
-        why || 'Learn (1 point)',
-        () => {
-          game.P.sp[n.id] = r + 1;
-          calcStats();
-          SFX.lvl();
-          renderSkills();
-        },
-        '',
-        !!why,
-      ),
-    );
-  }
-  const cost = game.P.lvl * 25;
-  d.appendChild(
-    btn(
-      'Reset all for ' + cost + ' gold',
-      () => {
-        if (game.P.gold < cost) {
-          toast('Not enough gold');
-          return;
-        }
-        if (!Object.keys(game.P.sp).length) return;
-        game.P.gold -= cost;
-        game.P.sp = {};
-        calcStats();
-        renderSkills();
-      },
-      'alt',
-      game.P.gold < cost,
-    ),
-  );
+  openSkillTree();
 }
 /* pause */
 export function openPause() {

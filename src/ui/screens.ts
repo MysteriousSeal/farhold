@@ -424,6 +424,14 @@ function startGame(p, fresh?) {
   backfillBossChests();
   refreshQuestTargets();
   offers.clear();
+  if (p.treeNote) {
+    // an older hero: the skill grid became the skill tree and the points came back
+    delete p.treeNote;
+    setTimeout(
+      () => banner('A new skill tree', 'Your skill points were refunded. Press K to spend them.'),
+      2600,
+    );
+  }
   game.ev = null; // world events belong to the session
   game.evNext = null;
   game.mode = 'world';

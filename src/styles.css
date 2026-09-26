@@ -121,8 +121,7 @@ canvas#c {
   cursor: default;
 }
 .btn:focus-visible,
-.chip:focus-visible,
-.node:focus-visible {
+.chip:focus-visible {
   outline: 3px solid #fff;
   outline-offset: 3px;
 }
@@ -1206,69 +1205,6 @@ input.txt {
   width: 52px;
   text-align: center;
   flex: none;
-}
-.tree {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-top: 12px;
-}
-.tcol {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  background: #141934;
-  border-radius: 14px;
-  padding: 10px 6px;
-  position: relative;
-}
-.tct {
-  font-weight: 600;
-  color: #e7d7b0;
-  font-size: 14px;
-}
-.node {
-  width: 100%;
-  max-width: 130px;
-  background: #262e57;
-  border: 2px solid #4a5488;
-  border-radius: 14px;
-  color: var(--ivory);
-  padding: 8px 4px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  cursor: pointer;
-  font-family: var(--f);
-  position: relative;
-}
-.node .ni {
-  font-size: 24px;
-  line-height: 1.1;
-}
-.node .nr {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--gold);
-}
-.node .nn {
-  font-size: 12px;
-  line-height: 1.2;
-  text-align: center;
-}
-.node.has {
-  border-color: var(--gold);
-  background: #3b3a5a;
-}
-.node.lock {
-  opacity: 0.45;
-}
-.node.act {
-  border-radius: 50px;
-}
-.node.sel {
-  outline: 3px solid #fff;
 }
 .tag {
   font-size: 12px;

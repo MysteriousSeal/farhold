@@ -97,10 +97,11 @@ describe('game/stats', () => {
     calcStats();
     expect(game.ST).toMatchObject({ hp: 176, atk: 18.8, def: 5 });
 
-    game.P = hero({ lvl: 6, sp: { b0: 5 } });
+    // the passive tree: Sturdy (+5% health) then Stalwart (+10% health, +10% armor)
+    game.P = hero({ lvl: 6, tree: ['gi0', 'gi1', 'gf'], sp: { s1: 1 } });
     calcStats();
-    expect(game.ST.hp).toBe(Math.round((120 + 5 * 14) * 1.35));
-    expect(pointsFree()).toBe(0);
+    expect(game.ST.hp).toBe(Math.round((120 + 5 * 14) * 1.15));
+    expect(pointsFree()).toBe(5 - 3 - 1);
 
     game.P = hero();
     game.P.eq.ring = { slot: 'ring', r: 0, mat: 0, plus: 0, st: { crit: 500 }, name: 'Test Ring' };

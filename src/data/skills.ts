@@ -1,5 +1,6 @@
 import { game } from '../game/state';
 import { heroStyle } from '../game/style';
+import { ADJ, TREE } from './tree';
 /* ---- skill trees ---- */
 // Per-style trees: only their active skills (s1, s2) are still used, see skillTree().
 export const TREES = {
@@ -245,64 +246,6 @@ export const TREES = {
  * The shared skill tree: passive nodes for every hero, while the two active skills (s1, s2)
  * are the ones of the equipped weapon's style (taken from the per-style trees above).
  */
-const SHARED = {
-  cols: ['Might', 'Endurance', 'Techniques'],
-  nodes: [
-    {
-      id: 'a0',
-      c: 0,
-      r: 0,
-      n: 'Sharpened edge',
-      ic: '⚔',
-      max: 5,
-      d: (r) => '+' + 6 * r + '% damage',
-    },
-    {
-      id: 'a1',
-      c: 0,
-      r: 1,
-      n: 'Reach',
-      ic: '◗',
-      max: 3,
-      d: (r) =>
-        '+' +
-        15 * r +
-        '% swing arc and spell radius, arrows pierce ' +
-        r +
-        ' more foe' +
-        (r > 1 ? 's' : ''),
-    },
-    {
-      id: 'a2',
-      c: 0,
-      r: 2,
-      n: 'Executioner',
-      ic: '✖',
-      max: 3,
-      d: (r) => '+' + 25 * r + '% critical damage',
-    },
-    { id: 'b0', c: 1, r: 0, n: 'Toughness', ic: '♥', max: 5, d: (r) => '+' + 7 * r + '% health' },
-    { id: 'b1', c: 1, r: 1, n: 'Guard', ic: '⛨', max: 3, d: (r) => '+' + 12 * r + '% armor' },
-    {
-      id: 'b2',
-      c: 1,
-      r: 2,
-      n: 'Second wind',
-      ic: '✚',
-      max: 3,
-      d: (r) => 'Regenerate ' + (0.4 * r).toFixed(1) + '% health per second',
-    },
-    {
-      id: 'c1',
-      c: 2,
-      r: 1,
-      n: 'Battle rhythm',
-      ic: '⟳',
-      max: 3,
-      d: (r) => '-' + 10 * r + '% skill cooldowns',
-    },
-  ],
-};
 /** The tree for the hero's current fighting style (shared passives + the style's two skills). */
 export type SkillNode = {
   id: string;
@@ -315,8 +258,7 @@ export type SkillNode = {
   d: (r: number) => string;
 };
 export function skillTree(style = heroStyle()): { cols: string[]; nodes: SkillNode[] } {
-  const own = TREES[style].nodes.filter((n) => n.act);
-  return { cols: SHARED.cols, nodes: [...SHARED.nodes, ...own] };
+  return { cols: [], nodes: TREES[style].nodes.filter((n) => n.act) };
 }
 export const SKILLCD = { warrior: [7, 10], ranger: [5, 11], mage: [7, 12] };
 export const SKILLN = {
@@ -324,14 +266,35 @@ export const SKILLN = {
   ranger: ['Volley', 'Rain of arrows'],
   mage: ['Frost nova', 'Meteor'],
 };
-export const rank = (id) => (game.P.sp && game.P.sp[id]) || 0;
-export function nodeUnlocked(n) {
-  if (n.r === 0) return true;
-  const prev = skillTree().nodes.find((o) => o.c === n.c && o.r === n.r - 1);
-  return rank(prev.id) > 0 && (n.r < 2 || game.P.lvl >= 6);
+/* ---------- points, active skill ranks and the passive tree (data/tree.ts) ---------- */
+/** Active skills unlock by themselves at these levels; points buy ranks up to SKILL_MAX. */
+export const SKILL_LVL = [2, 6],
+  SKILL_MAX = 4;
+/** Rank of an active skill ('s1', 's2'): 0 while locked, 1 when unlocked, +1 per point spent. */
+export const rank = (id: string) => {
+  const i = id === 's1' ? 0 : id === 's2' ? 1 : -1;
+  if (i < 0 || !game.P || game.P.lvl < SKILL_LVL[i]) return 0;
+  return Math.min(SKILL_MAX, 1 + ((game.P.sp && game.P.sp[id]) || 0));
+};
+/** Skill points from lair bosses: one for each boss's first defeat. */
+export const bossPoints = (p = game.P) => (p.bossDone || []).length;
+export const ownedNodes = (p = game.P): string[] => p.tree || [];
+/** Points not yet spent: one per level after the first, plus one per lair boss. */
+export function pointsFree(p = game.P) {
+  const sp = p.sp || {};
+  return p.lvl - 1 + bossPoints(p) - ownedNodes(p).length - (sp.s1 || 0) - (sp.s2 || 0);
 }
-export function pointsFree() {
-  let used = 0;
-  for (const k in game.P.sp) used += game.P.sp[k];
-  return game.P.lvl - 1 - used;
+/** Can the tree node be learned now (not owned, next to an owned node or the start)? */
+export function canLearn(id: string, p = game.P) {
+  const own = new Set(['start', ...ownedNodes(p)]);
+  return !own.has(id) && (ADJ[id] || []).some((n) => own.has(n));
+}
+/** The summed effects of every tree node the hero owns. */
+export function treeFx(p = game.P) {
+  const F: Record<string, number> = {};
+  for (const id of ownedNodes(p)) {
+    const n = TREE[id];
+    if (n) for (const k in n.fx) F[k] = (F[k] || 0) + n.fx[k];
+  }
+  return F;
 }

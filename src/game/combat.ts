@@ -34,6 +34,8 @@ function nearestEnemy(x, y, maxd, cone?, coneW = 1.3) {
 }
 function rollDmg(mul = 1) {
   let d = game.ST.atk * mul * rand(0.9, 1.1);
+  // Undying's last stand: more damage while nearly down
+  if (game.ST.last && game.P.hp < game.ST.hp * 0.35) d *= 1 + game.ST.last / 100;
   const crit = Math.random() * 100 < game.ST.crit;
   if (crit) d *= 1 + game.ST.critd / 100;
   return { d: Math.max(1, Math.round(d)), crit };
@@ -312,7 +314,7 @@ export function drinkPot() {
   }
   game.P.pot--;
   hero.potCd = POT_CD;
-  const h = Math.round(game.ST.hp * 0.45);
+  const h = Math.round(game.ST.hp * 0.45 * (game.ST.potMul || 1));
   game.P.hp = Math.min(game.ST.hp, game.P.hp + h);
   SFX.pot();
   burst(game.P.x, game.P.y - 20, '#ff6a8a', 14, 90, 3, 40);
@@ -320,7 +322,15 @@ export function drinkPot() {
 }
 export function hurtHero(d, sx, sy, o: Rec = {}) {
   if (hero.roll > 0 || hero.inv > 0 || hero.leap || game.state !== 'play') return;
-  const dm = Math.max(1, Math.round((d * 100) / (100 + game.ST.def * 4)));
+  if (game.ST.dodge && Math.random() * 100 < game.ST.dodge) {
+    hero.inv = 0.3;
+    ftext(game.P.x, game.P.y - 44, 'Dodge', '#bfe6ff');
+    return;
+  }
+  const dm = Math.max(
+    1,
+    Math.round(((d * 100) / (100 + game.ST.def * 4)) * (1 - (game.ST.dr || 0) / 100)),
+  );
   cancelWarp();
   game.P.hp -= dm;
   hero.inv = 0.5;
@@ -370,7 +380,7 @@ export function respawn() {
   save();
 }
 export function gainXp(n) {
-  game.P.xp += n;
+  game.P.xp += Math.round(n * ((game.ST && game.ST.xpMul) || 1));
   while (game.P.xp >= xpNeed(game.P.lvl)) {
     game.P.xp -= xpNeed(game.P.lvl);
     game.P.lvl++;
