@@ -19,7 +19,7 @@ const hero = (o: Record<string, unknown> = {}) => ({
   eq: {
     ...Object.fromEntries(SLOTS.map((s) => [s, null])),
     weapon: { slot: 'weapon', wc: 'warrior', r: 0, mat: 0, plus: 0, st: {} },
-  },
+  } as Record<string, any>,
   inv: [],
   sp: {},
   ...o,

@@ -730,11 +730,25 @@ function bareChest(c: Ctx, R: Rig, L, fem: boolean, tint: (c: string) => string)
     c.fillStyle = tint(L.top);
     c.strokeStyle = OUT;
     c.lineWidth = 1.4;
-    const tp = new Path2D();
-    if (R.side) tp.roundRect(-W.chD + 0.8, shY + 3, W.chD * 2 + 0.8, 6.2, 2.6);
-    else tp.roundRect(-W.chest - 1, shY + 3, (W.chest + 1) * 2, 6.6, 2.8);
-    c.fill(tp);
-    c.stroke(tp);
+    if (R.side) {
+      // in profile the top wraps the curve of the bust: a band of the torso itself (this is
+      // drawn inside the torso's clip), with its seams
+      const y0 = shY + 2.8,
+        y1 = shY + 11.6;
+      c.fillRect(-20, y0, 40, y1 - y0);
+      c.lineWidth = 1.2;
+      c.beginPath();
+      c.moveTo(-20, y0);
+      c.lineTo(20, y0);
+      c.moveTo(-20, y1);
+      c.lineTo(20, y1);
+      c.stroke();
+    } else {
+      const tp = new Path2D();
+      tp.roundRect(-W.chest - 1, shY + 3, (W.chest + 1) * 2, 6.6, 2.8);
+      c.fill(tp);
+      c.stroke(tp);
+    }
     if (!R.up && !R.side) {
       c.strokeStyle = sh(tint(L.top), -0.25);
       c.lineWidth = 1;
