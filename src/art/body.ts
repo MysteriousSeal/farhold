@@ -202,8 +202,9 @@ export function makeRig(
       el = along(shd, a1, ua);
       wr = along(el, a2, fa);
     } else {
-      shd = [k * (W.sh - 1.3), shY + 2.6];
-      el = along(shd, k * 0.15, ua);
+      // women's arms hang a little wider, clear of the bust
+      shd = [k * (W.sh - (fem ? 0.6 : 1.3)), shY + 2.6];
+      el = along(shd, k * (fem ? 0.2 : 0.15), ua);
       // swinging toward the viewer shortens the forearm and brings the hand in
       wr = along(
         el,
@@ -421,7 +422,8 @@ function torsoPath(R: Rig, fem: boolean, bottom?: number) {
       bel = W.belly;
     p.moveTo(1.8, shY - 1.6);
     p.quadraticCurveTo(ch - 1, shY - 0.4, ch, shY + 4.5);
-    if (fem) p.quadraticCurveTo(ch + 2.2, shY + 7, ch - 0.4, shY + 9);
+    // the bust in profile
+    if (fem) p.bezierCurveTo(ch + 3.4, shY + 5, ch + 4, shY + 10.2, ch - 0.4, shY + 10.8);
     p.quadraticCurveTo(wa + bel + 0.6, waistY - 2, wa + bel * 0.8, waistY + 1);
     p.quadraticCurveTo(hp * 0.95, hipY, hp * 0.8, Math.min(by, hipY + 2));
     p.lineTo(hp * 0.7, by);
@@ -513,15 +515,21 @@ export function drawTorso(c: Ctx, R: Rig, K: Paint, L, lw: number, tint: (c: str
     }
     if (K.bareTop && !L.bones && !L.wraps && !L.fur) bareChest(c, R, L, fem, tint);
     if (A) armour(c, R, A, tint, lw);
-    if (fem && A && !R.up && !side) {
-      c.strokeStyle = 'rgba(20,12,24,.35)';
-      c.lineWidth = 1.2;
-      for (const k of [-1, 1]) {
-        c.beginPath();
-        c.arc(k * 3.4, shY + 6.4, 3.2, Math.PI * 0.15, Math.PI * 0.85);
-        c.stroke();
-      }
-    }
+    if (fem && !R.up && !L.bones && !L.wraps)
+      bust(
+        c,
+        R,
+        A
+          ? A.k === 0
+            ? tint(mixCol(A.col, '#8a5a36', 0.55))
+            : tint(A.col)
+          : K.bareTop
+            ? L.top
+              ? tint(L.top)
+              : K.skin
+            : K.cloth,
+        A ? A.k : -1,
+      );
     if (L.bones) {
       c.strokeStyle = '#8a8272';
       c.lineWidth = 1.4;
@@ -584,6 +592,82 @@ export function drawTorso(c: Ctx, R: Rig, K: Paint, L, lw: number, tint: (c: str
       drawParts(c, [{ p: am, col: tint(L.amulet) }], lw * 0.8);
     }
   });
+}
+/**
+ * A woman's bust in whatever covers it (linen top, tunic, leather, mail or plate): two rounded
+ * shapes with a shadow beneath and a soft highlight; in profile, a shadow under the curve of
+ * the torso outline. `armour` is the armour kind (-1 none) for mail rings and plate shine.
+ */
+function bust(c: Ctx, R: Rig, col: string, armour: number) {
+  const y = R.shY + 7,
+    gap = 3,
+    rx = 3.4,
+    ry = 3.4;
+  c.save();
+  if (R.side) {
+    c.strokeStyle = 'rgba(40,20,30,.3)';
+    c.lineWidth = 1.1;
+    c.beginPath();
+    c.arc(R.W.chD - 0.5, y + 1.2, 3.2, 0.1, Math.PI * 0.62);
+    c.stroke();
+    c.restore();
+    return;
+  }
+  const shape = new Path2D();
+  for (const k of [-1, 1]) {
+    shape.moveTo(k * gap + rx, y);
+    shape.ellipse(k * gap, y, rx, ry, 0, 0, TAU);
+  }
+  c.fillStyle = col;
+  c.fill(shape);
+  // the shadow on the lower right of each, then the fabric texture over it
+  c.save();
+  c.clip(shape);
+  c.fillStyle = sh(col, -0.2);
+  for (const k of [-1, 1]) {
+    c.beginPath();
+    c.ellipse(k * gap + 1.2, y + 1.6, rx, ry * 0.8, 0, 0, TAU);
+    c.fill();
+  }
+  c.fillStyle = col;
+  for (const k of [-1, 1]) {
+    c.beginPath();
+    c.ellipse(k * gap - 0.4, y - 0.6, rx * 0.9, ry * 0.85, 0, 0, TAU);
+    c.fill();
+  }
+  if (armour === 1) {
+    c.strokeStyle = sh(col, -0.35);
+    c.lineWidth = 0.9;
+    for (let yy = y - ry; yy < y + ry + 2; yy += 2.6)
+      for (let xx = -gap - rx; xx < gap + rx; xx += 3) {
+        c.beginPath();
+        c.arc(xx + (Math.round(yy) % 2 ? 1.5 : 0), yy, 1.6, 0, Math.PI);
+        c.stroke();
+      }
+  }
+  c.fillStyle = armour === 2 ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.22)';
+  for (const k of [-1, 1]) {
+    c.beginPath();
+    c.ellipse(k * gap - 1.4, y - 1.6, 1.5, 0.9, -0.4, 0, TAU);
+    c.fill();
+  }
+  c.restore();
+  // outline the lower curves and the cleft between them
+  c.strokeStyle = OUT;
+  c.lineWidth = 1.4;
+  c.beginPath();
+  for (const k of [-1, 1]) {
+    c.moveTo(k * gap + Math.cos(0.15) * rx, y + Math.sin(0.15) * ry);
+    c.ellipse(k * gap, y, rx, ry, 0, 0.15, Math.PI - 0.15);
+  }
+  c.stroke();
+  c.strokeStyle = 'rgba(40,20,30,.35)';
+  c.lineWidth = 1;
+  c.beginPath();
+  c.moveTo(0, y - ry * 0.6);
+  c.lineTo(0, y + ry * 0.55);
+  c.stroke();
+  c.restore();
 }
 /** Muscle and body lines on a bare chest; women wear a linen top. */
 function bareChest(c: Ctx, R: Rig, L, fem: boolean, tint: (c: string) => string) {
