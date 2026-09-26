@@ -45,6 +45,7 @@ import { addLight } from '../game/fx';
 import { drawNpc } from '../game/npcs';
 import { offers } from '../game/quests';
 import { drawGlint, houseBack, houseFront, houseItems } from './interior';
+import { drawEvent } from '../art/events';
 import { drawFlora } from '../art/flora';
 import { drawRoads } from '../art/roads';
 import { roadsOf } from '../world/roads';
@@ -463,6 +464,13 @@ export function render() {
   for (const zz of game.zones) drawZone(g, zz);
   for (const d of game.drops)
     if (vis(d.x, d.y)) list.push({ y: d.y, f: (c) => drawDrop(c, d, game.time) });
+  // the world event's scenery: the merchant's wagon, the falling meteor and its crater
+  const ev = game.ev;
+  if (game.mode === 'world' && ev && vis(ev.x, ev.y, 500))
+    list.push({
+      y: ev.kind === 'meteor' ? (ev.stage === 'fall' ? 1e9 : ev.y - 40) : ev.y,
+      f: (c) => drawEvent(c, ev, game.time),
+    });
   // a patron's lost keepsake glinting on the ground (tavern "find" jobs)
   if (game.mode === 'world' && game.P)
     for (const q of game.P.quests)

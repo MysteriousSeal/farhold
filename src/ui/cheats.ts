@@ -2,6 +2,7 @@ import { TAU } from '../core/math';
 import { ET } from '../data/enemies';
 import { makeEnemy } from '../game/enemies';
 import { game } from '../game/state';
+import { startEvent } from '../game/events';
 import { solidAt } from '../world/chunks';
 /* ================= CHEATS (dev builds only, loaded from main.ts) ================= */
 // A button in the bottom-left corner opens a panel to spawn any regular enemy, at the
@@ -52,6 +53,17 @@ for (const [type, D] of Object.entries(ET) as [string, { n: string }][]) {
   b.textContent = D.n;
   b.onclick = () => spawn(type);
   grid.appendChild(b);
+}
+panel.insertAdjacentHTML('beforeend', '<h3>World event</h3><div class="grid ev"></div>');
+for (const [kind, label] of [
+  ['raid', 'Raid'],
+  ['merchant', 'Merchant'],
+  ['meteor', 'Meteor'],
+]) {
+  const b = document.createElement('button');
+  b.textContent = label;
+  b.onclick = () => startEvent(kind);
+  panel.querySelector('.grid.ev').appendChild(b);
 }
 btn.onclick = () => panel.classList.toggle('on');
 // keep the canvas from treating clicks here as attacks

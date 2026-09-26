@@ -13,6 +13,7 @@ import { DENS, inVillage, moveEnt, spawnEnemies, unstick, updateEnemies } from '
 import { banner, burst, ring, toast } from './fx';
 import { calcStats } from './stats';
 import { taskFindTick } from './tavernQuests';
+import { raidAt, updateEvents } from './events';
 import { DRINKS } from '../data/tavern';
 import { findInteract, visitPois } from './interactions';
 import { houseCam, updateHouse } from './houses';
@@ -205,7 +206,9 @@ function updateHero(dt) {
   hero.regen += dt;
   if (hero.regen > 1) {
     hero.regen = 0;
-    const safe = game.mode === 'house' || (game.mode === 'world' && inVillage(game.P.x, game.P.y));
+    const safe =
+      game.mode === 'house' ||
+      (game.mode === 'world' && inVillage(game.P.x, game.P.y) && !raidAt(game.P.x, game.P.y));
     if (game.P.hp < game.ST.hp)
       game.P.hp = Math.min(
         game.ST.hp,
@@ -259,6 +262,7 @@ export function update(dt) {
       spawnEnemies();
     }
     updateEnemies(wdt);
+    updateEvents(wdt);
     updateProjs(wdt);
     updateZones(wdt);
     updateTeles(wdt);

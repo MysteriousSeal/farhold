@@ -96,7 +96,7 @@ function renderShop(v) {
     pp = 12 + v.lvl * 5;
   clearInterval(restockTick);
   openModal(
-    hdr(v.name + (shopFine ? ' fine goods' : ' market'), goldPill(game.P.gold)) +
+    hdr(v.title || v.name + (shopFine ? ' fine goods' : ' market'), goldPill(game.P.gold)) +
       '<div class="tabs"><button class="chip' +
       (shopTab === 'buy' ? ' on' : '') +
       '" id="tb1">Buy</button><button class="chip' +

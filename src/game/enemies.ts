@@ -390,7 +390,7 @@ export function updateEnemies(dt) {
         : 1);
     e.slow -= dt;
     const aggroR = game.mode === 'dungeon' ? 300 : 260;
-    if ((d < aggroR || (e.aggro && d < 520)) && !pVillage && game.state === 'play') {
+    if ((d < aggroR || (e.aggro && d < 520)) && (!pVillage || e.raid) && game.state === 'play') {
       e.aggro = true;
       const ai = D.ai;
       if (e.charge) {
@@ -556,7 +556,7 @@ export function updateEnemies(dt) {
       oy = e.y;
     const nx = e.x + (vx + e.kbx) * dt,
       ny = e.y + (vy + e.kby) * dt;
-    if (game.mode === 'world' && inVillage(nx, ny)) {
+    if (game.mode === 'world' && !e.raid && inVillage(nx, ny)) {
       e.wx = -e.wx;
       e.wy = -e.wy;
       e.kbx = e.kby = 0;

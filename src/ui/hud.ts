@@ -15,8 +15,38 @@ import { QMAX, activeQuests, trackedQuests } from '../game/quests';
 import { QICON, heroWorldPos, questProgress } from './questUi';
 import { dangerAt } from '../world/terrain';
 import { DRINKS } from '../data/tavern';
+import { curEvent, eventLine } from '../game/events';
 import { DRINK_ICON } from './tavern';
 
+/** The world event under way as a HUD chip: what, where and the time left. */
+const EV_ICON = {
+  raid: '<svg viewBox="0 0 20 20"><g stroke="#241a2e" stroke-width="1.6" stroke-linejoin="round"><path d="M3 3 L12.5 12.5 L11 14 L1.6 4.4 Z" fill="#f2f5fc"/><path d="M17 3 L7.5 12.5 L9 14 L18.4 4.4 Z" fill="#f2f5fc"/></g><path d="M10 13.4 L14.6 18 M10 13.4 L5.4 18" stroke="#e05a4a" stroke-width="2.4" stroke-linecap="round"/></svg>',
+  merchant:
+    '<svg viewBox="0 0 20 20"><path d="M2 12 Q2 3 10 3 Q18 3 18 12 Z" fill="#f0e2c0" stroke="#241a2e" stroke-width="1.6"/><path d="M6 4.2 V12 M10 3 V12 M14 4.2 V12" stroke="#b8423a" stroke-width="2"/><rect x="1.5" y="11" width="17" height="4" rx="1.4" fill="#a8744a" stroke="#241a2e" stroke-width="1.5"/><circle cx="5" cy="16.5" r="2.2" fill="#5e3c22" stroke="#241a2e" stroke-width="1.3"/><circle cx="15" cy="16.5" r="2.2" fill="#5e3c22" stroke="#241a2e" stroke-width="1.3"/></svg>',
+  meteor:
+    '<svg viewBox="0 0 20 20"><path d="M18 2 L9 11" stroke="#ffb24a" stroke-width="3.2" stroke-linecap="round" opacity=".8"/><circle cx="7.5" cy="12.5" r="5" fill="#3a3448" stroke="#241a2e" stroke-width="1.6"/><path d="M5.5 12 L7.5 10 L9 12.5" stroke="#8fe0ff" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>',
+};
+let evEl: HTMLElement = null,
+  evKey = '';
+function eventChip() {
+  const ev = curEvent();
+  if (!evEl) {
+    if (!ev) return;
+    evEl = document.createElement('span');
+    evEl.className = 'chip evchip';
+    $('#dgt').closest('.chips').appendChild(evEl);
+  }
+  evEl.style.display = ev ? '' : 'none';
+  if (!ev) return;
+  const key = ev.id + ev.kind;
+  if (evKey !== key) {
+    evKey = key;
+    evEl.innerHTML = EV_ICON[ev.kind] + '<span></span>';
+    evEl.classList.toggle('raid', ev.kind === 'raid');
+  }
+  evEl.title = ev.title + ' (' + ev.where + ')';
+  evEl.lastElementChild.textContent = ev.title + ' · ' + eventLine(ev);
+}
 /** The active tavern drink as a HUD chip with its time left (created on first use). */
 let bufEl: HTMLElement = null,
   bufKey = '';
@@ -107,6 +137,7 @@ export function updHud() {
   const wp = heroWorldPos();
   $('#dgt').textContent = String(game.mode === 'dungeon' ? game.DG.lvl : dangerAt(wp.x, wp.y));
   buffChip();
+  eventChip();
   drawPortrait();
   for (const n of [1, 2]) {
     const r = rank('s' + n),

@@ -377,6 +377,23 @@ export function drawMini(dt) {
         big(tx, ty, () => mugIcon(tx, ty), POI_SCALE * 0.8);
       }
     }
+    // the world event: a pulsing marker, pinned on the rim when out of view
+    const ev = game.ev;
+    if (ev) {
+      let [x, y] = [C + (ev.x - game.P.x) * sc, C + (ev.y - game.P.y) * sc];
+      if (Math.hypot(x - C, y - C) > C - FRAME - 18)
+        [x, y] = clampRim(ev.x, ev.y, sc, C - FRAME - 18);
+      const pulse = 0.5 + Math.sin(game.time * 4) * 0.5,
+        col = ev.kind === 'raid' ? '#ff5a4a' : ev.kind === 'merchant' ? '#f5c451' : '#8fe0ff';
+      mc.strokeStyle = col;
+      mc.globalAlpha = 0.4 + pulse * 0.5;
+      mc.lineWidth = 3;
+      mc.beginPath();
+      mc.arc(x, y, 16 + pulse * 6, 0, TAU);
+      mc.stroke();
+      mc.globalAlpha = 1;
+      big(x, y, () => eventIcon(x, y, ev.kind, col), 1.7);
+    }
     // rumours heard at taverns: out-of-view lairs and caves pinned on the rim
     for (const r of game.P.rumours || []) {
       if (game.P.cleared[r.key]) continue;
@@ -552,6 +569,36 @@ function villageIcon(x: number, y: number, known: boolean, city: boolean) {
   mc.stroke();
   mc.fillStyle = OUT;
   mc.fillRect(x - 1.8 * s, y + 1.5 * s, 3.6 * s, 5.5 * s);
+}
+/** World event markers: crossed swords (raid), a coin (merchant), a falling star (meteor). */
+function eventIcon(x: number, y: number, kind: string, col: string) {
+  mc.strokeStyle = OUT;
+  mc.lineWidth = 2;
+  mc.fillStyle = col;
+  mc.beginPath();
+  mc.arc(x, y, 7.5, 0, TAU);
+  mc.fill();
+  mc.stroke();
+  mc.strokeStyle = OUT;
+  mc.lineWidth = 1.8;
+  mc.lineCap = 'round';
+  mc.beginPath();
+  if (kind === 'raid') {
+    mc.moveTo(x - 4, y - 4);
+    mc.lineTo(x + 4, y + 4);
+    mc.moveTo(x + 4, y - 4);
+    mc.lineTo(x - 4, y + 4);
+  } else if (kind === 'merchant') {
+    mc.arc(x, y, 3.8, 0, TAU);
+    mc.moveTo(x, y - 2);
+    mc.lineTo(x, y + 2);
+  } else {
+    mc.moveTo(x - 4.5, y + 3);
+    mc.lineTo(x + 1, y - 1.5);
+    mc.moveTo(x + 2.8, y - 3);
+    mc.arc(x + 2.4, y - 2.6, 1.6, 0, TAU);
+  }
+  mc.stroke();
 }
 /** A tankard: the village tavern. */
 function mugIcon(x: number, y: number) {

@@ -356,3 +356,11 @@
   display: flex;
   gap: 10px;
 }
+/* the world event under way on the HUD */
+.evchip svg {
+  width: 18px;
+  height: 18px;
+}
+.evchip.raid {
+  border-color: #c8423a;
+}

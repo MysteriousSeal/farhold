@@ -424,6 +424,8 @@ function startGame(p, fresh?) {
   backfillBossChests();
   refreshQuestTargets();
   offers.clear();
+  game.ev = null; // world events belong to the session
+  game.evNext = null;
   game.mode = 'world';
   game.DG = null;
   game.HS = null;

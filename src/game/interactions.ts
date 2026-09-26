@@ -6,6 +6,7 @@ import { makeBoss } from './enemies';
 import { banner, burst } from './fx';
 import { save } from './save';
 import { houseDoors, houseInteract } from './houses';
+import { eventInteract } from './events';
 import { game, hero } from './state';
 import { openBoard, openPotions, openShop, openTravel } from '../ui/village';
 /* ================= INTERACTIONS ================= */
@@ -37,6 +38,7 @@ export function findInteract() {
     houseInteract(cand);
     return best;
   }
+  eventInteract(cand);
   for (const p of game.activePois) {
     if (p.kind === 'village') {
       houseDoors(p, cand);
