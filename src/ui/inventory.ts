@@ -115,7 +115,8 @@ function drawPortrait(cv: HTMLCanvasElement) {
     k = Math.min(5.8, (cv.height * 0.86) / (4 - top));
   x.setTransform(k, 0, 0, k, cv.width / 2 - 2 * k, cv.height / 2 - ((top + 4) / 2) * k);
   // warriors stand on guard (blade up); other classes hold their weapon at rest
-  const guard = heroStyle() === 'warrior' ? carryPos(0, 1, false, 0, 0, game.P.race, 1, L) : null,
+  const guard =
+      w && heroStyle() === 'warrior' ? carryPos(0, 1, false, 0, 0, game.P.race, 1, L) : null,
     hp = guard || handPos(0, 1, false, 0, 0, game.P.race, 1, L),
     ang = guard ? guard.ang : restAng(hp, heroStyle()),
     wd = () =>
@@ -126,9 +127,9 @@ function drawPortrait(cv: HTMLCanvasElement) {
         ang,
         heroStyle(),
         0,
-        w ? MATS[w.mat][1] : null,
+        MATS[w.mat][1],
         null, // no rarity glow on held weapons
-        w ? w.style : 0,
+        w.style,
       );
   drawHumanoid(x, 0, 0, {
     look: game.P.look,
@@ -139,8 +140,11 @@ function drawPortrait(cv: HTMLCanvasElement) {
     time: 0,
     carry: guard ? guard.arm : null,
   });
-  wd();
-  handOver(x, hp.x, hp.y, game.P.look);
+  // bare hands hold nothing
+  if (w) {
+    wd();
+    handOver(x, hp.x, hp.y, game.P.look);
+  }
   x.setTransform(1, 0, 0, 1, 0, 0);
 }
 const SLOT_ICON = {

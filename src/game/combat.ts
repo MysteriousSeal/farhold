@@ -105,8 +105,10 @@ export function heroAttack() {
       hero.kby += Math.sin(ang) * 260;
       SFX.swing3();
     } else SFX.swing();
-    const reach = (66 + (fin ? 10 : 0)) * (1 + (game.ST.arc - 1) * 0.6),
-      arc = 1.15 * game.ST.arc * (fin ? 1.3 : 1);
+    // fists reach less far and hit a narrower arc than a blade
+    const fist = !game.P.eq.weapon,
+      reach = ((fist ? 46 : 66) + (fin ? 10 : 0)) * (1 + (game.ST.arc - 1) * 0.6),
+      arc = (fist ? 0.8 : 1.15) * game.ST.arc * (fin ? 1.3 : 1);
     let hits = 0;
     for (const e of game.enemies) {
       if (e.dying > 0) continue;

@@ -15,7 +15,11 @@ const hero = (o: Record<string, unknown> = {}) => ({
   skin: '#f7d4b2',
   hair: 0,
   hairC: '#2b1d14',
-  eq: Object.fromEntries(SLOTS.map((s) => [s, null])),
+  // a plain blade with no stats, so the base numbers are the hero's own
+  eq: {
+    ...Object.fromEntries(SLOTS.map((s) => [s, null])),
+    weapon: { slot: 'weapon', wc: 'warrior', r: 0, mat: 0, plus: 0, st: {} },
+  },
   inv: [],
   sp: {},
   ...o,
@@ -81,6 +85,13 @@ describe('game/stats', () => {
     game.P = hero();
     calcStats();
     expect(game.ST).toMatchObject({ hp: 120, atk: 10, def: 2, crit: 5, spd: 150 });
+  });
+
+  it('bare fists hit for less', () => {
+    game.P = hero();
+    game.P.eq.weapon = null;
+    calcStats();
+    expect(game.ST.atk).toBe(6);
   });
 
   it('the equipped weapon decides the fighting style', () => {

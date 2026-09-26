@@ -5,6 +5,8 @@ import { treeFx } from '../data/skills';
 import { itemStat } from './items';
 import { game } from './state';
 /** Final stats for a hero `p` (level, gear, skills) without touching game state. */
+/** Attack while no weapon is equipped (fists), as a share of the usual attack. */
+export const UNARMED = 0.6;
 export function computeStats(p = game.P): Stats {
   const s: Stats = {
     hp: 120,
@@ -64,6 +66,8 @@ export function computeStats(p = game.P): Stats {
   else if (bk === 'stew') s.hpMul += 0.1;
   else if (bk === 'mead') s.regen += 2 + p.lvl * 0.4;
   s.hp = Math.round(s.hp * s.hpMul);
+  // bare-handed, the hero punches for a good deal less
+  if (!p.eq || !p.eq.weapon) s.atk *= UNARMED;
   s.atk = Math.round(s.atk * s.dmgMul * 10) / 10;
   s.def = Math.round(s.def * s.defMul);
   s.crit = Math.min(75, Math.round(s.crit * 10) / 10);

@@ -151,11 +151,14 @@ function drawHero(c, t) {
       1,
       game.P.look,
     ),
+    armed = !!w,
     // a resting sword/axe is carried on the shoulder
     carry =
-      heroStyle() === 'warrior' && hero.atk <= 0 && hero.whirl <= 0 && !leap && !rolling
+      armed && heroStyle() === 'warrior' && hero.atk <= 0 && hero.whirl <= 0 && !leap && !rolling
         ? carryPos(hero.dx, hero.dy, hero.moving, hero.walk, t, game.P.race, 1, game.P.look)
         : null,
+    // bare-handed: a jab toward the target, left and right fists in turn (local coordinates)
+    punch = !armed && hero.atk > 0 && hero.whirl <= 0 && !leap && !rolling ? jab(hp) : null,
     wx = game.P.x + (carry ? carry.x : hp.x),
     wy = game.P.y + (carry ? carry.y : hp.y) - z;
   let ang = carry ? carry.ang : restAng(hp, heroStyle()),
@@ -174,7 +177,7 @@ function drawHero(c, t) {
   } else if (heroStyle() === 'mage' && hero.atk > 0)
     ang = restAng(hp, 'mage') + (hp.flip ? -1 : 1) * 0.5 * hero.atk;
   const wd = () => {
-    if (!rolling) drawWeapon(c, wx, wy, ang, heroStyle(), sw, wcol, glow, w ? w.style : 0);
+    if (!rolling && armed) drawWeapon(c, wx, wy, ang, heroStyle(), sw, wcol, glow, w.style);
   };
   if (z) {
     shadow(c, game.P.x, game.P.y, 12, 4.5, 0.3);
@@ -206,10 +209,10 @@ function drawHero(c, t) {
     time: t,
     alpha,
     noShadow: !!z,
-    carry: carry ? carry.arm : null,
+    carry: carry ? carry.arm : punch,
   });
   c.restore();
-  if (!behind || hero.whirl > 0) {
+  if (armed && (!behind || hero.whirl > 0)) {
     wd();
     if (!rolling && hero.whirl <= 0) handOver(c, wx, wy, L); // grip inside the fist
   }
@@ -285,6 +288,21 @@ function drawHero(c, t) {
   }
 }
 
+/**
+ * Where a bare fist goes during a punch (drawHumanoid's carry target, local unflipped
+ * coordinates): out from the resting hand toward the aim, peaking mid-swing, at chest height.
+ */
+function jab(hp) {
+  const m = hp.flip ? -1 : 1,
+    k = Math.sin(Math.PI * clamp(1 - hero.atk, 0, 1)),
+    ext = 11 * k,
+    side = hp.f === 'side' ? 1 : hero.comboSw < 0 ? -1 : 1,
+    rest = { x: hp.f === 'side' ? hp.x * m : side * Math.abs(hp.x), y: hp.y };
+  return {
+    x: rest.x + Math.cos(hero.aim) * m * ext,
+    y: rest.y - 9 * k + Math.sin(hero.aim) * ext * 0.5,
+  };
+}
 export function render() {
   lights.length = 0;
   const z = zoom();
