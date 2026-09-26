@@ -47,22 +47,11 @@ export function hairBack(c: Ctx, L, hy: number, v: View, col: string) {
       c.fill();
       c.stroke();
     }
-  } else if (L.hair === 11 && !L.hood) {
-    // pigtails: two tails tied at the sides of the head
-    for (const k of side ? [-1] : [-1, 1]) {
-      const px = k * (side ? 9 : 12),
-        tie = hy - 1;
-      c.beginPath();
-      c.ellipse(px + k * 1.5, tie + 7, 3.6, 7.5, k * -0.25, 0, TAU);
-      c.fillStyle = col;
-      c.fill();
-      c.stroke();
-      c.fillStyle = '#e0708a';
-      c.beginPath();
-      c.arc(px, tie, 2, 0, TAU);
-      c.fill();
-      c.stroke();
-    }
+  } else if (L.hair === 11 && !up) {
+    // pigtails, facing the viewer: both tails behind the head; from the side only the far
+    // tail peeks out behind the head (the near one hangs in front: see hairTop)
+    if (side) pigtail(c, -7.5, hy - 1.5, -1, col, 0.35);
+    else for (const k of [-1, 1]) pigtail(c, k * 12, hy - 1, k, col, k * -0.25);
   } else if ((L.hair === 6 || L.hair === 10) && !L.helm && !L.hat) {
     // bun (women) or topknot (men) on the crown of the head
     const r = L.hair === 10 ? 3.8 : 5.2,
@@ -82,6 +71,28 @@ export function hairBack(c: Ctx, L, hy: number, v: View, col: string) {
       c.fillRect((side ? -4 : 0) - 2.5, ky + r - 1.5, 5, 1.8);
     }
   }
+}
+/** One pigtail: a tail hanging from a ribbon tie at (x, tie), leaning by `rot`. */
+function pigtail(c: Ctx, x: number, tie: number, k: number, col: string, rot: number) {
+  c.beginPath();
+  c.ellipse(x + k * 1.5 + Math.sin(-rot) * 1.5, tie + 7.5, 3.6, 7.5, rot, 0, TAU);
+  c.fillStyle = col;
+  c.fill();
+  c.stroke();
+  // a darker strand down the middle and the ribbon
+  c.save();
+  c.strokeStyle = sh(col, -0.25);
+  c.lineWidth = 1;
+  c.beginPath();
+  c.moveTo(x + k * 1.2, tie + 3);
+  c.quadraticCurveTo(x + k * 2.2, tie + 8, x + k * 1.6 - rot * 4, tie + 12.5);
+  c.stroke();
+  c.restore();
+  c.fillStyle = '#e0708a';
+  c.beginPath();
+  c.arc(x, tie, 2, 0, TAU);
+  c.fill();
+  c.stroke();
 }
 /**
  * Outline of long hair falling over the back, from the side or from behind. Its outer edges
@@ -236,6 +247,9 @@ export function hairTop(c: Ctx, L, hy: number, v: View, col: string, lw: number)
     c.stroke();
   } else if (L.hair === 9) {
     curlsOver(c, L, hy, v, col);
+  } else if (L.hair === 11 && v.side) {
+    // the near pigtail, tied behind the ear, hangs down in front of the head and shoulder
+    pigtail(c, -3.5, hy + 0.5, -1, col, 0.2);
   } else if (L.hair === 12 && !v.up) {
     // pixie: a short swept fringe over the forehead
     const E = v.fd ? 3 : 0;
@@ -271,6 +285,12 @@ export function hairFront(c: Ctx, L, hy: number, v: View, col: string, lw: numbe
     c.fillStyle = col;
     c.fill(p);
     c.stroke(p);
+    return;
+  }
+  if (L.hair === 11 && v.up) {
+    // pigtails from behind: tied at both sides, hanging over the shoulders
+    const dx = v.diag ? -1 : 0;
+    for (const k of [-1, 1]) pigtail(c, dx + k * 10.5, hy + 0.5, k, col, k * -0.18);
     return;
   }
   if (L.hair === 2 && v.up) {
