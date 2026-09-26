@@ -230,6 +230,24 @@ export function placeAct() {
     cy = game.camY + game.camKY + game.kickY,
     sx = W / 2 + (it.tx - cx) * z,
     sy = H / 2 + (it.ty - cy) * z;
-  a.style.left = Math.round(clamp(sx, 70, W - 70)) + 'px';
-  a.style.top = Math.round(clamp(sy, 60, H - 20)) + 'px';
+  const x = clamp(sx, 70, W - 70),
+    hw = a.offsetWidth / 2;
+  let y = clamp(sy, 60, H - 20);
+  // not over the zone banner's text while it shows ("Waystone (E)" over the village's name):
+  // a small nudge above or below it; farther than that the prompt stays over its target, in
+  // front of the banner, which fades within a few seconds
+  const zb = $('#zone');
+  if (+zb.style.opacity > 0) {
+    const rg = document.createRange();
+    rg.selectNodeContents(zb);
+    const r = rg.getBoundingClientRect();
+    if (y > r.top - 4 && y - 44 < r.bottom && x + hw > r.left && x - hw < r.right) {
+      const upY = r.top - 4,
+        downY = r.bottom + 48,
+        best = Math.abs(upY - y) < Math.abs(downY - y) ? upY : downY;
+      if (Math.abs(best - y) <= 30 && best >= 60) y = best;
+    }
+  }
+  a.style.left = Math.round(x) + 'px';
+  a.style.top = Math.round(y) + 'px';
 }

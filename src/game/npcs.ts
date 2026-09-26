@@ -5,6 +5,7 @@ import { OUT, TAU, rand } from '../core/math';
 import { moveEnt } from './enemies';
 import { burst } from './fx';
 import { game } from './state';
+import { solidAt } from '../world/chunks';
 /* ================= NPCs ================= */
 export function updateNpcs(dt) {
   for (const p of game.activePois) {
@@ -17,10 +18,18 @@ export function updateNpcs(dt) {
           if (Math.random() < 0.4) {
             n.tx = null;
           } else {
-            const a = Math.random() * TAU,
-              r = rand(20, n.range || 120);
-            n.tx = p.x + Math.cos(a) * r;
-            n.ty = p.y + 30 + Math.sin(a) * r * 0.7;
+            // around their own spot (not all on the waystone), never into the fountain,
+            // a stall or any other solid
+            n.tx = null;
+            for (let k = 0; k < 8 && n.tx == null; k++) {
+              const a = Math.random() * TAU,
+                r = rand(20, n.range || 120),
+                tx = n.hx + Math.cos(a) * r * 0.6,
+                ty = n.hy + Math.sin(a) * r * 0.45;
+              if (solidAt(tx, ty, 12) || Math.hypot(tx - p.way.x, ty - p.way.y) < 60) continue;
+              n.tx = tx;
+              n.ty = ty;
+            }
           }
         }
         if (n.tx != null) {

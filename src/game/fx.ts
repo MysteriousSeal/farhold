@@ -42,6 +42,14 @@ export function ring(x, y, col, n = 30, sp = 200, sz = 3) {
   }
 }
 export function ftext(x, y, s, col, big?) {
+  // a new text over a fresh one nearby goes above it instead of on top (LEVEL UP, +xp, loot…)
+  for (let k = 0; k < 6; k++) {
+    const near = game.texts.find(
+      (t) => t.max - t.life < 0.45 && Math.abs(t.x - x) < 44 && Math.abs(t.y - y) < 15,
+    );
+    if (!near) break;
+    y = near.y - 16;
+  }
   game.texts.push({
     x,
     y,

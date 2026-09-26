@@ -250,7 +250,7 @@ $('#cGo').onclick = () => {
     gold: 20,
     pot: 3,
     x: 0,
-    y: 70,
+    y: 164, // just south of Hearthfire's fountain
     hp: 1e9,
     inv: [],
     seed: $('#cSeed').value.trim() || randSeed(),
