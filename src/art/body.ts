@@ -642,7 +642,11 @@ function bustCol(K: Paint, L, tint: (c: string) => string) {
 /** A woman's bust seen from the front or 3/4, over the arms (called after they are drawn). */
 export function drawBust(c: Ctx, R: Rig, K: Paint, L, tint: (c: string) => string) {
   if (!L.fem || R.up || R.side || L.bones || L.wraps) return;
-  turned(c, R, () => bust(c, R, bustCol(K, L, tint), L.armor ? L.armor.k : -1));
+  // (not squeezed with the turned torso: it keeps its full size, shifted with the chest)
+  c.save();
+  if (R.diag) c.translate(R.ts, 0);
+  bust(c, R, bustCol(K, L, tint), L.armor ? L.armor.k : -1);
+  c.restore();
 }
 /**
  * A woman's bust in whatever covers it (linen top, tunic, leather, mail or plate): two rounded
@@ -650,10 +654,10 @@ export function drawBust(c: Ctx, R: Rig, K: Paint, L, tint: (c: string) => strin
  * the torso outline. `armour` is the armour kind (-1 none) for mail rings and plate shine.
  */
 function bust(c: Ctx, R: Rig, col: string, armour: number) {
-  const y = R.shY + 7.4,
-    gap = 3.25,
-    rx = 3.95,
-    ry = 4.2;
+  const y = R.shY + 6.4,
+    gap = 3.7,
+    rx = 4.9,
+    ry = 4.6;
   c.save();
   if (R.side) {
     c.strokeStyle = 'rgba(40,20,30,.3)';
@@ -664,60 +668,65 @@ function bust(c: Ctx, R: Rig, col: string, armour: number) {
     c.restore();
     return;
   }
-  const shape = new Path2D();
-  for (const k of [-1, 1]) {
-    shape.moveTo(k * gap + rx, y);
-    shape.ellipse(k * gap, y, rx, ry, 0, 0, TAU);
-  }
-  c.fillStyle = col;
-  c.fill(shape);
-  // the shadow on the lower right of each, then the fabric texture over it
-  c.save();
-  c.clip(shape);
-  c.fillStyle = sh(col, -0.2);
-  for (const k of [-1, 1]) {
+  // front: a symmetric pair. 3/4: the body turns, so the near side is full and the far side
+  // is narrower and pushed toward the facing edge, half hidden behind the near one
+  const parts: { x: number; rx: number; ry: number }[] = R.diag
+    ? [
+        { x: R.farS * gap * 1.05, rx: rx * 0.8, ry: ry * 0.96 },
+        { x: -R.farS * gap * 0.75, rx, ry },
+      ]
+    : [
+        { x: -gap, rx, ry },
+        { x: gap, rx, ry },
+      ];
+  for (const P of parts) {
+    const shape = new Path2D();
+    shape.ellipse(P.x, y, P.rx, P.ry, 0, 0, TAU);
+    c.fillStyle = col;
+    c.fill(shape);
+    // the shadow low on the right, the lit fabric over it, mail rings, a highlight
+    c.save();
+    c.clip(shape);
+    c.fillStyle = sh(col, -0.2);
     c.beginPath();
-    c.ellipse(k * gap + 1.2, y + 1.6, rx, ry * 0.8, 0, 0, TAU);
+    c.ellipse(P.x + 0.8, y + 1.9, P.rx * 0.95, P.ry * 0.75, 0, 0, TAU);
     c.fill();
-  }
-  c.fillStyle = col;
-  for (const k of [-1, 1]) {
+    c.fillStyle = col;
     c.beginPath();
-    c.ellipse(k * gap - 0.4, y - 0.6, rx * 0.9, ry * 0.85, 0, 0, TAU);
+    c.ellipse(P.x - 0.3, y - 0.5, P.rx * 0.92, P.ry * 0.9, 0, 0, TAU);
     c.fill();
-  }
-  if (armour === 1) {
-    c.strokeStyle = sh(col, -0.35);
-    c.lineWidth = 0.9;
-    for (let yy = y - ry; yy < y + ry + 2; yy += 2.6)
-      for (let xx = -gap - rx; xx < gap + rx; xx += 3) {
-        c.beginPath();
-        c.arc(xx + (Math.round(yy) % 2 ? 1.5 : 0), yy, 1.6, 0, Math.PI);
-        c.stroke();
-      }
-  }
-  c.fillStyle = armour === 2 ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.22)';
-  for (const k of [-1, 1]) {
+    if (armour === 1) {
+      c.strokeStyle = sh(col, -0.35);
+      c.lineWidth = 0.9;
+      for (let yy = y - P.ry; yy < y + P.ry + 2; yy += 2.6)
+        for (let xx = P.x - P.rx; xx < P.x + P.rx; xx += 3) {
+          c.beginPath();
+          c.arc(xx + (Math.round(yy) % 2 ? 1.5 : 0), yy, 1.6, 0, Math.PI);
+          c.stroke();
+        }
+    }
+    c.fillStyle = armour === 2 ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.22)';
     c.beginPath();
-    c.ellipse(k * gap - 1.4, y - 1.6, 1.5, 0.9, -0.4, 0, TAU);
+    c.ellipse(P.x - 1.3 * (P.rx / rx), y - 2, 1.7 * (P.rx / rx), 1.1, -0.4, 0, TAU);
     c.fill();
+    c.restore();
+    // the lower curve's outline
+    c.strokeStyle = OUT;
+    c.lineWidth = 1.4;
+    c.beginPath();
+    c.ellipse(P.x, y, P.rx, P.ry, 0, 0.15, Math.PI - 0.15);
+    c.stroke();
   }
-  c.restore();
-  // outline the lower curves and the cleft between them
-  c.strokeStyle = OUT;
-  c.lineWidth = 1.4;
-  c.beginPath();
-  for (const k of [-1, 1]) {
-    c.moveTo(k * gap + Math.cos(0.15) * rx, y + Math.sin(0.15) * ry);
-    c.ellipse(k * gap, y, rx, ry, 0, 0.15, Math.PI - 0.15);
+
+  // the cleft between them (front only; in 3/4 the near side hides it)
+  if (!R.diag) {
+    c.strokeStyle = 'rgba(40,20,30,.35)';
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(0, y - ry * 0.6);
+    c.lineTo(0, y + ry * 0.55);
+    c.stroke();
   }
-  c.stroke();
-  c.strokeStyle = 'rgba(40,20,30,.35)';
-  c.lineWidth = 1;
-  c.beginPath();
-  c.moveTo(0, y - ry * 0.6);
-  c.lineTo(0, y + ry * 0.55);
-  c.stroke();
   c.restore();
 }
 /** Muscle and body lines on a bare chest; women wear a linen top. */
