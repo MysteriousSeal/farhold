@@ -665,7 +665,7 @@ function furnishTavern(I: Interior, rnd: () => number, big: boolean) {
       x: c.x,
       y: c.y + 1,
       seat: { x: c.x, y: c.y + 1, row: c.cy },
-      sink: 4, // drawn lower so the table hides the legs
+      sink: 17, // drawn lower so the table hides the legs
       dx: 0,
       dy: 1,
       walk: 0,

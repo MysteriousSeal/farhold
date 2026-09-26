@@ -326,52 +326,8 @@ export function hairLocks(c: Ctx, L, hy: number, v: View, HR: number) {
 }
 
 /** Female torso: narrower shoulders, a waist and fuller hips (inside the torso transform). */
-export function femTorso(c: Ctx, by: number, col: string) {
-  c.beginPath();
-  c.moveTo(-7.5, by + 1);
-  c.quadraticCurveTo(-8.5, by, -8, by + 4);
-  c.quadraticCurveTo(-6.4, by + 9, -8.6, by + 13);
-  c.quadraticCurveTo(-9.4, by + 16, -6, by + 16);
-  c.lineTo(6, by + 16);
-  c.quadraticCurveTo(9.4, by + 16, 8.6, by + 13);
-  c.quadraticCurveTo(6.4, by + 9, 8, by + 4);
-  c.quadraticCurveTo(8.5, by, 7.5, by + 1);
-  c.quadraticCurveTo(0, by - 1.5, -7.5, by + 1);
-  c.closePath();
-  c.fillStyle = col;
-  c.fill();
-  c.stroke();
-}
 /** Linen top worn when bare-chested (inside the torso transform). */
-export function femTop(c: Ctx, by: number, col: string, v: View) {
-  if (v.side) rr(c, -4.5, by + 3, 10, 6, 2.5, col);
-  else rr(c, -7.2, by + 3, 14.4, 6, 2.5, col);
-  if (!v.up && !v.side) {
-    c.strokeStyle = sh(col, -0.25);
-    c.lineWidth = 1;
-    c.beginPath();
-    c.moveTo(0, by + 3.5);
-    c.lineTo(0, by + 8.5);
-    c.stroke();
-    c.strokeStyle = OUT;
-  }
-}
 /** Subtle chest shaping on armor (inside the torso transform, front views only). */
-export function femArmor(c: Ctx, by: number, v: View) {
-  if (v.up || v.side) return;
-  c.strokeStyle = 'rgba(20,12,24,.35)';
-  c.lineWidth = 1.2;
-  for (const k of [-1, 1]) {
-    c.beginPath();
-    c.arc(k * 3.6, by + 5.2, 3.3, Math.PI * 0.15, Math.PI * 0.85);
-    c.stroke();
-  }
-  c.strokeStyle = 'rgba(255,255,255,.3)';
-  c.beginPath();
-  c.arc(-3.8, by + 4.4, 2.2, Math.PI * 1.1, Math.PI * 1.5);
-  c.stroke();
-  c.strokeStyle = OUT;
-}
 /** Eyelashes: a small flick at the outer top corner of each eye (front and 3/4 views). */
 export function lashes(c: Ctx, hy: number, ex1: number, ex2: number, side: boolean) {
   c.strokeStyle = OUT;

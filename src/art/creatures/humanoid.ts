@@ -21,11 +21,11 @@ export function drawHumanoidEnemy(c, e, t, D) {
     shadow(c, e.x, e.y, 12 * s, 4.5 * s, 0.25);
     c.translate(0, -z);
   }
-  const hp = handPos(e.dx, e.dy, e.moving, e.walk, t, '', s),
+  const hp = handPos(e.dx, e.dy, e.moving, e.walk, t, '', s, L),
     // melee weapons are held on guard (blade up) unless winding up or swinging
     guard =
       (D.wep === 'sword' || D.wep === 'axe' || D.wep === 'club') && !(e.wind > 0) && !(e.swing > 0)
-        ? carryPos(e.dx, e.dy, e.moving, e.walk, t, '', s)
+        ? carryPos(e.dx, e.dy, e.moving, e.walk, t, '', s, L)
         : null,
     wx = e.x + (guard ? guard.x : hp.x),
     wy = e.y + (guard ? guard.y : hp.y);

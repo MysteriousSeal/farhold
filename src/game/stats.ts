@@ -78,6 +78,11 @@ export function lookOfPlayer(p) {
       beard: p.gender !== 'f' && p.beard === 2,
       stubble: p.gender !== 'f' && p.beard === 1,
       race: p.race,
+      body: p.body, // build sliders (art/body.ts)
+      eyeC: p.eyeC,
+      brow: p.brow,
+      nose: p.nose,
+      bareFeet: !e.boots,
       cloth: bare ? p.skin : C2.cloth,
       cloth2: bare ? sh(p.skin, -0.2) : C2.cloth2,
       cape: bare ? null : C2.cape,

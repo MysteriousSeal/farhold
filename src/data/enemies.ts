@@ -1,5 +1,5 @@
 /* ---- enemies ---- */
-const HUM = (o) => Object.assign({ kind: 'hum', hbY: 48 }, o);
+const HUM = (o) => Object.assign({ kind: 'hum', hbY: 72 }, o);
 export const ET = {
   slime: {
     n: 'Slime',
@@ -111,6 +111,7 @@ export const ET = {
     xp: 1,
     scale: 0.85,
     look: {
+      body: { h: -0.9, w: -0.3, m: -0.2 },
       skin: '#86be4e',
       race: 'goblin',
       cloth: '#7a5a3c',
@@ -130,6 +131,7 @@ export const ET = {
     r: 12,
     xp: 1.1,
     look: {
+      body: { m: 0.3, w: -0.1 },
       skin: '#e6b187',
       cloth: '#6a5a4a',
       cowl: '#8a2a24',
@@ -149,6 +151,7 @@ export const ET = {
     r: 12,
     xp: 1.1,
     look: {
+      body: { w: -0.4, h: 0.2 },
       skin: '#c4895c',
       cloth: '#5a6a4a',
       cowl: '#4a5a3a',
@@ -209,6 +212,7 @@ export const ET = {
     xp: 2,
     scale: 1.3,
     look: {
+      body: { h: 0.4, w: 0.2, m: 0.6, s: 0.4 },
       skin: '#5f9150',
       cloth: '#6a4e36',
       hair: 3,
@@ -229,6 +233,7 @@ export const ET = {
     r: 12,
     xp: 1.2,
     look: {
+      body: { w: -0.3 },
       skin: '#e6d0c0',
       cloth: '#6a1a2a',
       cloth2: '#4a0a1a',
@@ -252,6 +257,7 @@ export const ET = {
     r: 12,
     xp: 1.8,
     look: {
+      body: { w: -0.7, h: 0.3 },
       skin: '#c8d0c0',
       cloth: '#3a2a5a',
       cloth2: '#2a1a4a',
@@ -275,6 +281,7 @@ export const ET = {
     r: 13,
     xp: 1.4,
     look: {
+      body: { w: -0.6, h: 0.2 },
       skin: '#d8c8a0',
       cloth: '#d8c8a0',
       pants: '#c8b890',
@@ -294,6 +301,7 @@ export const ET = {
     xp: 2,
     scale: 1.35,
     look: {
+      body: { w: 0.3, m: 0.3 },
       skin: '#9ab8d8',
       cloth: '#eef4fa',
       pants: '#dde8f2',
@@ -316,7 +324,14 @@ export const ET = {
     xp: 1.5,
     scale: 1.05,
     float: true,
-    look: { skin: '#2a2140', cloth: '#3b2d5c', noLegs: true, hood: '#2d2248', eyes: '#8ef7ff' },
+    look: {
+      body: { w: -0.5 },
+      skin: '#2a2140',
+      cloth: '#3b2d5c',
+      noLegs: true,
+      hood: '#2d2248',
+      eyes: '#8ef7ff',
+    },
     wep: 'orb',
     ai: 'caster',
     range: 200,
@@ -331,6 +346,7 @@ export const ET = {
     xp: 1.7,
     scale: 1.1,
     look: {
+      body: { h: 0.6, m: 1, s: 1 },
       skin: '#c8403a',
       cloth: '#3a1a1a',
       pants: '#2a1414',

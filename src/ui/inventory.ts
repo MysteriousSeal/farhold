@@ -1,3 +1,4 @@
+import { headY } from '../art/body';
 import { carryPos, drawHumanoid, drawWeapon, handOver, handPos, restAng } from '../art/humanoid';
 import { heroStyle } from '../game/style';
 import { compareItem, fmtPct } from '../game/power';
@@ -108,12 +109,14 @@ function drawPortrait(cv: HTMLCanvasElement) {
   const x = cv.getContext('2d'),
     w = game.P.eq.weapon;
   x.clearRect(0, 0, cv.width, cv.height);
-  // centre the whole figure (helmet top ≈ -48, feet ≈ +4, weapon slightly to the right)
-  const k = 2 * 2.9;
-  x.setTransform(k, 0, 0, k, cv.width / 2 - 2 * k, cv.height / 2 + 22 * k);
+  // centre the whole figure (from above the helmet to the feet, weapon slightly to the right)
+  const L = game.P.look,
+    top = headY(L) - 14,
+    k = Math.min(5.8, (cv.height * 0.86) / (4 - top));
+  x.setTransform(k, 0, 0, k, cv.width / 2 - 2 * k, cv.height / 2 - ((top + 4) / 2) * k);
   // warriors stand on guard (blade up); other classes hold their weapon at rest
-  const guard = heroStyle() === 'warrior' ? carryPos(0, 1, false, 0, 0, game.P.race) : null,
-    hp = guard || handPos(0, 1, false, 0, 0, game.P.race),
+  const guard = heroStyle() === 'warrior' ? carryPos(0, 1, false, 0, 0, game.P.race, 1, L) : null,
+    hp = guard || handPos(0, 1, false, 0, 0, game.P.race, 1, L),
     ang = guard ? guard.ang : restAng(hp, heroStyle()),
     wd = () =>
       drawWeapon(

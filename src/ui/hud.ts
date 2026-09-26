@@ -1,3 +1,4 @@
+import { HEAD_K, headY } from '../art/body';
 import { drawHumanoid } from '../art/humanoid';
 import { heroStyle } from '../game/style';
 import { zoom } from '../render/render';
@@ -51,10 +52,10 @@ function drawPortrait() {
   portKey = key;
   const cv = $('#portC') as HTMLCanvasElement,
     x = cv.getContext('2d'),
-    k = 4.3; // head (radius ≈ 10.5, centred ≈ 35 above the feet) fills the circle
+    k = 4.3 / HEAD_K; // the head fills the circle
   x.setTransform(1, 0, 0, 1, 0, 0);
   x.clearRect(0, 0, cv.width, cv.height);
-  x.setTransform(k, 0, 0, k, cv.width / 2, cv.height / 2 + 32 * k);
+  x.setTransform(k, 0, 0, k, cv.width / 2, cv.height / 2 - (headY(look) + 3 * HEAD_K) * k);
   drawHumanoid(x, 0, 0, {
     look,
     dx: 0,

@@ -4,6 +4,7 @@ import { OUT } from '../core/math';
 import { drawNpc } from '../game/npcs';
 import { game } from '../game/state';
 import { patronJob } from '../game/tavernQuests';
+import { headY } from '../art/body';
 /* ================= RENDER: house interiors ================= */
 // render.ts calls these while game.mode === 'house': the room shell behind everything, the
 // furniture, partitions and residents into its depth-sorted list, then the front wall,
@@ -26,7 +27,7 @@ export function houseFront(c: Ctx, t: number) {
   I.npcs.forEach((n, i) => {
     if (n.role !== 'patron' || n.say) return;
     const job = patronJob(I, i);
-    if (job) jobMark(c, n.x, n.y + (n.seated ? n.sink || 0 : 0) - 40, job.mark, t);
+    if (job) jobMark(c, n.x, n.y + (n.seated ? n.sink || 0 : 0) + headY(n.look) - 12, job.mark, t);
   });
   for (const n of I.npcs) if (n.say) speech(c, n.x, n.y - 92, n.say, Math.min(1, n.sayT * 4));
 }

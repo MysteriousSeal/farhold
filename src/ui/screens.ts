@@ -1,10 +1,21 @@
 import { resetCityGround } from '../art/city';
+import { HEAD_K, headY } from '../art/body';
 import { carryPos, drawHumanoid, drawWeapon, handOver } from '../art/humanoid';
 import { backfillBossChests, refreshQuestTargets } from '../game/bossChest';
 import { audioInit } from '../audio/sfx';
 import { $ } from '../core/dom';
 import { pick, strSeed } from '../core/math';
-import { BEARDS, HAIRC, HAIRS, SKINS } from '../data/appearance';
+import {
+  BEARDS,
+  BODY_PRESETS,
+  BODY_SLIDERS,
+  BROWS,
+  EYES,
+  HAIRC,
+  HAIRS,
+  NOSES,
+  SKINS,
+} from '../data/appearance';
 import { MATS } from '../data/classes';
 import { NAMES } from '../data/names';
 import { respawn } from '../game/combat';
@@ -42,7 +53,59 @@ const C = {
   hair: 0,
   hairC: HAIRC.indexOf('#6b3e1f'),
   beard: 0,
+  eye: 0,
+  brow: 0,
+  nose: 0,
+  body: { h: 0, w: 0, m: 0, s: 0, p: 0 } as Record<string, number>,
 };
+/** A slider value in -1..1, rounded to the slider's steps. */
+const step = (v: number) => Math.round(Math.max(-1, Math.min(1, v)) * 20) / 20;
+/** Body sliders: built once, then kept in sync with C.body. */
+function bodySliders() {
+  const el = $('#cBodyS');
+  if (!el.childElementCount)
+    for (const [k, label, lo, hi] of BODY_SLIDERS) {
+      const row = document.createElement('label');
+      row.className = 'crsl-row';
+      row.innerHTML =
+        '<span class="crsl-n">' +
+        label +
+        '</span><small>' +
+        lo +
+        '</small><input type="range" min="-100" max="100" step="5" data-k="' +
+        k +
+        '" aria-label="' +
+        label +
+        '"><small>' +
+        hi +
+        '</small>';
+      const inp = row.querySelector('input');
+      inp.oninput = () => {
+        C.body[k] = +inp.value / 100;
+        presetChips();
+      };
+      // double-click (or double-tap) a slider to put it back to average
+      inp.ondblclick = () => {
+        C.body[k] = 0;
+        refreshCreate();
+      };
+      el.appendChild(row);
+    }
+  el.querySelectorAll('input').forEach((i: HTMLInputElement) => {
+    i.value = String(Math.round((C.body[i.dataset.k] || 0) * 100));
+  });
+}
+function presetChips() {
+  chips(
+    $('#cBodyP'),
+    BODY_PRESETS.map(([n], i) => [i, n]),
+    () =>
+      BODY_PRESETS.findIndex(([, b]) =>
+        BODY_SLIDERS.every(([k]) => Math.abs((C.body[k] || 0) - b[k]) < 0.01),
+      ),
+    (i) => (C.body = { ...BODY_PRESETS[i][1] }),
+  );
+}
 const randSeed = () =>
   pick(['Oak', 'Ember', 'Raven', 'Frost', 'Stone', 'Wyrm', 'Thorn', 'Gale']) +
   '-' +
@@ -104,6 +167,27 @@ function refreshCreate() {
     (v) => (C.hairC = v),
     true,
   );
+  chips(
+    $('#cEye'),
+    EYES.map((c, i) => [i, 'Eye colour ' + (i + 1), c]),
+    () => C.eye,
+    (v) => (C.eye = v),
+    true,
+  );
+  chips(
+    $('#cBrow'),
+    BROWS.map((b, i) => [i, b]),
+    () => C.brow,
+    (v) => (C.brow = v),
+  );
+  chips(
+    $('#cNose'),
+    NOSES.map((b, i) => [i, b]),
+    () => C.nose,
+    (v) => (C.nose = v),
+  );
+  presetChips();
+  bodySliders();
   $('#prevname').textContent = $('#cName').value || 'Nameless';
 }
 function previewPlayer() {
@@ -114,6 +198,10 @@ function previewPlayer() {
     skin: SKINS[C.skin],
     hair: C.hair,
     hairC: HAIRC[C.hairC],
+    eyeC: EYES[C.eye],
+    brow: C.brow,
+    nose: C.nose,
+    body: { ...C.body },
     eq: {},
   };
 }
@@ -123,9 +211,11 @@ export function drawPreview(t) {
   if (game.state !== 'create') return;
   pc.setTransform(1, 0, 0, 1, 0, 0);
   pc.clearRect(0, 0, 420, 460);
-  pc.setTransform(5.4, 0, 0, 5.4, 205, 355);
+  // the whole figure fits whatever its height: feet low in the box, scaled by the head height
   const L = lookOfPlayer(previewPlayer()),
-    dirs = [
+    k = Math.min(5.2, 330 / -headY(L));
+  pc.setTransform(k, 0, 0, k, 205, 405);
+  const dirs = [
       [0, 1],
       [1, 0],
       [0, -1],
@@ -135,7 +225,7 @@ export function drawPreview(t) {
     di = dirs[face],
     walk = t * 9;
   // the rusty sword held on guard, blade up, exactly as the hero carries it in game
-  const g = carryPos(di[0], di[1], true, walk, t, C.race),
+  const g = carryPos(di[0], di[1], true, walk, t, C.race, 1, L),
     wd = () => drawWeapon(pc, g.x, g.y, g.ang, 'sword', 0, MATS[0][1], null, 0);
   if (g.behind) wd();
   drawHumanoid(pc, 0, 0, {
@@ -170,6 +260,12 @@ $('#cRand').onclick = () => {
   C.hair = pick(HAIRS[C.gender])[0];
   C.hairC = (Math.random() * HAIRC.length) | 0;
   C.beard = C.gender === 'm' ? (Math.random() * 3) | 0 : 0;
+  C.eye = (Math.random() * EYES.length) | 0;
+  C.brow = (Math.random() * BROWS.length) | 0;
+  C.nose = (Math.random() * NOSES.length) | 0;
+  // a body near average, now and then something more striking
+  const r = () => (Math.random() + Math.random() + Math.random() - 1.5) * 0.9;
+  C.body = Object.fromEntries(BODY_SLIDERS.map(([k]) => [k, step(r())]));
   refreshCreate();
 };
 $('#cName').onkeydown = (e) => {
@@ -312,8 +408,8 @@ function ago(t: number) {
 /** The hero's face for a save card (same framing as the HUD portrait). */
 function drawFace(cv: HTMLCanvasElement, look) {
   const x = cv.getContext('2d'),
-    k = 4.3;
-  x.setTransform(k, 0, 0, k, cv.width / 2, cv.height / 2 + 32 * k);
+    k = 4.3 / HEAD_K;
+  x.setTransform(k, 0, 0, k, cv.width / 2, cv.height / 2 - (headY(look) + 3 * HEAD_K) * k);
   drawHumanoid(x, 0, 0, { look, dx: 0, dy: 1, moving: false, walk: 0, time: 0, noShadow: true });
   x.setTransform(1, 0, 0, 1, 0, 0);
 }

@@ -425,6 +425,12 @@ export function villagerLook(rnd: () => number): Record<string, any> {
     if (q < 0.22) L.beard = true;
     else if (q < 0.42) L.stubble = true;
   }
+  // build and face from one seeded draw: mostly near average, a few striking ones
+  const br = mulberry((rnd() * 1e9) | 0),
+    g = () => Math.round((br() + br() + br() - 1.5) * 0.85 * 20) / 20;
+  L.body = { h: g(), w: g(), m: g(), s: g(), p: g() };
+  L.brow = (br() * 4) | 0;
+  L.nose = (br() * 4) | 0;
   return L;
 }
 function makeCave(x, y, key) {

@@ -140,11 +140,20 @@ function drawHero(c, t) {
     const k = clamp(leap.t / leap.dur, 0, 1);
     z = Math.sin(k * Math.PI) * 70;
   }
-  const hp = handPos(hero.dx, hero.dy, hero.moving && !rolling, hero.walk, t, game.P.race),
+  const hp = handPos(
+      hero.dx,
+      hero.dy,
+      hero.moving && !rolling,
+      hero.walk,
+      t,
+      game.P.race,
+      1,
+      game.P.look,
+    ),
     // a resting sword/axe is carried on the shoulder
     carry =
       heroStyle() === 'warrior' && hero.atk <= 0 && hero.whirl <= 0 && !leap && !rolling
-        ? carryPos(hero.dx, hero.dy, hero.moving, hero.walk, t, game.P.race)
+        ? carryPos(hero.dx, hero.dy, hero.moving, hero.walk, t, game.P.race, 1, game.P.look)
         : null,
     wx = game.P.x + (carry ? carry.x : hp.x),
     wy = game.P.y + (carry ? carry.y : hp.y) - z;

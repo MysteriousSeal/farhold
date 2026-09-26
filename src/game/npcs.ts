@@ -106,7 +106,7 @@ export function drawNpc(c, n, t) {
   if (n.role === 'smith' && !(n.dy > 0)) {
     const k = n.ham || 0,
       a = k < 0.25 ? -1.6 + k * 6 : k < 0.35 ? -0.1 : -0.1 - Math.min(1.5, (k - 0.35) * 2);
-    const hp = handPos(1, 0, false, 0, t, '');
+    const hp = handPos(1, 0, false, 0, t, '', 1, n.look);
     c.save();
     c.translate(n.x + hp.x, n.y + hp.y);
     c.rotate(a);
