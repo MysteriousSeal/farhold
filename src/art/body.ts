@@ -503,7 +503,14 @@ export function drawTorso(c: Ctx, R: Rig, K: Paint, L, lw: number, tint: (c: str
       c.save();
       c.translate(-R.farS * 3.2, 0);
       c.scale(0.7, 1);
-      drawParts(c, [{ p: sp, col: sh(A ? tint(A.col) : top, -0.3) }], lw);
+      // bare hips under the briefs: no outline across the bottom (as on the torso itself)
+      const open = fem && !!L.shorts;
+      if (open) {
+        c.lineWidth = lw * 2;
+        c.strokeStyle = OUT;
+        c.stroke(torsoPath(R, fem, undefined, true));
+      }
+      drawParts(c, [{ p: sp, col: sh(A ? tint(A.col) : top, -0.3), noLine: open }], lw);
       c.restore();
     }
     // under the briefs the hips run straight into the thighs: no line across the crotch
