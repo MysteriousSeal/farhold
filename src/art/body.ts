@@ -599,10 +599,10 @@ export function drawTorso(c: Ctx, R: Rig, K: Paint, L, lw: number, tint: (c: str
  * the torso outline. `armour` is the armour kind (-1 none) for mail rings and plate shine.
  */
 function bust(c: Ctx, R: Rig, col: string, armour: number) {
-  const y = R.shY + 7,
-    gap = 3,
-    rx = 3.4,
-    ry = 3.4;
+  const y = R.shY + 7.4,
+    gap = 3.25,
+    rx = 3.95,
+    ry = 4.2;
   c.save();
   if (R.side) {
     c.strokeStyle = 'rgba(40,20,30,.3)';
