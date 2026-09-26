@@ -411,10 +411,11 @@ export function drawArm(c: Ctx, R: Rig, A: Limb, K: Paint, lw: number, L) {
 
 /** The torso outline (front, back or side), including the hips down to the crotch. */
 /**
- * The torso outline (front, back or side), down to the crotch. `open` leaves out the bottom
- * edge (for outlining bare hips, where the thighs carry on from the torso).
+ * The torso outline (front, back or side), down to the crotch. With `briefs` (women's
+ * underwear) it ends at the briefs' high-cut leg openings instead, so the thighs carry on
+ * from the hips below them.
  */
-function torsoPath(R: Rig, fem: boolean, bottom?: number, open = false) {
+function torsoPath(R: Rig, fem: boolean, bottom?: number, briefs = false) {
   const W = R.W,
     p = new Path2D(),
     { shY, waistY, hipY } = R,
@@ -430,16 +431,19 @@ function torsoPath(R: Rig, fem: boolean, bottom?: number, open = false) {
     if (fem) p.bezierCurveTo(ch + 3.4, shY + 5, ch + 4, shY + 10.2, ch - 0.4, shY + 10.8);
     p.quadraticCurveTo(wa + bel + 0.6, waistY - 2, wa + bel * 0.8, waistY + 1);
     p.quadraticCurveTo(hp * 0.95, hipY, hp * 0.8, Math.min(by, hipY + 2));
-    if (open) p.moveTo(-hp * 0.9, Math.min(by, hipY + 2));
-    else {
+    if (briefs) {
+      // the leg opening: low at the front, rising toward the back
+      p.lineTo(hp * 0.6, hipY + 5);
+      p.lineTo(hp * 0.05, hipY + 5);
+      p.quadraticCurveTo(-hp * 0.35, hipY + 1.2, -hp * 0.9, hipY + 1.5);
+    } else {
       p.lineTo(hp * 0.7, by);
       p.lineTo(-hp * 0.9, by);
     }
     p.quadraticCurveTo(-hp - 0.4, hipY, -wa + 0.4, waistY);
     p.quadraticCurveTo(-ch - 0.6, shY + 5, -ch + 1.2, shY + 0.6);
     p.quadraticCurveTo(-2.4, shY - 1.8, -1.6, shY - 1.8);
-    if (open) p.lineTo(1.8, shY - 1.6);
-    else p.closePath();
+    p.closePath();
     return p;
   }
   const s = W.sh,
@@ -450,9 +454,14 @@ function torsoPath(R: Rig, fem: boolean, bottom?: number, open = false) {
   p.quadraticCurveTo(-s + 1.4, shY - 1.2, -s, shY + 2.4);
   p.quadraticCurveTo(-ch - 0.2, shY + 6, fem ? -wa - 0.2 : -ch + 0.4, shY + 8.5);
   p.quadraticCurveTo(-wa - 0.3, waistY - 1, -wa, waistY);
-  p.quadraticCurveTo(-hp - 0.3, hipY - 1.5, -hp, Math.min(by, hipY + 1.5));
-  if (open) p.moveTo(hp, Math.min(by, hipY + 1.5));
-  else {
+  if (briefs) {
+    // the leg openings: from high on the hips down to the crotch
+    p.quadraticCurveTo(-hp - 0.3, hipY - 1.5, -hp, hipY - 0.5);
+    p.quadraticCurveTo(-hp * 0.35, hipY + 0.5, -hp * 0.25, hipY + 5);
+    p.lineTo(hp * 0.25, hipY + 5);
+    p.quadraticCurveTo(hp * 0.35, hipY + 0.5, hp, hipY - 0.5);
+  } else {
+    p.quadraticCurveTo(-hp - 0.3, hipY - 1.5, -hp, Math.min(by, hipY + 1.5));
     p.lineTo(-hp + 0.6, by);
     p.lineTo(hp - 0.6, by);
     p.lineTo(hp, Math.min(by, hipY + 1.5));
@@ -462,7 +471,7 @@ function torsoPath(R: Rig, fem: boolean, bottom?: number, open = false) {
   p.quadraticCurveTo(ch + 0.2, shY + 6, s, shY + 2.4);
   p.quadraticCurveTo(s - 1.4, shY - 1.2, 3, shY - 1.8);
   p.quadraticCurveTo(0, shY - 0.8, -3, shY - 1.8);
-  if (!open) p.closePath();
+  p.closePath();
   return p;
 }
 /** In 3/4 views the torso turns: draw `fn` squeezed toward the facing side. */
@@ -494,64 +503,47 @@ export function drawTorso(c: Ctx, R: Rig, K: Paint, L, lw: number, tint: (c: str
     { shY, waistY, hipY } = R,
     W = R.W;
   turned(c, R, () => {
-    const body = torsoPath(R, fem),
+    const briefs = fem && !!L.shorts,
+      body = torsoPath(R, fem, undefined, briefs),
       top = K.bareTop ? K.skin : K.cloth,
       side = R.side;
     // the side panel of a turned torso shows on the near side
     if (R.diag) {
-      const sp = torsoPath(R, fem);
+      const sp = torsoPath(R, fem, undefined, briefs);
       c.save();
       c.translate(-R.farS * 3.2, 0);
       c.scale(0.7, 1);
-      // bare hips under the briefs: no outline across the bottom (as on the torso itself)
-      const open = fem && !!L.shorts;
-      if (open) {
+      drawParts(c, [{ p: sp, col: sh(A ? tint(A.col) : top, -0.3) }], lw);
+      if (briefs && !A) {
+        // the briefs carry on round the turned hip, in shadow
+        c.save();
+        c.clip(sp);
+        c.fillStyle = sh(tint(L.shorts), -0.22);
+        c.fillRect(-20, R.waistY + 3.2, 40, 20);
+        c.restore();
         c.lineWidth = lw * 2;
         c.strokeStyle = OUT;
-        c.stroke(torsoPath(R, fem, undefined, true));
+        c.stroke(sp);
+        c.lineWidth = lw;
       }
-      drawParts(c, [{ p: sp, col: sh(A ? tint(A.col) : top, -0.3), noLine: open }], lw);
       c.restore();
     }
-    // under the briefs the hips run straight into the thighs: no line across the crotch
-    const openHips = fem && !!L.shorts;
-    if (openHips) {
-      c.lineWidth = lw * 2;
-      c.strokeStyle = OUT;
-      c.stroke(torsoPath(R, fem, undefined, true));
-    }
-    drawParts(c, [{ p: body, col: top, shade: side ? 1.6 : 2.2, noLine: openHips }], lw);
+    drawParts(c, [{ p: body, col: top, shade: side ? 1.6 : 2.2 }], lw);
     c.save();
     c.clip(body);
     // shorts over the hips when bare-legged or bare-chested
     if (L.shorts && fem) {
-      // women: snug linen briefs, sitting lower and cut high at the sides (full coverage)
+      // women: snug linen briefs; the torso outline below them is their high-cut leg line
       const col = tint(L.shorts),
-        y0 = waistY + 3.2,
-        br = new Path2D();
-      if (side) {
-        br.moveTo(-20, y0);
-        br.lineTo(20, y0);
-        br.lineTo(20, hipY + 5);
-        br.lineTo(W.hpD * 0.2, hipY + 5);
-        br.quadraticCurveTo(-W.hpD * 0.2, hipY + 0.2, -20, hipY + 1.5);
-      } else {
-        const hw = W.hips + 1;
-        br.moveTo(-20, y0);
-        br.lineTo(20, y0);
-        br.lineTo(20, hipY - 0.5);
-        br.lineTo(hw, hipY - 0.5);
-        br.quadraticCurveTo(hw * 0.35, hipY + 0.5, hw * 0.25, hipY + 5);
-        br.lineTo(-hw * 0.25, hipY + 5);
-        br.quadraticCurveTo(-hw * 0.35, hipY + 0.5, -hw, hipY - 0.5);
-        br.lineTo(-20, hipY - 0.5);
-      }
-      br.closePath();
+        y0 = waistY + 3.2;
       c.fillStyle = col;
-      c.fill(br);
+      c.fillRect(-20, y0, 40, 20);
       c.strokeStyle = sh(col, -0.35);
       c.lineWidth = 1;
-      c.stroke(br);
+      c.beginPath();
+      c.moveTo(-20, y0);
+      c.lineTo(20, y0);
+      c.stroke();
     } else if (L.shorts) {
       c.fillStyle = tint(L.shorts);
       c.fillRect(-20, waistY + 1.5, 40, 20);
