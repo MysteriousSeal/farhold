@@ -1,6 +1,6 @@
 import { game } from '../game/state';
 import { heroStyle } from '../game/style';
-import { ADJ, TREE } from './tree';
+import { ADJ, MASTERY, TREE } from './tree';
 /* ---- skill trees ---- */
 // Per-style trees: only their active skills (s1, s2) are still used, see skillTree().
 export const TREES = {
@@ -282,7 +282,28 @@ export const ownedNodes = (p = game.P): string[] => p.tree || [];
 /** Points not yet spent: one per level after the first, plus one per lair boss. */
 export function pointsFree(p = game.P) {
   const sp = p.sp || {};
-  return p.lvl - 1 + bossPoints(p) - ownedNodes(p).length - (sp.s1 || 0) - (sp.s2 || 0);
+  return (
+    p.lvl - 1 + bossPoints(p) - ownedNodes(p).length - (sp.s1 || 0) - (sp.s2 || 0) - masteryRanks(p)
+  );
+}
+/** Mastery ranks bought, all kinds together. */
+export const masteryRanks = (p = game.P) =>
+  Object.values((p.mastery || {}) as Record<string, number>).reduce((a, n) => a + n, 0);
+/** Mastery opens once every node but the keystones is learned. */
+export function masteryOpen(p = game.P) {
+  const own = new Set(ownedNodes(p));
+  return Object.values(TREE).every((n) => n.kind === 'start' || n.kind === 'key' || own.has(n.id));
+}
+/**
+ * Is there anything a free point could buy right now: a tree node next to an owned one, or
+ * a rank on an unlocked active skill that isn't maxed? (Leftover points with nothing to
+ * buy, e.g. a full tree, don't count.)
+ */
+export function canSpend(p = game.P) {
+  if (pointsFree(p) <= 0) return false;
+  if ((['s1', 's2'] as const).some((id) => rank(id) > 0 && rank(id) < SKILL_MAX)) return true;
+  if (masteryOpen(p)) return true;
+  return Object.keys(TREE).some((id) => canLearn(id, p));
 }
 /** Can the tree node be learned now (not owned, next to an owned node or the start)? */
 export function canLearn(id: string, p = game.P) {
@@ -295,6 +316,10 @@ export function treeFx(p = game.P) {
   for (const id of ownedNodes(p)) {
     const n = TREE[id];
     if (n) for (const k in n.fx) F[k] = (F[k] || 0) + n.fx[k];
+  }
+  for (const m of MASTERY) {
+    const r = (p.mastery && p.mastery[m.k]) || 0;
+    for (const k in m.fx) F[k] = (F[k] || 0) + m.fx[k] * r;
   }
   return F;
 }

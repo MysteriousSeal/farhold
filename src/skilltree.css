@@ -169,3 +169,39 @@
     max-height: none;
   }
 }
+/* mastery: endless ranks after the tree */
+#stMast {
+  padding: 10px 12px;
+  background: #141934;
+  border: 2px solid #3b4478;
+  border-radius: 12px;
+}
+#stMast.lock {
+  opacity: 0.55;
+}
+.stmast {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: 'n b' 'd b';
+  align-items: center;
+  column-gap: 8px;
+  padding: 5px 0;
+  border-top: 1px solid #262d5c;
+}
+.stmast:first-of-type {
+  border-top: 0;
+}
+.stmast .stmn {
+  grid-area: n;
+  font-size: 13px;
+}
+.stmast .stmn small {
+  opacity: 0.6;
+}
+.stmast .desc {
+  grid-area: d;
+  font-size: 12px;
+}
+.stmast .btn {
+  grid-area: b;
+}

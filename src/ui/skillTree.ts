@@ -12,8 +12,10 @@ import {
   rank,
   skillTree,
   treeFx,
+  masteryOpen,
+  masteryRanks,
 } from '../data/skills';
-import { LINKS, TREE, fxLines, type TreeNode } from '../data/tree';
+import { LINKS, MASTERY, TREE, fxLines, type TreeNode } from '../data/tree';
 import { toast } from '../game/fx';
 import { save } from '../game/save';
 import { game } from '../game/state';
@@ -63,7 +65,7 @@ function render() {
       ['m', 'g', 'c', 'h']
         .map((b) => '<span><i style="background:' + BR_COL[b] + '"></i>' + BR_NAME[b] + '</span>')
         .join('') +
-      '</div></div><div class="stside"><div id="stActs"></div><div id="stDet"></div><div id="stSum"></div></div></div>',
+      '</div></div><div class="stside"><div id="stActs"></div><div id="stMast"></div><div id="stDet"></div><div id="stSum"></div></div></div>',
   );
   $('#mp').classList.add('wide');
   wireClose();
@@ -79,11 +81,51 @@ function side() {
   const w = document.querySelector('.stptw');
   if (w) w.textContent = free === 1 ? 'point' : 'points';
   actives(free);
+  mastery(free);
   details(free);
   summary();
 }
 
 /* ---------- side panel ---------- */
+/** Mastery: endless ranks once the tree is done (everything but the keystones). */
+function mastery(free: number) {
+  const el = $('#stMast'),
+    open = masteryOpen();
+  el.innerHTML =
+    '<h4>Mastery <small>' +
+    (open ? 'endless ranks' : 'opens when every node but the keystones is learned') +
+    '</small></h4>';
+  el.classList.toggle('lock', !open);
+  for (const m of MASTERY) {
+    const r = (game.P.mastery && game.P.mastery[m.k]) || 0,
+      row = document.createElement('div');
+    row.className = 'stmast';
+    row.innerHTML =
+      '<span class="stmn"><b>' +
+      m.n +
+      '</b> <small>rank ' +
+      r +
+      '</small></span><span class="desc">' +
+      fxLines(m.fx)[0] +
+      ' per rank</span>';
+    row.appendChild(
+      btn(
+        '+1',
+        () => {
+          game.P.mastery = game.P.mastery || {};
+          game.P.mastery[m.k] = r + 1;
+          calcStats();
+          SFX.lvl();
+          save();
+          side();
+        },
+        'alt',
+        !open || free <= 0,
+      ),
+    );
+    el.appendChild(row);
+  }
+}
 function actives(free: number) {
   const el = $('#stActs'),
     style = heroStyle(),
@@ -193,7 +235,7 @@ function summary() {
           .join('') +
         '</ul>'
       : '<div class="desc">Nothing learned yet.</div>');
-  const spent = ownedNodes().length + (game.P.sp.s1 || 0) + (game.P.sp.s2 || 0);
+  const spent = ownedNodes().length + (game.P.sp.s1 || 0) + (game.P.sp.s2 || 0) + masteryRanks();
   el.appendChild(
     btn(
       'Reset all for ' + cost + ' gold',
@@ -205,6 +247,7 @@ function summary() {
         game.P.gold -= cost;
         game.P.tree = [];
         game.P.sp = {};
+        game.P.mastery = {};
         calcStats();
         save();
         toast('Skill points refunded');
