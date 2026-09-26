@@ -2,8 +2,7 @@ import { OUT, TAU, clamp, mixCol, sh } from '../core/math';
 /* ================= ART: humanoid body (skeleton, limbs, torso, clothes) ================= */
 // Every human-shaped figure (hero, townsfolk, humanoid enemies) stands on a small skeleton:
 // hips, knees and ankles, shoulders, elbows and wrists, the neck and the head. The skeleton
-// comes from the body sliders in look.body (height, weight, muscle, shoulders, hips; each
-// -1..1), the facing and the walk phase; shaped polygon parts are drawn on it in one bold
+// comes from the shared lean build (bodyOf), the facing and the walk phase; shaped polygon parts are drawn on it in one bold
 // outline with one shadow tone. Coordinates are local, feet at y = 0, facing +x for side and
 // 3/4 views (drawHumanoid mirrors left-facing poses). The head is drawn by art/humanoid.ts.
 type Ctx = CanvasRenderingContext2D;
@@ -13,13 +12,13 @@ export type Body = { h: number; w: number; m: number; s: number; p: number };
 /** The head is drawn at this scale of the classic head (radius 10.5), on a taller body. */
 export const HEAD_K = 0.9,
   HEAD_R = 10.5 * HEAD_K;
-/** Body sliders from a look, each -1..1 (missing ones are average). */
+/**
+ * Everyone shares one lean build (a little tall, slim, lightly muscled); only skeletons are
+ * thinner still. The skeleton's proportions below are written in terms of these values.
+ */
+const LEAN: Body = { h: 0.3, w: -0.8, m: 0.1, s: -0.2, p: -0.3 };
 export function bodyOf(L): Body {
-  const b = L.body || {},
-    v = (k: string) => clamp(+b[k] || 0, -1, 1);
-  const B = { h: v('h'), w: v('w'), m: v('m'), s: v('s'), p: v('p') };
-  if (L.bones) Object.assign(B, { w: -1, m: -1 }); // skeletons are all bone
-  return B;
+  return L.bones ? { ...LEAN, w: -1, m: -1 } : LEAN;
 }
 
 /**

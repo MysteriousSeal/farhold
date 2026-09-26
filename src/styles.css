@@ -1796,37 +1796,7 @@ input.txt {
   color: var(--gold);
   letter-spacing: 0.3px;
 }
-/* body sliders in character creation: name, low end, slider, high end */
-.crsl {
-  display: flex;
-  flex-direction: column;
-}
-.crsl-row {
-  display: grid;
-  grid-template-columns: 96px 50px 1fr 58px;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 0;
-  border-top: 1px solid #232a52;
-  font: 600 14px var(--f);
-  color: #e7d7b0;
-}
-.crsl-row small {
-  font: 500 11px var(--f);
-  opacity: 0.6;
-  text-align: center;
-}
-.crsl-row input[type='range'] {
-  width: 100%;
-  accent-color: #f5c451;
-  cursor: pointer;
-}
-@media (max-width: 560px) {
-  .crsl-row {
-    grid-template-columns: 74px 40px 1fr 48px;
-  }
-}
-/* the preview stays in view while scrolling down to the body sliders (wide layout) */
+/* the preview stays in view while scrolling through the options (wide layout) */
 @media (min-width: 681px) {
   #prevwrap {
     position: sticky;

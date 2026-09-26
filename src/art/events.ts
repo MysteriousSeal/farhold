@@ -21,7 +21,6 @@ const MERCHANT = {
   hat: '#6b2a5a',
   pants: '#4a3a2e',
   boots: '#3a2a1e',
-  body: { w: 0.4, h: -0.3 },
 };
 
 /** A covered wagon with striped canvas, goods and the merchant standing beside it. */

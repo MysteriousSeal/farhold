@@ -74,25 +74,6 @@ export const HAIRS = {
 /** Facial hair options (male heroes): look.beard 0 none, 1 stubble, 2 full beard. */
 export const BEARDS = ['None', 'Stubble', 'Full beard'];
 
-/* ---------- body (art/body.ts reads look.body; each slider is -1..1, 0 average) ---------- */
-/** Body sliders in character creation: [key, label, low end, high end]. */
-export const BODY_SLIDERS: [string, string, string, string][] = [
-  ['h', 'Height', 'Short', 'Tall'],
-  ['w', 'Build', 'Slim', 'Heavy'],
-  ['m', 'Muscle', 'Soft', 'Muscular'],
-  ['s', 'Shoulders', 'Narrow', 'Broad'],
-  ['p', 'Hips', 'Narrow', 'Wide'],
-];
-/** One-click body presets that set the sliders. */
-export const BODY_PRESETS: [string, Record<string, number>][] = [
-  ['Average', { h: 0, w: 0, m: 0, s: 0, p: 0 }],
-  ['Lean', { h: 0.3, w: -0.8, m: 0.1, s: -0.2, p: -0.3 }],
-  ['Athletic', { h: 0.3, w: -0.2, m: 0.8, s: 0.6, p: -0.1 }],
-  ['Brawny', { h: 0.6, w: 0.4, m: 1, s: 1, p: 0.1 }],
-  ['Stocky', { h: -0.7, w: 0.5, m: 0.4, s: 0.5, p: 0.3 }],
-  ['Heavy', { h: 0, w: 1, m: -0.2, s: 0.2, p: 0.6 }],
-];
-
 /* ---------- face ---------- */
 /** Eye (iris) colours. */
 export const EYES = [

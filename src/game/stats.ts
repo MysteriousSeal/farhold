@@ -92,7 +92,6 @@ export function lookOfPlayer(p) {
       beard: p.gender !== 'f' && p.beard === 2,
       stubble: p.gender !== 'f' && p.beard === 1,
       race: p.race,
-      body: p.body, // build sliders (art/body.ts)
       eyeC: p.eyeC,
       brow: p.brow,
       nose: p.nose,

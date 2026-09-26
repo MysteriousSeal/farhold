@@ -5,17 +5,7 @@ import { backfillBossChests, refreshQuestTargets } from '../game/bossChest';
 import { audioInit } from '../audio/sfx';
 import { $ } from '../core/dom';
 import { pick, strSeed } from '../core/math';
-import {
-  BEARDS,
-  BODY_PRESETS,
-  BODY_SLIDERS,
-  BROWS,
-  EYES,
-  HAIRC,
-  HAIRS,
-  NOSES,
-  SKINS,
-} from '../data/appearance';
+import { BEARDS, BROWS, EYES, HAIRC, HAIRS, NOSES, SKINS } from '../data/appearance';
 import { MATS } from '../data/classes';
 import { NAMES } from '../data/names';
 import { respawn } from '../game/combat';
@@ -56,56 +46,7 @@ const C = {
   eye: 0,
   brow: 0,
   nose: 0,
-  body: { h: 0, w: 0, m: 0, s: 0, p: 0 } as Record<string, number>,
 };
-/** A slider value in -1..1, rounded to the slider's steps. */
-const step = (v: number) => Math.round(Math.max(-1, Math.min(1, v)) * 20) / 20;
-/** Body sliders: built once, then kept in sync with C.body. */
-function bodySliders() {
-  const el = $('#cBodyS');
-  if (!el.childElementCount)
-    for (const [k, label, lo, hi] of BODY_SLIDERS) {
-      const row = document.createElement('label');
-      row.className = 'crsl-row';
-      row.innerHTML =
-        '<span class="crsl-n">' +
-        label +
-        '</span><small>' +
-        lo +
-        '</small><input type="range" min="-100" max="100" step="5" data-k="' +
-        k +
-        '" aria-label="' +
-        label +
-        '"><small>' +
-        hi +
-        '</small>';
-      const inp = row.querySelector('input');
-      inp.oninput = () => {
-        C.body[k] = +inp.value / 100;
-        presetChips();
-      };
-      // double-click (or double-tap) a slider to put it back to average
-      inp.ondblclick = () => {
-        C.body[k] = 0;
-        refreshCreate();
-      };
-      el.appendChild(row);
-    }
-  el.querySelectorAll('input').forEach((i: HTMLInputElement) => {
-    i.value = String(Math.round((C.body[i.dataset.k] || 0) * 100));
-  });
-}
-function presetChips() {
-  chips(
-    $('#cBodyP'),
-    BODY_PRESETS.map(([n], i) => [i, n]),
-    () =>
-      BODY_PRESETS.findIndex(([, b]) =>
-        BODY_SLIDERS.every(([k]) => Math.abs((C.body[k] || 0) - b[k]) < 0.01),
-      ),
-    (i) => (C.body = { ...BODY_PRESETS[i][1] }),
-  );
-}
 const randSeed = () =>
   pick(['Oak', 'Ember', 'Raven', 'Frost', 'Stone', 'Wyrm', 'Thorn', 'Gale']) +
   '-' +
@@ -186,8 +127,6 @@ function refreshCreate() {
     () => C.nose,
     (v) => (C.nose = v),
   );
-  presetChips();
-  bodySliders();
   $('#prevname').textContent = $('#cName').value || 'Nameless';
 }
 function previewPlayer() {
@@ -201,7 +140,6 @@ function previewPlayer() {
     eyeC: EYES[C.eye],
     brow: C.brow,
     nose: C.nose,
-    body: { ...C.body },
     eq: {},
   };
 }
@@ -263,9 +201,6 @@ $('#cRand').onclick = () => {
   C.eye = (Math.random() * EYES.length) | 0;
   C.brow = (Math.random() * BROWS.length) | 0;
   C.nose = (Math.random() * NOSES.length) | 0;
-  // a body near average, now and then something more striking
-  const r = () => (Math.random() + Math.random() + Math.random() - 1.5) * 0.9;
-  C.body = Object.fromEntries(BODY_SLIDERS.map(([k]) => [k, step(r())]));
   refreshCreate();
 };
 $('#cName').onkeydown = (e) => {
