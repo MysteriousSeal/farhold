@@ -14,7 +14,7 @@ export function openModal(html) {
   game.atkHeld = false;
   joy.id = null;
   joy.x = joy.y = 0;
-  mp.classList.remove('bare', 'wide');
+  mp.classList.remove('bare', 'wide', 'pause');
   mp.innerHTML = html;
   showScreen('modal');
   setHud(false);

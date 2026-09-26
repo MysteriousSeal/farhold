@@ -1,0 +1,246 @@
+/* Pause menu — see openPause in ui/menus.ts. The frozen world shows through a dimmed blur. */
+#modal:has(#mp.pause) {
+  background: rgba(14, 16, 36, 0.55);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+#modal #mp.pause {
+  width: min(560px, 100%);
+  padding: 20px 22px 22px;
+}
+.ptitle {
+  text-align: center;
+  font-size: 44px;
+  margin: 0 0 16px;
+  text-shadow:
+    2px 0 0 #3a220c,
+    -2px 0 0 #3a220c,
+    0 2px 0 #3a220c,
+    0 -2px 0 #3a220c,
+    0 5px 0 #7a4a14,
+    0 8px 18px rgba(0, 0, 0, 0.5);
+}
+.pgrid {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: 20px;
+  align-items: center;
+}
+.pcard {
+  text-align: center;
+}
+.pcard .portrait {
+  height: 220px;
+  justify-content: center;
+}
+.pcard .portrait canvas {
+  width: 148px;
+  height: 220px;
+}
+.pname {
+  font: 700 21px/1.1 var(--f);
+  color: var(--ivory);
+  margin-top: 10px;
+  overflow-wrap: anywhere;
+}
+.plv {
+  display: inline-block;
+  margin-top: 5px;
+  font: 700 13px var(--f);
+  color: var(--ink);
+  background: var(--gold);
+  border-radius: 8px;
+  padding: 2px 9px;
+}
+.pfacts {
+  margin: 12px 0 0;
+  background: #141934;
+  border: 1.5px solid #2a3160;
+  border-radius: 12px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+.pfacts div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+}
+.pfacts div + div {
+  border-top: 1px solid #232a52;
+}
+.pfacts dt {
+  opacity: 0.7;
+}
+.pfacts dd {
+  margin: 0;
+  font-weight: 700;
+  color: var(--gold);
+}
+.pbtns {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pbtns .btn {
+  min-width: 0;
+  width: 100%;
+  margin: 4px 0;
+}
+.pbtns .btn:last-child {
+  margin-top: 16px;
+}
+/* sub-views: Settings and Controls */
+.psub {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.psub h2 {
+  margin: 0;
+}
+#mp.pause .crs + .crs {
+  margin-top: 12px;
+}
+.prow {
+  display: grid;
+  grid-template-columns: 110px 1fr 46px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  font: 600 15px var(--f);
+}
+.prow + .prow {
+  border-top: 1px solid #232a52;
+}
+.prow > :first-child {
+  white-space: nowrap;
+}
+.prow .seg {
+  margin: 0;
+  grid-column: 2 / 4;
+  width: auto;
+  max-width: 300px;
+}
+.prow .seg .chip {
+  flex: 1;
+  padding: 8px 10px;
+}
+.prow output {
+  text-align: right;
+  font-size: 13px;
+  color: var(--gold);
+}
+/* range slider drawn like the HUD bars: dark track, gold fill, gold knob */
+.prange {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 14px;
+  margin: 0;
+  border-radius: 8px;
+  border: 2px solid var(--ink);
+  background:
+    linear-gradient(90deg, var(--gold2), var(--gold)) 0 / var(--fill, 50%) 100% no-repeat,
+    rgba(20, 16, 36, 0.8);
+  cursor: pointer;
+}
+.prange::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--ivory);
+  border: 3px solid #3a220c;
+  box-shadow: 0 2px 0 #a89a7a;
+}
+.prange::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ivory);
+  border: 3px solid #3a220c;
+  box-shadow: 0 2px 0 #a89a7a;
+}
+.prange:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+.pkeys {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 18px;
+}
+.pkey {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-top: 1px solid #232a52;
+  font-size: 14px;
+}
+.pkey:nth-child(-n + 2) {
+  border-top: 0;
+}
+.pkey span {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.pkey b {
+  font-weight: 600;
+  opacity: 0.85;
+  text-align: right;
+}
+.pkey kbd {
+  font: 700 12px var(--f);
+  color: var(--ivory);
+  background: var(--night2);
+  border: 2px solid #4a5488;
+  border-bottom-width: 4px;
+  border-radius: 7px;
+  padding: 2px 7px;
+  min-width: 26px;
+  text-align: center;
+}
+@media (max-width: 520px) {
+  .pgrid {
+    grid-template-columns: 1fr;
+  }
+  .pcard {
+    display: grid;
+    grid-template-columns: 96px 1fr;
+    gap: 4px 12px;
+    text-align: left;
+    align-items: center;
+  }
+  .pcard .portrait {
+    grid-row: span 3;
+    height: 128px;
+  }
+  .pcard .portrait canvas {
+    width: 86px;
+    height: 128px;
+  }
+  .pname {
+    margin-top: 0;
+  }
+  .plv {
+    justify-self: start;
+  }
+  .pfacts {
+    margin: 0;
+  }
+  .pkeys {
+    grid-template-columns: 1fr;
+  }
+  .pkey:nth-child(2) {
+    border-top: 1px solid #232a52;
+  }
+  .prow {
+    grid-template-columns: 100px 1fr 40px;
+    gap: 10px;
+  }
+}

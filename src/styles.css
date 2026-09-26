@@ -1221,18 +1221,6 @@ input.txt {
   padding: 12px;
   min-height: 80px;
 }
-.set label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin: 12px 0;
-  font-weight: 600;
-}
-.set input {
-  width: 55%;
-  accent-color: #f5c451;
-}
 .help {
   max-width: 540px;
   padding: 20px;

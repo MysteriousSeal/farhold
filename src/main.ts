@@ -1,6 +1,7 @@
 import './styles.css';
 import './shop.css';
 import './skilltree.css';
+import './pause.css';
 import './core/dom';
 import './core/settings';
 import './input/input';

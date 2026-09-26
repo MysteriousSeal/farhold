@@ -4,7 +4,7 @@ import { drinkPot, heroRoll, useSkill } from '../game/combat';
 import { game } from '../game/state';
 import { toggleBags, toggleChar } from '../ui/inventory';
 import { openJournal } from '../ui/journal';
-import { openPause, openSkills } from '../ui/menus';
+import { openPause, openSkills, pauseBack } from '../ui/menus';
 import { closeAll } from '../ui/screens';
 /* ================= INPUT ================= */
 export const keys: Record<string, boolean> = {};
@@ -45,7 +45,7 @@ addEventListener('keydown', (e) => {
     ['Escape', 'KeyB', 'KeyI', 'Tab', 'KeyC', 'KeyK', 'KeyT', 'KeyL'].includes(e.code)
   ) {
     e.preventDefault();
-    closeAll();
+    if (!(e.code === 'Escape' && pauseBack())) closeAll();
   }
 });
 addEventListener('keyup', (e) => {

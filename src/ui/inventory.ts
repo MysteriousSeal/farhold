@@ -105,7 +105,7 @@ function render() {
 }
 
 /* ---------- character sheet ---------- */
-function drawPortrait(cv: HTMLCanvasElement) {
+export function drawPortrait(cv: HTMLCanvasElement) {
   const x = cv.getContext('2d'),
     w = game.P.eq.weapon;
   x.clearRect(0, 0, cv.width, cv.height);
