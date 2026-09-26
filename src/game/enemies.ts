@@ -280,6 +280,38 @@ export function unstick(o, r = 8) {
     }
   }
 }
+/**
+ * Steer an enemy walking along (mx, my) around obstacles: look a little way ahead and, when
+ * it is blocked, turn toward the nearest free heading (45° steps), keeping to the same side
+ * for a moment so it goes round the obstacle instead of jittering against it.
+ */
+function steer(e, mx: number, my: number, dt: number): [number, number] {
+  const m = Math.hypot(mx, my),
+    a0 = Math.atan2(my, mx),
+    r = e.r * 0.6,
+    probe = r + 20,
+    free = (a: number) =>
+      !solidAt(e.x + Math.cos(a) * probe, e.y + Math.sin(a) * probe, r) &&
+      !solidAt(e.x + Math.cos(a) * probe * 0.5, e.y + Math.sin(a) * probe * 0.5, r);
+  if (e.detT > 0) {
+    e.detT -= dt;
+    const a = a0 + e.detA;
+    if (free(a)) return [Math.cos(a) * m, Math.sin(a) * m];
+  }
+  if (free(a0)) return [mx, my];
+  const side = e.side || (e.side = Math.random() < 0.5 ? 1 : -1);
+  for (let k = 1; k <= 4; k++)
+    for (const sd of [side, -side]) {
+      const off = sd * k * (Math.PI / 4),
+        a = a0 + off;
+      if (!free(a)) continue;
+      e.side = sd;
+      e.detA = off;
+      e.detT = 0.7;
+      return [Math.cos(a) * m, Math.sin(a) * m];
+    }
+  return [mx, my];
+}
 export function moveEnt(o, dx, dy, r) {
   const nx = o.x + dx,
     ny = o.y + dy;
@@ -516,8 +548,12 @@ export function updateEnemies(dt) {
       my = e.wy * 0.45;
     }
     const speed = e.wind > 0 ? 0 : sp;
+    // walk around whatever stands in the way instead of pushing into it
+    if (speed > 0 && (mx || my)) [mx, my] = steer(e, mx, my, dt);
     const vx = mx * speed,
-      vy = my * speed;
+      vy = my * speed,
+      ox = e.x,
+      oy = e.y;
     const nx = e.x + (vx + e.kbx) * dt,
       ny = e.y + (vy + e.kby) * dt;
     if (game.mode === 'world' && inVillage(nx, ny)) {
@@ -527,7 +563,20 @@ export function updateEnemies(dt) {
     } else moveEnt(e, (vx + e.kbx) * dt, (vy + e.kby) * dt, e.r * 0.6);
     e.kbx *= Math.pow(0.002, dt);
     e.kby *= Math.pow(0.002, dt);
-    e.moving = Math.abs(mx) + Math.abs(my) > 0.1;
+    // only walk when actually getting somewhere; stuck for a moment: go round the other way
+    const want = Math.hypot(vx, vy) * dt,
+      got = Math.hypot(e.x - ox, e.y - oy);
+    e.moving = Math.abs(mx) + Math.abs(my) > 0.1 && got > want * 0.25;
+    if (want > 0.2 && got < want * 0.3) {
+      e.stuckT = (e.stuckT || 0) + dt;
+      if (e.stuckT > 0.5) {
+        e.stuckT = 0;
+        e.side = -(e.side || 1);
+        e.detA = e.side * Math.PI * 0.5;
+        e.detT = 1.3;
+        if (!e.aggro) e.wt = 0; // a wanderer just picks a new way
+      }
+    } else e.stuckT = 0;
     if (e.moving) {
       e.walk += dt * (D.kind === 'quad' ? 14 : 9) * (sp / 80);
       e.dx = mx;

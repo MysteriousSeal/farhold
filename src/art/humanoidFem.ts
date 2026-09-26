@@ -247,6 +247,9 @@ export function hairTop(c: Ctx, L, hy: number, v: View, col: string, lw: number)
     c.stroke();
   } else if (L.hair === 9) {
     curlsOver(c, L, hy, v, col);
+  } else if (L.hair === 11 && v.up && v.diag) {
+    // back 3/4: the near pigtail, tied behind the ear, hangs over the back of the head
+    pigtail(c, -0.5, hy + 0.5, 1, col, -0.15);
   } else if (L.hair === 11 && v.side) {
     // the near pigtail, tied behind the ear, hangs down in front of the head and shoulder
     pigtail(c, -3.5, hy + 0.5, -1, col, 0.2);
@@ -288,9 +291,10 @@ export function hairFront(c: Ctx, L, hy: number, v: View, col: string, lw: numbe
     return;
   }
   if (L.hair === 11 && v.up) {
-    // pigtails from behind: tied at both sides, hanging over the shoulders
-    const dx = v.diag ? -1 : 0;
-    for (const k of [-1, 1]) pigtail(c, dx + k * 10.5, hy + 0.5, k, col, k * -0.18);
+    // pigtails from behind: tied at both sides, hanging over the shoulders; in the back 3/4
+    // view only the far tail is behind the head (the near one hangs in front: see hairTop)
+    if (v.diag) pigtail(c, -10.5, hy + 0.5, -1, col, 0.18);
+    else for (const k of [-1, 1]) pigtail(c, k * 10.5, hy + 0.5, k, col, k * -0.18);
     return;
   }
   if (L.hair === 2 && v.up) {
