@@ -51,6 +51,8 @@ export function migrate(p) {
     if (it) {
       it.plus = it.plus || 0;
       it.style = it.style || 0;
+      // mail coifs are gone; an old one keeps its stats as a closed helm
+      if (it.slot === 'helm' && it.name) it.name = it.name.replace(/Coif/g, 'Helm');
     }
   p.kills = p.kills || 0;
   // heroes are human now: former elves, dwarves and orcs convert (orc green skin to a tone)

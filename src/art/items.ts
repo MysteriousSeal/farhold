@@ -100,32 +100,6 @@ export function drawIcon(c, it, S) {
       c.closePath();
       c.fill();
       c.stroke();
-    } else if (/Coif/.test(name)) {
-      const hood = new Path2D();
-      hood.arc(0, -2, 12, 0, TAU);
-      hood.moveTo(-7, 5);
-      hood.lineTo(-5, 14);
-      hood.lineTo(5, 14);
-      hood.lineTo(7, 5);
-      hood.closePath();
-      hood.moveTo(6, 0);
-      hood.ellipse(0, 0, 6, 6.5, 0, 0, TAU);
-      c.fillStyle = m;
-      c.fill(hood, 'evenodd');
-      c.stroke(hood);
-      c.save();
-      c.clip(hood, 'evenodd');
-      c.strokeStyle = sh(m, -0.35);
-      c.lineWidth = 0.9;
-      for (let r = 0, y = -12; y < 13; r++, y += 3.2)
-        for (let k = -4; k <= 4; k++) {
-          c.beginPath();
-          c.arc(k * 3 + (r % 2) * 1.5, y, 1.3, 0, Math.PI);
-          c.stroke();
-        }
-      c.restore();
-      c.strokeStyle = OUT;
-      c.lineWidth = 2.2;
     } else {
       c.beginPath();
       c.arc(0, 4, 13, Math.PI, 0);
@@ -137,12 +111,10 @@ export function drawIcon(c, it, S) {
       c.stroke();
       rr(c, -2, 2, 4, 10, 1, m);
     }
-    if (!/Coif/.test(name)) {
-      c.fillStyle = 'rgba(255,255,255,.5)';
-      c.beginPath();
-      c.ellipse(/Cap/.test(name) ? -3 : -5, /Cap/.test(name) ? -8 : -3, 3.5, 2, -0.5, 0, TAU);
-      c.fill();
-    }
+    c.fillStyle = 'rgba(255,255,255,.5)';
+    c.beginPath();
+    c.ellipse(/Cap/.test(name) ? -3 : -5, /Cap/.test(name) ? -8 : -3, 3.5, 2, -0.5, 0, TAU);
+    c.fill();
   } else if (s === 'armor') {
     c.beginPath();
     c.moveTo(-8, -13);

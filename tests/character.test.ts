@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MATS, SLOTS } from '../src/data/classes';
 import { mulberry } from '../src/core/math';
 import { pointsFree } from '../src/data/skills';
-import { genItem, itemStat, salvageAll, salvageable, upCost } from '../src/game/items';
+import { genItem, helmSkins, itemStat, salvageAll, salvageable, upCost } from '../src/game/items';
 import { game } from '../src/game/state';
 import { OUTFIT } from '../src/data/classes';
 import { heroStyle, weaponStyle } from '../src/game/style';
@@ -42,6 +42,7 @@ describe('game/items', () => {
       expect(it.r).toBeGreaterThanOrEqual(minR);
       expect(it.r).toBeLessThanOrEqual(4);
       expect(it.name).toContain(MATS[it.mat][0]);
+      if (it.slot === 'helm') expect(it.name).not.toMatch(/Coif/);
       expect(it.val).toBeGreaterThan(0);
       if (it.slot === 'weapon') expect(it.st.atk).toBeGreaterThan(0);
       if (it.st.cdr) expect(it.st.cdr).toBeLessThanOrEqual(20);
@@ -180,10 +181,35 @@ describe('player look', () => {
     closed.eq.helm = { ...gear('helm', 'Iron Helm'), r: 3 };
     expect(lookOfPlayer(closed).helmK).toBe(1);
     expect(lookOfPlayer(closed).plume).toBeTruthy();
-    const coif = hero();
-    coif.eq.helm = { ...gear('helm', 'Iron Coif'), r: 3 };
-    expect(lookOfPlayer(coif).helmK).toBe(2);
-    expect(lookOfPlayer(coif).plume).toBeUndefined();
+    const oldCoif = hero();
+    oldCoif.eq.helm = { ...gear('helm', 'Iron Coif'), r: 3 };
+    expect(lookOfPlayer(oldCoif).helmK).toBe(1);
+
+    const skins = helmSkins(8);
+    expect(skins).toHaveLength(MATS.length * 2);
+    expect(skins.some((it) => /Coif/.test(it.name))).toBe(false);
+    for (const shape of ['Cap', 'Helm']) {
+      const ofShape = skins.filter((it) => it.name.endsWith(' ' + shape));
+      expect(ofShape.map((it) => it.mat)).toEqual(MATS.map((_, i) => i));
+      for (const it of ofShape) {
+        expect(it.slot).toBe('helm');
+        expect(it.lvl).toBe(8);
+        expect(it.name).toBe(MATS[it.mat][0] + ' ' + shape);
+      }
+    }
+    for (const it of skins) {
+      const worn = hero();
+      worn.eq.helm = it;
+      const look = lookOfPlayer(worn);
+      expect(look.helm).toBe(MATS[it.mat][1]);
+      if (it.name.endsWith(' Cap')) {
+        expect(look.helmK).toBe(0);
+        expect(look.plume).toBeUndefined();
+      } else {
+        expect(look.helmK).toBe(1);
+        expect(look.plume).toBeTruthy();
+      }
+    }
 
     p.eq.pants = gear('pants', 'Iron Leggings');
     p.eq.gloves = gear('gloves', 'Iron Gloves');

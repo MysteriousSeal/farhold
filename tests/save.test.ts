@@ -89,6 +89,15 @@ describe('game/save', () => {
     expect(migrate(p).sp).toEqual({ a0: 2 });
   });
 
+  it('turns a saved mail coif into a closed helm', () => {
+    const p = migrate({
+      inv: [{ slot: 'helm', name: 'Iron Coif', st: {} }],
+      eq: { helm: { slot: 'helm', name: 'Gleaming Mithril Coif of Frost', st: {} } },
+    });
+    expect(p.inv[0].name).toBe('Iron Helm');
+    expect(p.eq.helm.name).toBe('Gleaming Mithril Helm of Frost');
+  });
+
   it('heroes from before gender choice are clean-shaven men', () => {
     const p = migrate({ inv: [] });
     expect([p.gender, p.beard]).toEqual(['m', 0]);

@@ -85,7 +85,7 @@ export function genItem(lvl, bonus = 0, slot?, minR = 0) {
       ranger: ['Shortbow', 'Longbow', 'Recurve'],
       mage: ['Staff', 'Wand', 'Crescent stave'],
     }[wc][style],
-    helm: pick(['Cap', 'Helm', 'Coif']),
+    helm: pick(['Cap', 'Helm']),
     armor: pick(['Tunic', 'Hauberk', 'Cuirass']),
     boots: pick(['Boots', 'Greaves', 'Treads']),
     gloves: pick(['Gloves', 'Gauntlets', 'Grips']),
@@ -136,6 +136,35 @@ export function genItem(lvl, bonus = 0, slot?, minR = 0) {
     name: pre + MATS[mat][0] + ' ' + B + suf,
     val: Math.round(lvl * 3 * R * R + 2),
   };
+}
+/**
+ * One of every helmet look: each metal as a Cap and a Helm.
+ * Helms are epic, which is what grows the plume; caps stay plain.
+ */
+export function helmSkins(lvl) {
+  const k = Math.max(1, lvl | 0),
+    out = [];
+  for (let mat = 0; mat < MATS.length; mat++)
+    for (const shape of ['Cap', 'Helm']) {
+      const r = shape === 'Helm' ? 3 : 0,
+        R = RAR[r].m;
+      out.push({
+        id: ++game.uidN,
+        slot: 'helm',
+        r,
+        lvl: k,
+        mat,
+        style: 0,
+        plus: 0,
+        st: {
+          def: Math.round((1 + k * 0.55) * R),
+          hp: Math.round((4 + k * 2) * R),
+        },
+        name: MATS[mat][0] + ' ' + shape,
+        val: Math.round(k * 3 * R * R + 2),
+      });
+    }
+  return out;
 }
 export const itemStat = (it, k) => {
   const v = it.st[k] || 0;

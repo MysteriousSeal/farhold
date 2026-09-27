@@ -6,13 +6,15 @@ import { game } from '../game/state';
 import { startEvent } from '../game/events';
 import { banner, doFade, toast } from '../game/fx';
 import { gainXp } from '../game/combat';
+import { BAGMAX } from '../game/drops';
+import { helmSkins } from '../game/items';
 import { xpNeed } from '../game/stats';
 import { PC, poiAt } from '../world/poi';
 import { solidAt } from '../world/chunks';
 /* ================= CHEATS (dev builds only, loaded from main.ts) ================= */
 // A button in the bottom-left corner opens a panel to spawn any regular enemy, at the
-// hero's level, right next to the hero; start a world event; gain a level; or jump to the
-// nearest uncleared cave.
+// hero's level, right next to the hero; start a world event; gain a level; jump to the
+// nearest uncleared cave; or drop every helmet look into the bag.
 
 /** A free spot 70–110 units from the hero, or the hero's own position as a fallback. */
 function spotNearHero() {
@@ -135,11 +137,32 @@ function toNearestCave(atLevel = false) {
     banner(best.name, 'Danger level ' + best.lvl);
   });
 }
+/** Put every helmet look in the bag: each metal as a Cap and a Helm. */
+function giveHelms() {
+  if (game.state !== 'play' || !game.P) return;
+  const have = new Set(game.P.inv.filter((it) => it.slot === 'helm').map((it) => it.name));
+  const fresh = helmSkins(game.P.lvl).filter((it) => !have.has(it.name));
+  if (!fresh.length) {
+    toast('Every helmet is already in your bag');
+    return;
+  }
+  game.P.inv.push(...fresh);
+  $('#bagBtn').classList.add('pulse');
+  toast(
+    'Added ' +
+      fresh.length +
+      ' helmet' +
+      (fresh.length === 1 ? '' : 's') +
+      (game.P.inv.length > BAGMAX ? ' — bag is over its limit' : ''),
+  );
+}
 panel.innerHTML = '<div class="chead"><b>Cheats</b><small id="cheatLv"></small></div>';
 const hero = section('cHero', 'Hero', 'Level up, or jump straight to a cave to clear.');
 add(hero, '+1 level', levelUp, 'wide');
 add(hero, 'Nearest cave', () => toNearestCave());
 add(hero, 'Cave at my level', () => toNearestCave(true));
+const gear = section('cGear', 'Gear', 'One of every metal, as a Cap and a Helm.');
+add(gear, 'All helmets', giveHelms, 'wide');
 const ev = section('cEv', 'World events', 'Start one right away, near you.', 'three');
 for (const [kind, label] of [
   ['raid', 'Raid'],

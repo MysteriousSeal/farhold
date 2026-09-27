@@ -306,59 +306,6 @@ function drawHelmDome(c, hy, col, side, up, fd, plume) {
     c.stroke();
   }
 }
-function mailRings(c, path, col, top, bot, hole) {
-  c.save();
-  c.clip(path, hole ? 'evenodd' : 'nonzero');
-  c.strokeStyle = sh(col, -0.38);
-  c.lineWidth = 0.75;
-  for (let r = 0, y = top; y < bot; r++, y += 2.4)
-    for (let k = -6; k <= 6; k++) {
-      c.beginPath();
-      c.arc(k * 2.5 + (r % 2) * 1.25, y, 1.05, 0, Math.PI);
-      c.stroke();
-    }
-  c.restore();
-}
-/** Mail hood over the skull and the neck. The face stays open from the front. */
-function drawCoif(c, hy, col, side, up, fd, lw) {
-  c.fillStyle = col;
-  c.strokeStyle = OUT;
-  const p = new Path2D(),
-    hole = !side && !up;
-  if (side) {
-    p.moveTo(2.4, hy + 0.5);
-    p.quadraticCurveTo(1.2, hy - 8, -1.5, hy - 11);
-    p.quadraticCurveTo(-9, hy - 12.2, -11.2, hy - 3);
-    p.quadraticCurveTo(-12, hy + 5, -7.5, hy + 8);
-    p.lineTo(-4.5, hy + 15);
-    p.quadraticCurveTo(0.5, hy + 16.5, 2.6, hy + 12);
-    p.lineTo(3.2, hy + 2.2);
-    p.closePath();
-  } else if (up) {
-    p.arc(0, hy - 0.4, 11.3, 0, TAU);
-    p.moveTo(-7.5, hy + 8);
-    p.lineTo(-5.5, hy + 16);
-    p.lineTo(5.5, hy + 16);
-    p.lineTo(7.5, hy + 8);
-    p.closePath();
-  } else {
-    p.moveTo(-8, hy + 6);
-    p.quadraticCurveTo(-12.2, hy + 3, -11.2, hy - 1);
-    p.arc(0, hy - 1, 11.2, Math.PI, 0);
-    p.quadraticCurveTo(12.2, hy + 3, 8, hy + 6);
-    p.lineTo(6.2, hy + 16);
-    p.quadraticCurveTo(0, hy + 18.2, -6.2, hy + 16);
-    p.closePath();
-    const ox = fd ? 2.2 : 0;
-    p.moveTo(ox + 5.8, hy + 1.6);
-    p.ellipse(ox, hy + 1.5, 6.1, 6.6, 0, 0, TAU);
-  }
-  c.fill(p, hole ? 'evenodd' : 'nonzero');
-  c.stroke(p);
-  mailRings(c, p, col, hy - 11, hy + 16, hole);
-  c.strokeStyle = OUT;
-  c.lineWidth = lw;
-}
 /** Hair that falls over the back, the head, the face and headgear (head centre at 0, 0). */
 function drawHead(c, L, V, E, tint, lw) {
   const { up, side, diag, fd } = V,
@@ -688,7 +635,6 @@ function drawHead(c, L, V, E, tint, lw) {
       const kind = L.helmK == null ? 1 : L.helmK,
         col = tint(L.helm);
       if (kind === 0) drawCap(c, hy, col, side, up, fd);
-      else if (kind === 2) drawCoif(c, hy, col, side, up, fd, lw);
       else drawHelmDome(c, hy, col, side, up, fd, L.plume && tint(L.plume));
     }
   }
