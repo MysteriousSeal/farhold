@@ -404,6 +404,7 @@ export function drawMini(dt) {
       big(x, y, () => {
         if (p.kind === 'village') villageIcon(x, y, game.P.wps.includes(p.key), p.key === 'v0,0');
         else if (p.kind === 'lair') lairIcon(x, y, !!game.P.cleared[p.key]);
+        else if (p.kind === 'gate') gateIcon(x, y, !!game.P.cleared[p.key]);
         else caveIcon(x, y, !!game.P.cleared[p.key]);
       });
       if (p.tavern) {
@@ -434,7 +435,17 @@ export function drawMini(dt) {
       if (game.P.cleared[r.key]) continue;
       if (Math.hypot(r.x - game.P.x, r.y - game.P.y) * sc < C - FRAME - 16) continue;
       const [x, y] = clampRim(r.x, r.y, sc, C - FRAME - 18);
-      big(x, y, () => (r.kind === 'lair' ? lairIcon(x, y, false) : caveIcon(x, y, false)), 1.4);
+      big(
+        x,
+        y,
+        () =>
+          r.kind === 'lair'
+            ? lairIcon(x, y, false)
+            : r.kind === 'gate'
+              ? gateIcon(x, y, false)
+              : caveIcon(x, y, false),
+        1.4,
+      );
     }
     for (const q of game.P.quests) {
       if (q.x == null || q.done || !q.tracked) continue;
@@ -680,6 +691,28 @@ function lairIcon(x: number, y: number, cleared: boolean) {
   mc.stroke();
   mc.lineWidth = 1.4;
   skull(x, y, 4.2);
+}
+function gateIcon(x: number, y: number, cleared: boolean) {
+  shadowDot(x, y + 3, 9);
+  mc.strokeStyle = OUT;
+  mc.lineWidth = 2;
+  mc.fillStyle = cleared ? '#8a8a8a' : '#9a9084';
+  mc.fillRect(x - 9, y - 2, 4, 10);
+  mc.fillRect(x + 5, y - 2, 4, 10);
+  mc.fillRect(x - 10, y - 7, 20, 5);
+  mc.strokeRect(x - 9, y - 2, 4, 10);
+  mc.strokeRect(x + 5, y - 2, 4, 10);
+  mc.strokeRect(x - 10, y - 7, 20, 5);
+  mc.fillStyle = '#1a1420';
+  mc.fillRect(x - 5, y - 2, 10, 10);
+  mc.strokeStyle = cleared ? '#b0b0b0' : '#d2c8b8';
+  mc.lineWidth = 1.4;
+  mc.beginPath();
+  mc.moveTo(x - 4, y + 1);
+  mc.lineTo(x + 4, y + 1);
+  mc.moveTo(x - 3, y + 4);
+  mc.lineTo(x + 3, y + 4);
+  mc.stroke();
 }
 function caveIcon(x: number, y: number, cleared: boolean) {
   shadowDot(x, y + 3, 9);

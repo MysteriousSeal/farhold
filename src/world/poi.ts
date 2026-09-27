@@ -39,6 +39,19 @@ const CPRE = [
     'Howl',
   ],
   CSUF = ['hollow', 'deep', 'warren', 'grotto', 'pit', 'caverns', 'den'];
+const GPRE = [
+    'Sunken',
+    'Fallen',
+    'Black',
+    'Iron',
+    'Grim',
+    'Old',
+    'Cinder',
+    'Pale',
+    'Deep',
+    'Ruined',
+  ],
+  GSUF = ['Vault', 'Crypt', 'Hold', 'Barracks', 'Gate', 'Tomb', 'Keep', 'Ossuary'];
 const BNAMES = [
   'Gorvak',
   'Mordek',
@@ -100,7 +113,8 @@ export function poiAt(i, j) {
       x = (i + 0.22 + hs(i, j, 102) * 0.56) * PC,
       y = (j + 0.22 + hs(i, j, 103) * 0.56) * PC;
     if (Math.hypot(x, y) > 1000) {
-      const kind = r < 0.27 ? 'village' : r < 0.54 ? 'cave' : r < 0.8 ? 'lair' : null;
+      // the empty tail of the roll is a stone gate, so caves, villages and lairs stay put
+      const kind = r < 0.27 ? 'village' : r < 0.54 ? 'cave' : r < 0.8 ? 'lair' : 'gate';
       if (kind) {
         const s = findLand(x, y, kind === 'village' ? 270 : kind === 'lair' ? 190 : 120);
         if (s)
@@ -109,7 +123,9 @@ export function poiAt(i, j) {
               ? checkVillage(makeVillage(s.x, s.y, 'v' + k))
               : kind === 'cave'
                 ? makeCave(s.x, s.y, 'c' + k)
-                : makeLair(s.x, s.y, 'l' + k);
+                : kind === 'gate'
+                  ? makeGate(s.x, s.y, 'g' + k)
+                  : makeLair(s.x, s.y, 'l' + k);
       }
     }
   }
@@ -428,6 +444,20 @@ export function villagerLook(rnd: () => number): Record<string, any> {
   L.brow = (br() * 4) | 0;
   L.nose = (br() * 4) | 0;
   return L;
+}
+function makeGate(x, y, key) {
+  const rnd = mulberry(strSeed(key) ^ game.SEED);
+  return {
+    kind: 'gate',
+    key,
+    x,
+    y,
+    r: 120,
+    lvl: dangerAt(x, y) + 1,
+    b: terr(x, y).b,
+    name: 'The ' + GPRE[(rnd() * GPRE.length) | 0] + ' ' + GSUF[(rnd() * GSUF.length) | 0],
+    solids: [{ x0: x - 84, x1: x + 84, y0: y - 64, y1: y - 6 }],
+  };
 }
 function makeCave(x, y, key) {
   const rnd = mulberry(strSeed(key) ^ game.SEED);

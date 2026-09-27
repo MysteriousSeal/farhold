@@ -17,6 +17,7 @@ import {
   drawBoard,
   drawCave,
   drawChest,
+  drawStoneGate,
   drawDPillar,
   drawLamp,
   drawPillar,
@@ -474,6 +475,7 @@ export function render() {
         const chest = game.P && game.P.chests && game.P.chests[p.key];
         if (chest) list.push({ y: chest.y, f: (c) => drawChest(c, chest, game.time) });
       } else if (p.kind === 'cave') list.push({ y: p.y, f: (c) => drawCave(c, p, game.time) });
+      else if (p.kind === 'gate') list.push({ y: p.y, f: (c) => drawStoneGate(c, p, game.time) });
     }
   } else if (game.mode === 'house') houseItems(list);
   else {
@@ -488,7 +490,7 @@ export function render() {
     const portal = game.DG.portal;
     if (portal) list.push({ y: portal.y, f: (c) => drawPortal(c, portal, game.time, !!hero.warp) });
     g.save();
-    drawStairs(g, game.DG.exit, game.time);
+    drawStairs(g, game.DG.exit, game.time, game.DG.stair);
     g.restore();
   }
   for (const t of game.teles) drawTele(g, t);

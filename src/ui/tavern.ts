@@ -219,7 +219,10 @@ function askRumour(I: Interior) {
   const known = new Set(P.rumours.map((r) => r.key)),
     near = poisNear(v.x, v.y, 3600)
       .filter(
-        (p) => (p.kind === 'lair' || p.kind === 'cave') && !P.cleared[p.key] && !known.has(p.key),
+        (p) =>
+          (p.kind === 'lair' || p.kind === 'cave' || p.kind === 'gate') &&
+          !P.cleared[p.key] &&
+          !known.has(p.key),
       )
       .sort((a, b) => Math.hypot(a.x - v.x, a.y - v.y) - Math.hypot(b.x - v.x, b.y - v.y))[0];
   P.rumourT[I.key] = Date.now();
@@ -239,13 +242,21 @@ function askRumour(I: Interior) {
           ' to the ' +
           dir +
           '. Travellers go missing near it.'
-        : 'There is a cave, ' +
-          near.name +
-          ', ' +
-          how +
-          ' to the ' +
-          dir +
-          '. Nobody who goes in comes out poor, or at all.';
+        : near.kind === 'gate'
+          ? 'There is an old gate, ' +
+            near.name +
+            ', ' +
+            how +
+            ' to the ' +
+            dir +
+            '. The stairs go down, and the stones are older than the village.'
+          : 'There is a cave, ' +
+            near.name +
+            ', ' +
+            how +
+            ' to the ' +
+            dir +
+            '. Nobody who goes in comes out poor, or at all.';
     toast('Rumour marked on your minimap');
   }
   SFX.pick();

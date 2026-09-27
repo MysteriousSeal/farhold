@@ -27,7 +27,14 @@ export function findInteract() {
   if (game.mode === 'dungeon') {
     const ex = game.DG.exit,
       ch = game.DG.chest;
-    cand(ex.x, ex.y + 10, 64, 'Leave cave', () => leaveDungeon(), ex.y - 30);
+    cand(
+      ex.x,
+      ex.y + 10,
+      64,
+      game.DG.entrance === 'gate' ? 'Leave gate' : 'Leave cave',
+      () => leaveDungeon(),
+      ex.y - 30,
+    );
     if (!ch.open && !ch.hidden) cand(ch.x, ch.y + 14, 64, 'Open chest', openChest, ch.y - 34);
     const pt = game.DG.portal;
     if (pt && !hero.warp)
@@ -56,6 +63,8 @@ export function findInteract() {
         );
     } else if (p.kind === 'cave')
       cand(p.x, p.y + 12, 62, 'Enter cave', () => enterDungeon(p), p.y - 64);
+    else if (p.kind === 'gate')
+      cand(p.x, p.y + 12, 62, 'Enter gate', () => enterDungeon(p), p.y - 72);
     else if (p.kind === 'lair') {
       const ch = game.P.chests && game.P.chests[p.key];
       if (ch && !ch.open)

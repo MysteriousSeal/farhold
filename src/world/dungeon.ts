@@ -4,7 +4,20 @@ import { hs, mulberry, pick, sh, strSeed } from '../core/math';
 import { game } from '../game/state';
 import { CH } from './terrain';
 /* ---------- Dungeons ---------- */
-export function genDungeon(key, lvl, b) {
+/** `cave` is a natural cavern. Anything else (the stone gates) keeps the built rooms. */
+export function genDungeon(key, lvl, b, style = 'crypt') {
+  return style === 'cave' ? genCavern(key, lvl, b) : genCrypt(key, lvl, b);
+}
+function dungeonPal(b) {
+  return b === 3
+    ? ['#6e5a44', '#7a6650', '#a58a66', '#d0b48a']
+    : b === 4
+      ? ['#4a5a70', '#56687e', '#7a90aa', '#b8cce0']
+      : b === 6
+        ? ['#3a2c48', '#443454', '#6a5480', '#9a82b0']
+        : ['#3d3648', '#463f52', '#6a6078', '#9a90a8'];
+}
+function genCrypt(key, lvl, b) {
   const rnd = mulberry((strSeed(key + 'dg') ^ game.SEED) >>> 0),
     GW = 58,
     GH = 58,
@@ -92,6 +105,7 @@ export function genDungeon(key, lvl, b) {
     torches: [],
     pillars: [],
     enemiesPlaced: false,
+    style: 'crypt',
   };
   const isF = (x, y) => x >= 0 && y >= 0 && x < GW && y < GH && gr[y * GW + x] === 1;
   D.isF = isF;
@@ -130,20 +144,218 @@ export function genDungeon(key, lvl, b) {
   D.grid = gr; // floor cells, for the minimap
   return D;
 }
+/** Irregular chambers and wobbling passages. The built dungeon stays in genCrypt. */
+function genCavern(key, lvl, b) {
+  const rnd = mulberry((strSeed(key + 'dg') ^ game.SEED) >>> 0),
+    GW = 58,
+    GH = 58,
+    T = 40,
+    gr = new Uint8Array(GW * GH),
+    seeds = [];
+  for (let tries = 0; tries < 400 && seeds.length < 9; tries++) {
+    const rx = 5 + rnd() * 3,
+      ry = 4 + rnd() * 2.6,
+      cx = 8 + ((rnd() * (GW - 16)) | 0),
+      cy = 8 + ((rnd() * (GH - 16)) | 0);
+    if (seeds.some((s) => Math.hypot(s.cx - cx, s.cy - cy) < (s.rx + rx) * 0.82 + 1.5)) continue;
+    seeds.push({ cx, cy, rx, ry });
+  }
+  if (seeds.length < 2) {
+    seeds.push({ cx: 16, cy: 16, rx: 6, ry: 5 });
+    seeds.push({ cx: 40, cy: 40, rx: 6, ry: 5 });
+  }
+  const carve = (x, y) => {
+    if (x > 0 && y > 0 && x < GW - 1 && y < GH - 1) gr[y * GW + x] = 1;
+  };
+  const rooms = [];
+  for (const s of seeds) {
+    let x0 = s.cx,
+      y0 = s.cy,
+      x1 = s.cx,
+      y1 = s.cy;
+    const mark = (i, j) => {
+      carve(i, j);
+      if (i < x0) x0 = i;
+      if (j < y0) y0 = j;
+      if (i > x1) x1 = i;
+      if (j > y1) y1 = j;
+    };
+    const i0 = Math.max(1, Math.floor(s.cx - s.rx - 2)),
+      i1 = Math.min(GW - 2, Math.ceil(s.cx + s.rx + 2)),
+      j0 = Math.max(1, Math.floor(s.cy - s.ry - 2)),
+      j1 = Math.min(GH - 2, Math.ceil(s.cy + s.ry + 2));
+    for (let j = j0; j <= j1; j++)
+      for (let i = i0; i <= i1; i++) {
+        const dx = i + 0.5 - s.cx,
+          dy = j + 0.5 - s.cy,
+          erx = s.rx * (0.78 + hs(i, j, 41) * 0.4),
+          ery = s.ry * (0.78 + hs(i, j, 42) * 0.4);
+        if ((dx * dx) / (erx * erx) + (dy * dy) / (ery * ery) <= 1) mark(i, j);
+      }
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) mark(s.cx + dx, s.cy + dy);
+    rooms.push({ x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1, cx: s.cx, cy: s.cy });
+  }
+  const order = [rooms[0]],
+    left = rooms.slice(1);
+  while (left.length) {
+    const a = order[order.length - 1];
+    let bi = 0,
+      bd = 1e9;
+    left.forEach((r, i) => {
+      const d = Math.hypot(r.cx - a.cx, r.cy - a.cy);
+      if (d < bd) {
+        bd = d;
+        bi = i;
+      }
+    });
+    order.push(left.splice(bi, 1)[0]);
+  }
+  const tunnel = (a, b) => {
+    let x = a.cx,
+      y = a.cy;
+    const tx = b.cx,
+      ty = b.cy;
+    let guard = 0;
+    const stamp = (sx, sy) => {
+      carve(sx, sy);
+      const q = rnd();
+      if (q < 0.5) carve(sx + 1, sy);
+      else if (q < 0.72) carve(sx, sy + 1);
+      else if (q < 0.88) {
+        carve(sx + 1, sy);
+        carve(sx, sy + 1);
+      }
+    };
+    while ((x !== tx || y !== ty) && guard++ < 600) {
+      stamp(x, y);
+      const dx = Math.sign(tx - x),
+        dy = Math.sign(ty - y);
+      if (dx && dy && rnd() < 0.2) {
+        if (rnd() < 0.5) x = Math.max(2, Math.min(GW - 3, x + (rnd() < 0.5 ? 1 : -1)));
+        else y = Math.max(2, Math.min(GH - 3, y + (rnd() < 0.5 ? 1 : -1)));
+      } else if (dx && (!dy || rnd() < 0.5)) x += dx;
+      else y += dy;
+    }
+    stamp(tx, ty);
+  };
+  for (let i = 1; i < order.length; i++) tunnel(order[i - 1], order[i]);
+  if (order.length > 4) tunnel(order[1], order[order.length - 2]);
+  const start = order[0],
+    end = order[order.length - 1];
+  const isF = (x, y) => x >= 0 && y >= 0 && x < GW && y < GH && gr[y * GW + x] === 1;
+  // a wobbling passage can miss: cut a plain corridor so the end is always reachable
+  if (!reaches(gr, GW, GH, start, end)) {
+    let x = start.cx,
+      y = start.cy;
+    while (x !== end.cx) {
+      carve(x, y);
+      carve(x, y + 1);
+      x += Math.sign(end.cx - x);
+    }
+    while (y !== end.cy) {
+      carve(x, y);
+      carve(x + 1, y);
+      y += Math.sign(end.cy - y);
+    }
+    carve(x, y);
+  }
+  const pal = dungeonPal(b),
+    D: Dungeon = {
+      key,
+      lvl,
+      b,
+      GW,
+      GH,
+      T,
+      g: gr,
+      rooms: order,
+      start,
+      end,
+      ch: new Map(),
+      props: [],
+      torches: [],
+      pillars: [],
+      enemiesPlaced: false,
+      style: 'cave',
+      stair: pal[2],
+    };
+  D.isF = isF;
+  for (let y = 1; y < GH - 1; y++)
+    for (let x = 1; x < GW - 1; x++)
+      if (
+        !isF(x, y) &&
+        isF(x, y + 1) &&
+        rnd() < 0.07 &&
+        !D.torches.some((t) => Math.abs(t.tx - x) < 4 && Math.abs(t.ty - y) < 3)
+      )
+        D.torches.push({ tx: x, ty: y, x: x * T + T / 2, y: (y + 1) * T + 2, ph: rnd() * 9 });
+  const dress = ['bones', 'remains', 'web', 'rubble', 'stalagmite', 'stalagmite'];
+  for (const r of order) {
+    const n = 2 + ((rnd() * 3) | 0);
+    for (let i = 0; i < n; i++) {
+      for (let t = 0; t < 8; t++) {
+        const gx = r.x + ((rnd() * r.w) | 0),
+          gy = r.y + ((rnd() * r.h) | 0);
+        if (!isF(gx, gy)) continue;
+        if (Math.abs(gx - start.cx) + Math.abs(gy - start.cy) < 3) continue;
+        if (Math.abs(gx - end.cx) + Math.abs(gy - end.cy) < 3) continue;
+        const k = r === start ? pick(['bones', 'rubble', 'web']) : pick(dress),
+          open = isF(gx - 1, gy) && isF(gx + 1, gy) && isF(gx, gy - 1) && isF(gx, gy + 1);
+        if (k === 'stalagmite' && !open) continue;
+        const prop: Record<string, any> = {
+          k,
+          x: gx * T + T / 2,
+          y: gy * T + T * 0.72,
+        };
+        if (k === 'stalagmite') {
+          prop.r = 10;
+          prop.col = pal[3];
+          prop.facet = sh(pal[3], 0.28);
+        } else if (k === 'rubble') {
+          prop.col = pal[1];
+          prop.facet = pal[2];
+        }
+        D.props.push(prop);
+        break;
+      }
+    }
+  }
+  D.exit = { x: start.cx * T + T / 2, y: start.cy * T + T / 2 };
+  D.chest = { x: end.cx * T + T / 2, y: end.cy * T + T / 2 - 30, open: false };
+  D.grid = gr;
+  return D;
+}
+function reaches(gr, GW, GH, start, end) {
+  const seen = new Uint8Array(gr.length),
+    q = [start.cx, start.cy];
+  seen[start.cy * GW + start.cx] = 1;
+  for (let qi = 0; qi < q.length; qi += 2) {
+    const x = q[qi],
+      y = q[qi + 1];
+    for (const [dx, dy] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ]) {
+      const nx = x + dx,
+        ny = y + dy,
+        ni = ny * GW + nx;
+      if (nx < 1 || ny < 1 || nx >= GW - 1 || ny >= GH - 1 || !gr[ni] || seen[ni]) continue;
+      seen[ni] = 1;
+      q.push(nx, ny);
+    }
+  }
+  return seen[end.cy * GW + end.cx] === 1;
+}
 export function genDungeonChunk(D, cx, cy) {
   const cvs = mkCanvas(CH, CH),
     x = cvs.getContext('2d'),
     T = D.T,
     ox = cx * CH,
     oy = cy * CH;
-  const pal =
-    D.b === 3
-      ? ['#6e5a44', '#7a6650', '#a58a66', '#d0b48a']
-      : D.b === 4
-        ? ['#4a5a70', '#56687e', '#7a90aa', '#b8cce0']
-        : D.b === 6
-          ? ['#3a2c48', '#443454', '#6a5480', '#9a82b0']
-          : ['#3d3648', '#463f52', '#6a6078', '#9a90a8'];
+  const pal = dungeonPal(D.b),
+    cave = D.style === 'cave';
   const moss: { x: number; y: number; s: number }[] = [];
   x.fillStyle = '#120e1a';
   x.fillRect(0, 0, CH, CH);
@@ -155,11 +367,89 @@ export function genDungeonChunk(D, cx, cy) {
     j0 = Math.floor(oy / T) - 1,
     j1 = Math.floor((oy + CH) / T) + 1,
     isF = D.isF;
+  // rough rock. Patches spill across cells, so the floor is not a grid of squares.
+  const rockFloor = (i, j, X, Y) => {
+      const v = hs(i, j, 55);
+      x.fillStyle = pal[0];
+      x.fillRect(X, Y, T, T);
+      if (hs(i, j, 56) > 0.4) {
+        x.fillStyle = sh(pal[1], (hs(i >> 1, j >> 1, 57) - 0.5) * 0.2);
+        x.beginPath();
+        x.ellipse(
+          X + 8 + hs(i, j, 58) * (T - 16),
+          Y + 8 + hs(i, j, 59) * (T - 16),
+          7 + hs(i, j, 60) * 8,
+          5 + hs(i, j, 61) * 5,
+          hs(i, j, 62),
+          0,
+          Math.PI * 2,
+        );
+        x.fill();
+      }
+      if (v > 0.78) {
+        x.strokeStyle = 'rgba(0,0,0,.38)';
+        x.lineWidth = 1.5;
+        x.beginPath();
+        x.moveTo(X + 4, Y + 16);
+        x.lineTo(X + 18 + hs(i, j, 63) * 14, Y + 24);
+        x.lineTo(X + 12, Y + 34);
+        x.stroke();
+      }
+      if (v < 0.14 && X >= ox && X < ox + CH && Y >= oy && Y < oy + CH)
+        moss.push({ x: X + 20, y: Y + 22, s: (hs(i, j, 77) * 1e9) | 0 });
+      if (!isF(i, j - 1)) {
+        const shade = x.createLinearGradient(0, Y, 0, Y + 18);
+        shade.addColorStop(0, 'rgba(0,0,0,.5)');
+        shade.addColorStop(1, 'rgba(0,0,0,0)');
+        x.fillStyle = shade;
+        x.fillRect(X, Y, T, 18);
+      }
+    },
+    rockFace = (i, j, X, Y) => {
+      x.fillStyle = sh(pal[0], -0.12);
+      x.fillRect(X, Y, T, T);
+      for (let k = 0; k < 3; k++) {
+        const bx = X + 4 + hs(i + k, j, 65) * (T - 8),
+          by = Y + 12 + hs(i, j + k, 66) * (T - 20),
+          rx = 9 + hs(i * 5 + k, j, 67) * 9;
+        x.fillStyle = hs(i, j + k, 68) < 0.5 ? pal[1] : sh(pal[1], -0.14);
+        x.beginPath();
+        x.ellipse(bx, by, rx, rx * 0.7, hs(i, j, 64) - 0.5, 0, Math.PI * 2);
+        x.fill();
+        x.strokeStyle = 'rgba(0,0,0,.35)';
+        x.lineWidth = 1.4;
+        x.stroke();
+        x.fillStyle = pal[2];
+        x.beginPath();
+        x.ellipse(bx - rx * 0.28, by - rx * 0.22, rx * 0.32, rx * 0.2, -0.5, 0, Math.PI * 2);
+        x.fill();
+      }
+    },
+    rockSide = (i, j, X, Y) => {
+      x.fillStyle = sh(pal[0], -0.28);
+      x.fillRect(X, Y, T, T);
+      x.fillStyle = 'rgba(0,0,0,.22)';
+      x.beginPath();
+      x.ellipse(
+        X + 6 + hs(i, j, 71) * (T - 12),
+        Y + 8 + hs(i, j, 72) * (T - 16),
+        8 + hs(i, j, 73) * 8,
+        6,
+        0,
+        0,
+        Math.PI * 2,
+      );
+      x.fill();
+    };
   for (let j = j0; j <= j1; j++)
     for (let i = i0; i <= i1; i++) {
       const X = i * T,
         Y = j * T;
       if (isF(i, j)) {
+        if (cave) {
+          rockFloor(i, j, X, Y);
+          continue;
+        }
         const v = hs(i, j, 55);
         x.fillStyle = v < 0.5 ? pal[0] : pal[1];
         x.fillRect(X, Y, T, T);
@@ -200,6 +490,10 @@ export function genDungeonChunk(D, cx, cy) {
           isF(i - 1, j - 1);
         if (!nb) continue;
         if (isF(i, j + 1)) {
+          if (cave) {
+            rockFace(i, j, X, Y);
+            continue;
+          }
           x.fillStyle = pal[1];
           x.fillRect(X, Y, T, T);
           x.fillStyle = pal[0];
@@ -214,7 +508,8 @@ export function genDungeonChunk(D, cx, cy) {
           x.fillRect(X, Y, T, 10);
           x.fillStyle = pal[3];
           x.fillRect(X, Y, T, 2);
-        } else {
+        } else if (cave) rockSide(i, j, X, Y);
+        else {
           x.fillStyle = pal[2];
           x.fillRect(X, Y, T, T);
           x.fillStyle = 'rgba(0,0,0,.12)';

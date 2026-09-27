@@ -51,7 +51,7 @@ function nearestUncleared(kind, x, y) {
       const p = poiAt(i, j);
       if (
         !p ||
-        p.kind !== kind ||
+        (Array.isArray(kind) ? !kind.includes(p.kind) : p.kind !== kind) ||
         game.P.cleared[p.key] ||
         game.P.quests.some((q) => q.key === p.key)
       )
@@ -113,7 +113,7 @@ export function genOffers(v) {
       lvl: lair.lvl,
       item: 2,
     });
-  const cave = nearestUncleared('cave', v.x, v.y);
+  const cave = nearestUncleared(['cave', 'gate'], v.x, v.y);
   if (cave)
     out.push({
       id: game.uidN++,

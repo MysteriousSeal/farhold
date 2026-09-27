@@ -563,11 +563,17 @@ function paintPoiGround(x, p) {
       x.lineTo(p.x + Math.cos(b2) * 90, p.y + Math.sin(b2) * 64);
       x.stroke();
     }
-  } else if (p.kind === 'cave') {
+  } else if (p.kind === 'cave' || p.kind === 'gate') {
     x.fillStyle = 'rgba(90,70,60,.45)';
     x.beginPath();
-    x.ellipse(p.x, p.y + 14, 70, 34, 0, 0, TAU);
+    x.ellipse(p.x, p.y + 14, p.kind === 'gate' ? 62 : 70, 34, 0, 0, TAU);
     x.fill();
+    if (p.kind === 'gate') {
+      x.fillStyle = 'rgba(30,24,28,.4)';
+      x.beginPath();
+      x.ellipse(p.x, p.y + 4, 26, 10, 0, 0, TAU);
+      x.fill();
+    }
   }
   x.restore();
 }
@@ -651,6 +657,12 @@ export function solidAt(x, y, r) {
       const dx = x - p.x,
         dy = (y - p.y + 8) * 1.4;
       if (dx * dx + dy * dy < (14 + r) * (14 + r)) return true;
+    }
+    for (const p of game.DG.props) {
+      if (!p.r) continue;
+      const dx = x - p.x,
+        dy = (y - p.y) * 1.4;
+      if (dx * dx + dy * dy < (p.r + r) * (p.r + r)) return true;
     }
     return false;
   }

@@ -1,8 +1,9 @@
 import { TAU } from './math';
 /* ================= CORE ================= */
-export const $ = (s) => document.querySelector(s);
-export const cv = $('#c'),
-  g = cv.getContext('2d');
+const doc = typeof document === 'undefined' ? null : document;
+export const $ = (s) => (doc ? doc.querySelector(s) : null);
+export const cv = doc ? $('#c') : null,
+  g = cv ? cv.getContext('2d') : null;
 export let W = 0,
   H = 0,
   DPR = 1;
@@ -15,8 +16,10 @@ function resize() {
   cv.style.width = W + 'px';
   cv.style.height = H + 'px';
 }
-addEventListener('resize', resize);
-resize();
+if (doc) {
+  addEventListener('resize', resize);
+  resize();
+}
 export function rr(c, x, y, w, h, r, fill, stroke = true) {
   c.beginPath();
   if (c.roundRect) c.roundRect(x, y, w, h, r);

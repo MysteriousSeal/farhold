@@ -19,8 +19,9 @@ export function enterDungeon(p) {
   doFade(() => {
     game.P.ret = { x: p.x, y: p.y + 44 };
     game.mode = 'dungeon';
-    game.DG = genDungeon(p.key, p.lvl, p.b);
+    game.DG = genDungeon(p.key, p.lvl, p.b, p.kind === 'cave' ? 'cave' : 'crypt');
     game.DG.name = p.name;
+    game.DG.entrance = p.kind;
     game.DG.poiKey = p.key;
     // this cave's saved cycle: which enemies died, guardian, chest, reset time
     const st = caveState(p.key),
@@ -207,7 +208,7 @@ export function caveState(key: string) {
     });
   let s = all[key];
   if (!s) s = all[key] = fresh(0);
-  // enemy layouts changed (packs): old kill lists no longer match their slots
+  // enemy layouts changed (caverns, packs): old kill lists no longer match their slots
   if (s.layout !== CAVE_LAYOUT) {
     s.dead = [];
     s.layout = CAVE_LAYOUT;
@@ -238,7 +239,7 @@ function revealChest() {
 }
 
 /* ---- packs: themed groups of 3-5 cave enemies that fight together ---- */
-const CAVE_LAYOUT = 2;
+const CAVE_LAYOUT = 3;
 /** Share of cave rooms (bigger first) that hold a pack instead of scattered enemies. */
 export const PACK_SHARE = 0.4;
 // themed packs: minimum cave level and members (the first one leads)

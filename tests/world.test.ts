@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { strSeed } from '../src/core/math';
 import { game } from '../src/game/state';
+import { genDungeon } from '../src/world/dungeon';
 import { houseRoute, poiAt, poiCache } from '../src/world/poi';
 import { traceCliffs } from '../src/world/cliffs';
 import { PEAK_H, dangerAt, hField, terr, walkT } from '../src/world/terrain';
@@ -118,6 +119,87 @@ describe('village paths', () => {
   it('no house blocks the main road south of the plaza', () => {
     for (const v of villages())
       for (const h of v.houses) expect(h.y > v.y && Math.abs(h.x - v.x) < h.w / 2 + 11).toBe(false);
+  });
+});
+
+const linked = (D) => {
+  const seen = new Set<string>(),
+    q = [[D.start.cx, D.start.cy]];
+  seen.add(D.start.cx + ',' + D.start.cy);
+  while (q.length) {
+    const [x, y] = q.pop();
+    for (const [dx, dy] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ]) {
+      const nx = x + dx,
+        ny = y + dy,
+        k = nx + ',' + ny;
+      if (!D.isF(nx, ny) || seen.has(k)) continue;
+      seen.add(k);
+      q.push([nx, ny]);
+    }
+  }
+  return seen.has(D.end.cx + ',' + D.end.cy);
+};
+
+describe('dungeons', () => {
+  it('keeps the built rooms square', () => {
+    useSeed('alpha');
+    const D = genDungeon('g1,2', 4, 0);
+    expect(D.style).toBe('crypt');
+    expect(linked(D)).toBe(true);
+    for (const r of D.rooms)
+      for (let y = r.y; y < r.y + r.h; y++)
+        for (let x = r.x; x < r.x + r.w; x++) expect(D.isF(x, y)).toBe(true);
+    expect(D.props.some((p) => p.k === 'barrel' || p.k === 'crate')).toBe(true);
+  });
+
+  it('carves a lumpy cavern for a cave mound', () => {
+    useSeed('bravo');
+    const D = genDungeon('c4,1', 5, 6, 'cave');
+    expect(D.style).toBe('cave');
+    expect(D.pillars).toEqual([]);
+    expect(linked(D)).toBe(true);
+    expect(D.isF(D.start.cx, D.start.cy + 1)).toBe(true);
+    expect(
+      D.props.every((p) => ['bones', 'remains', 'web', 'rubble', 'stalagmite'].includes(p.k)),
+    ).toBe(true);
+    expect(D.props.some((p) => p.k === 'stalagmite')).toBe(true);
+    expect(D.props.some((p) => p.k === 'barrel' || p.k === 'crate')).toBe(false);
+    expect(
+      D.rooms.some((r) => {
+        for (let y = r.y; y < r.y + r.h; y++)
+          for (let x = r.x; x < r.x + r.w; x++) if (!D.isF(x, y)) return true;
+        return false;
+      }),
+    ).toBe(true);
+  });
+});
+
+describe('stone gates', () => {
+  it('stand beside the caves and use ruin names', () => {
+    useSeed('alpha');
+    let caves = 0,
+      gates = 0;
+    for (let i = -8; i <= 8; i++)
+      for (let j = -8; j <= 8; j++) {
+        const p = poiAt(i, j);
+        if (!p) continue;
+        if (p.kind === 'cave') {
+          caves++;
+          expect(p.name).toMatch(/^The [A-Z][a-z]+$/);
+          expect(p.key.startsWith('c')).toBe(true);
+        } else if (p.kind === 'gate') {
+          gates++;
+          expect(p.name).toMatch(/^The [A-Z][a-z]+ [A-Z][a-z]+$/);
+          expect(p.key.startsWith('g')).toBe(true);
+        }
+      }
+    expect(caves).toBeGreaterThan(5);
+    expect(gates).toBeGreaterThan(5);
   });
 });
 
