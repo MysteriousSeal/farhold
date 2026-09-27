@@ -7,6 +7,7 @@ export type Rec = Record<string, any>;
 /** Gear and the lit torch are Item objects (a class, model/game/items.ts). */
 export type { Item } from './items';
 export type { Hero } from './hero';
+export type { Enemy } from './enemies';
 import type { Item } from './items';
 
 /** Item stats by name (atk, hp, def, crit, critd, aspd, spd, leech...). */
@@ -21,26 +22,6 @@ export interface Look {
   hair?: number;
   hairC?: string;
   fem?: boolean;
-  [extra: string]: any;
-}
-
-/** A monster, beast or humanoid enemy (bosses included); AI timers are added as it acts. */
-export interface Enemy {
-  type: string;
-  lvl: number;
-  x: number;
-  y: number;
-  hp: number;
-  max: number;
-  dmg: number;
-  spd: number;
-  r: number;
-  dx: number;
-  dy: number;
-  aggro: boolean;
-  dead?: boolean;
-  boss?: boolean;
-  elite?: string;
   [extra: string]: any;
 }
 

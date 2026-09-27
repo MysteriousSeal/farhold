@@ -4,7 +4,7 @@ import { TAU, pick, rand } from '../../core/math';
 import { TABLE, typesFor } from '../data/enemies';
 import { BAGMAX } from './drops';
 import { gainXp } from './combat';
-import { dropAt, makeEnemy } from './enemies';
+import { dropAt, Enemy } from './enemies';
 import { banner, burst, ring, toast } from './fx';
 import { genItem } from './items';
 import { game } from './state';
@@ -225,7 +225,7 @@ function raidTick(ev: WorldEvent, dt: number) {
     const a = a0 + (k / n) * 1.6 - 0.8,
       x = v.x + Math.cos(a) * (v.r + 20),
       y = v.y + Math.sin(a) * (v.r + 20) * 0.8;
-    const e = makeEnemy(pick(types), lvl, x, y, {
+    const e = new Enemy(pick(types), lvl, x, y, {
       elite: ev.wave === RAID_WAVES && k === 0 ? 'Giant' : null,
     });
     e.evId = ev.id;
@@ -248,7 +248,7 @@ function land(ev: WorldEvent) {
     n = 3 + (ev.lvl > 3 ? 1 : 0);
   for (let k = 0; k < n; k++) {
     const a = (k / n) * TAU + rand(-0.3, 0.3),
-      e = makeEnemy(pick(types), ev.lvl + 1, ev.x + Math.cos(a) * 70, ev.y + Math.sin(a) * 50);
+      e = new Enemy(pick(types), ev.lvl + 1, ev.x + Math.cos(a) * 70, ev.y + Math.sin(a) * 50);
     e.evId = ev.id;
     game.enemies.push(e);
   }

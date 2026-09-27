@@ -1,7 +1,7 @@
 import { dungeonKill } from './dungeons';
 import { inPlaceNow } from '../world/poi';
 import { WADE, isPool } from '../world/terrain';
-import type { Enemy, Rec } from './types';
+import type { Rec } from './types';
 import { CHEST_GOLD_SHARE, spawnBossChest } from './bossChest';
 import { SFX } from '../../core/ports';
 import { TAU, clamp, lerp, pick, rand } from '../../core/math';
@@ -20,107 +20,532 @@ import { poisNear } from '../world/poi';
 import { dangerAt, terr, walkT } from '../world/terrain';
 /* ================= ENEMIES ================= */
 export const ELITES = ['Swift', 'Vampiric', 'Frenzied', 'Armored', 'Giant'];
-export function makeEnemy(type, lvl, x, y, o: Rec = {}) {
-  const D = ET[type];
-  const e: Enemy = {
-    type,
-    lvl,
-    x,
-    y,
-    sc: o.sc || 1,
-    r: D.r,
-    dx: 1,
-    dy: 0,
-    walk: rand(0, 6),
-    moving: false,
-    cd: rand(0.5, 1.5),
-    wind: 0,
-    swing: 0,
-    flash: 0,
-    kbx: 0,
-    kby: 0,
-    wt: 0,
-    wx: 0,
-    wy: 0,
-    aggro: false,
-    stun: 0,
-    frozen: 0,
-    slow: 0,
-    dying: 0,
-    hitSq: 0,
-    ph: rand(0, 9),
-    air: 0,
-    hbY: D.hbY || 40,
-    col: D.col,
-    spd: D.spd * rand(0.92, 1.08),
-    hp: 0, // health and damage come from the level below
-    max: 0,
-    dmg: 0,
-  };
-  let hpM = 1,
-    dmM = 1;
-  if (o.elite) {
-    e.elite = o.elite;
-    hpM = 2.8;
-    dmM = 1.4;
-    e.sc *= 1.25;
-    if (o.elite === 'Swift') e.spd *= 1.45;
-    if (o.elite === 'Giant') {
-      e.sc *= 1.2;
-      hpM = 4;
+/**
+ * A monster, beast or humanoid foe (bosses too, made by Enemy.boss). It thinks, moves and
+ * fights in update(); the AI keeps its timers and state on the enemy itself.
+ */
+export class Enemy {
+  declare type: string;
+  declare lvl: number;
+  declare x: number;
+  declare y: number;
+  declare hp: number;
+  declare max: number;
+  declare dmg: number;
+  declare spd: number;
+  declare r: number;
+  declare dx: number;
+  declare dy: number;
+  declare aggro: boolean;
+  declare dead?: boolean;
+  declare boss?: any;
+  declare elite?: string;
+  [extra: string]: any;
+  constructor(type: string, lvl: number, x: number, y: number, o: Rec = {}) {
+    const D = ET[type];
+    Object.assign(this, {
+      type,
+      lvl,
+      x,
+      y,
+      sc: o.sc || 1,
+      r: D.r,
+      dx: 1,
+      dy: 0,
+      walk: rand(0, 6),
+      moving: false,
+      cd: rand(0.5, 1.5),
+      wind: 0,
+      swing: 0,
+      flash: 0,
+      kbx: 0,
+      kby: 0,
+      wt: 0,
+      wx: 0,
+      wy: 0,
+      aggro: false,
+      stun: 0,
+      frozen: 0,
+      slow: 0,
+      dying: 0,
+      hitSq: 0,
+      ph: rand(0, 9),
+      air: 0,
+      hbY: D.hbY || 40,
+      col: D.col,
+      spd: D.spd * rand(0.92, 1.08),
+      hp: 0, // health and damage come from the level below
+      max: 0,
+      dmg: 0,
+    });
+    let hpM = 1,
+      dmM = 1;
+    if (o.elite) {
+      this.elite = o.elite;
+      hpM = 2.8;
+      dmM = 1.4;
+      this.sc *= 1.25;
+      if (o.elite === 'Swift') this.spd *= 1.45;
+      if (o.elite === 'Giant') {
+        this.sc *= 1.2;
+        hpM = 4;
+      }
+    }
+    this.max = Math.round(D.hp * (22 + lvl * 15) * hpM);
+    this.hp = this.max;
+    this.hpShow = this.max;
+    this.dmg = D.dmg * (5 + lvl * 2.4) * dmM;
+    this.r = D.r * this.sc;
+    const b = game.mode === 'dungeon' ? (game.DG ? game.DG.b : 0) : terr(x, y).b;
+    if (type === 'slime')
+      this.col =
+        b === 6
+          ? '#b07ae0'
+          : b === 4
+            ? '#8ad8ff'
+            : b === 5
+              ? '#9ac05a'
+              : b === 3
+                ? '#e0b85a'
+                : lvl > 8
+                  ? '#6ab8e6'
+                  : '#6fd66a';
+    if (type === 'golem') {
+      const gc = GOLEMCOL[b];
+      this.col = gc[0];
+      this.glow = gc[1];
+    }
+    if (type === 'wolf' && lvl > 8) this.col = '#5e5a6a';
+    if (o.elite && D.kind === 'hum') this.tint = o.elite === 'Vampiric' ? '#6a1a3a' : '#8a2a6a';
+  }
+  /** A boss of kind `bt` (a lair's, or a cave guardian when `src` is mini). */
+  static boss(bt, lvl: number, x: number, y: number, src): Enemy {
+    const B = BOSS[bt],
+      e = new Enemy(B.base, lvl, x, y);
+    e.boss = B;
+    e.bt = bt;
+    e.sc = B.scale;
+    e.r = ET[B.base].r * B.scale * 0.8;
+    e.max = Math.round(B.hp * (40 + lvl * 26) * (src && src.mini ? 0.7 : 1));
+    e.hp = e.max;
+    e.hpShow = e.max;
+    e.dmg = B.dmg * (6 + lvl * 2.6);
+    e.spd = B.spd;
+    e.aggro = true;
+    e.abcd = 2.2;
+    e.last = '';
+    e.src = src;
+    e.home = { x, y };
+    if (B.col) e.col = B.col;
+    if (B.tint) e.tint = B.tint;
+    e.name = (src && src.bname ? src.bname + ', ' : '') + B.n;
+    if (src && src.mini) e.name = B.n;
+    return e;
+  }
+  /** One frame of this enemy: dying, despawning, stuns, its AI, moving and keeping apart. */
+  update(dt: number, pVillage: boolean) {
+    if (this.dead) return;
+    // one pack member noticing the hero alerts the whole pack
+    if (this.pack != null && this.aggro && !this.packAlert) {
+      this.packAlert = true;
+      for (const o of game.enemies) if (o.pack === this.pack && !o.aggro) o.aggro = true;
+    }
+    if (this.dying > 0) {
+      this.dying -= dt;
+      if (this.dying <= 0) this.dead = true;
+      return;
+    }
+    const D = ET[this.type];
+    this.flash -= dt;
+    this.hitSq = Math.max(0, this.hitSq - dt);
+    this.hpShow = lerp(this.hpShow, this.hp, 1 - Math.pow(0.02, dt));
+    if (this.swing > 0) this.swing -= dt;
+    const dx = game.P.x - this.x,
+      dy = game.P.y - this.y,
+      d = Math.hypot(dx, dy) || 1;
+    // far-away world enemies despawn; cave enemies stay until killed (they count for clearing)
+    if (d > 1150 && !this.boss && game.mode !== 'dungeon') {
+      this.dead = true;
+      return;
+    }
+    if (
+      this.boss &&
+      this.src &&
+      !this.src.mini &&
+      Math.hypot(game.P.x - this.home.x, game.P.y - this.home.y) > 900
+    ) {
+      this.dead = true;
+      game.curBoss = null;
+      return;
+    }
+    if (this.stun > 0 || this.frozen > 0) {
+      this.stun -= dt;
+      this.frozen -= dt;
+      this.wind = 0;
+      this.knockback(dt);
+      return;
+    }
+    if (this.boss) {
+      if (!this.dormant) bossAI(this, dt, dx, dy, d);
+      return;
+    }
+    this.cd -= dt;
+    let mx = 0,
+      my = 0;
+    const sp =
+      this.spd *
+      (this.slow > 0 ? 0.5 : 1) *
+      (game.mode === 'world' &&
+      !this.fly &&
+      isPool(terr(this.x, this.y)) &&
+      !inPlaceNow(this.x, this.y)
+        ? WADE
+        : 1);
+    this.slow -= dt;
+    const inDg = game.mode === 'dungeon',
+      aggroR = inDg ? 300 : 260,
+      // underground, rock walls hide the hero: no noticing and no chasing through them
+      seen = !inDg || (d < 560 && this.sees(dt));
+    if (inDg && this.aggro && !seen) {
+      // lost sight: go and look where the hero was last seen, then give up
+      this.aggro = false;
+      this.hunt = { x: this.seenX ?? game.P.x, y: this.seenY ?? game.P.y, t: 5 };
+    }
+    if (
+      seen &&
+      (d < aggroR + (this.hunt ? 120 : 0) || (this.aggro && d < 520)) &&
+      (!pVillage || this.raid) &&
+      game.state === 'play'
+    ) {
+      this.aggro = true;
+      this.hunt = null;
+      this.seenX = game.P.x;
+      this.seenY = game.P.y;
+      const ai = D.ai;
+      if (this.charge) {
+        this.charge.t -= dt;
+        const c = this.charge;
+        if (c.t > 0) {
+          moveEnt(this, c.vx * dt, c.vy * dt, this.r * 0.6);
+          this.moving = true;
+          this.walk += dt * 20;
+          if (!c.hit && d < this.r + 16) {
+            c.hit = 1;
+            hurtHero(this.dmg * 1.3, this.x, this.y);
+          }
+          if (Math.random() < 0.5)
+            game.parts.push({
+              x: this.x,
+              y: this.y,
+              vx: rand(-30, 30),
+              vy: rand(-30, -5),
+              life: 0.4,
+              max: 0.4,
+              col: 'rgba(220,200,170,.7)',
+              sz: 4,
+              g: 0,
+            });
+        } else this.charge = null;
+        return;
+      }
+      if (this.leapT != null) {
+        this.leapT += dt;
+        const L = this.lp,
+          k = clamp(this.leapT / 0.45, 0, 1);
+        this.x = lerp(L.sx, L.tx, k);
+        this.y = lerp(L.sy, L.ty, k);
+        this.air = Math.sin(k * Math.PI) * 50;
+        if (k >= 1) {
+          this.leapT = null;
+          this.air = 0;
+          burst(this.x, this.y, '#8a7a6a', 8, 90, 3);
+          if (Math.hypot(game.P.x - this.x, game.P.y - this.y) < this.r + 22)
+            hurtHero(this.dmg, this.x, this.y);
+        }
+        return;
+      }
+      if (this.wind > 0) {
+        this.wind -= dt;
+        this.dx = dx;
+        this.dy = dy;
+        if (this.wind <= 0) this.strike(d, dx, dy);
+      } else if (ai === 'ranged' || ai === 'caster' || ai === 'summoner') {
+        const R = D.range;
+        if (d > R * 0.85) {
+          mx = dx / d;
+          my = dy / d;
+        } else if (d < R * 0.45) {
+          mx = -dx / d;
+          my = -dy / d;
+        } else {
+          mx = (-dy / d) * 0.4 * Math.sin(game.time + this.ph);
+          my = (dx / d) * 0.4 * Math.sin(game.time + this.ph);
+        }
+        if (this.cd <= 0 && d < R + 40) {
+          this.wind = ai === 'ranged' ? 0.5 : 0.6;
+          this.cd = rand(1.6, 2.4);
+          if (
+            ai === 'summoner' &&
+            Math.random() < 0.4 &&
+            game.enemies.filter((o) => o.minionOf === this).length < 3
+          ) {
+            this.summon = true;
+            this.wind = 0.9;
+          }
+        }
+      } else if (ai === 'charger' && this.cd <= 0 && d > 110 && d < 330) {
+        const a = Math.atan2(dy, dx);
+        this.cd = 3;
+        game.teles.push({
+          type: 'line',
+          x: this.x,
+          y: this.y,
+          ang: a,
+          len: 360,
+          w: 34,
+          t: 0,
+          max: 0.7,
+          cb: () => {
+            if (this.dying > 0 || this.dead) return;
+            this.charge = { t: 0.55, vx: Math.cos(a) * 470, vy: Math.sin(a) * 470, hit: 0 };
+            SFX.roll();
+          },
+        });
+        this.stunWait = 0.7;
+      } else if (ai === 'lunger' && this.cd <= 0 && d < 210 && d > 50) {
+        this.cd = 2.6;
+        this.wind = 0.4;
+        this.lunge = true;
+      } else if (ai === 'swarm') {
+        const a = Math.atan2(dy, dx) + Math.sin(game.time * 3 + this.ph) * 0.9;
+        mx = Math.cos(a);
+        my = Math.sin(a);
+        if (this.flee > 0) {
+          this.flee -= dt;
+          mx = -mx;
+          my = -my;
+        }
+        if (d < this.r + 14 && this.cd <= 0) {
+          hurtHero(this.dmg, this.x, this.y);
+          this.cd = 1;
+          this.flee = 0.6;
+        }
+      } else if (ai === 'slam' && this.cd <= 0 && d < 100) {
+        this.cd = 2.6;
+        this.wind = 0.8;
+        const R = 78 * this.sc;
+        game.teles.push({
+          type: 'circle',
+          x: this.x,
+          y: this.y,
+          r: R,
+          t: 0,
+          max: 0.8,
+          cb: () => {
+            if (this.dying > 0 || this.dead || this.stun > 0 || this.frozen > 0) return;
+            SFX.slam();
+            game.shake = Math.max(game.shake, 6);
+            ring(this.x, this.y, '#d8c8a8', 24, R * 2.2, 4);
+            if (Math.hypot(game.P.x - this.x, (game.P.y - this.y) * 1.2) < R + 6)
+              hurtHero(this.dmg * 1.4, this.x, this.y);
+          },
+        });
+      } else {
+        if (d > this.r + 14) {
+          mx = dx / d;
+          my = dy / d;
+        }
+        if (d < this.r + 24 && this.cd <= 0) {
+          this.wind = D.kind === 'quad' ? 0.28 : 0.38;
+          this.cd = 1.15;
+          if (this.elite === 'Frenzied') this.cd *= 0.55;
+        }
+      }
+      if (this.stunWait > 0) {
+        this.stunWait -= dt;
+        mx = my = 0;
+      }
+    } else if (this.hunt) {
+      this.aggro = false;
+      const h = this.hunt,
+        hx = h.x - this.x,
+        hy = h.y - this.y,
+        hd = Math.hypot(hx, hy);
+      h.t -= dt;
+      // walk to the spot, then stand and look around for a moment
+      if (hd > 18 && h.t > 1.2) {
+        mx = (hx / hd) * 0.8;
+        my = (hy / hd) * 0.8;
+      } else h.t = Math.min(h.t, 1.2);
+      if (h.t <= 0) this.hunt = null;
+    } else {
+      this.aggro = false;
+      this.wt -= dt;
+      if (this.wt <= 0) {
+        this.wt = rand(1, 3);
+        const a = Math.random() * TAU;
+        this.wx = Math.random() < 0.4 ? 0 : Math.cos(a);
+        this.wy = Math.random() < 0.4 ? 0 : Math.sin(a);
+      }
+      mx = this.wx * 0.45;
+      my = this.wy * 0.45;
+    }
+    const speed = this.wind > 0 ? 0 : sp;
+    // walk around whatever stands in the way instead of pushing into it
+    if (speed > 0 && (mx || my)) [mx, my] = this.steer(mx, my, dt);
+    const vx = mx * speed,
+      vy = my * speed,
+      ox = this.x,
+      oy = this.y;
+    const nx = this.x + (vx + this.kbx) * dt,
+      ny = this.y + (vy + this.kby) * dt;
+    if (game.mode === 'world' && !this.raid && inVillage(nx, ny)) {
+      this.wx = -this.wx;
+      this.wy = -this.wy;
+      this.kbx = this.kby = 0;
+    } else moveEnt(this, (vx + this.kbx) * dt, (vy + this.kby) * dt, this.r * 0.6);
+    this.kbx *= Math.pow(0.002, dt);
+    this.kby *= Math.pow(0.002, dt);
+    // only walk when actually getting somewhere; stuck for a moment: go round the other way
+    const want = Math.hypot(vx, vy) * dt,
+      got = Math.hypot(this.x - ox, this.y - oy);
+    this.moving = Math.abs(mx) + Math.abs(my) > 0.1 && got > want * 0.25;
+    if (want > 0.2 && got < want * 0.3) {
+      this.stuckT = (this.stuckT || 0) + dt;
+      if (this.stuckT > 0.5) {
+        this.stuckT = 0;
+        this.side = -(this.side || 1);
+        this.detA = this.side * Math.PI * 0.5;
+        this.detT = 1.3;
+        if (!this.aggro) this.wt = 0; // a wanderer just picks a new way
+      }
+    } else this.stuckT = 0;
+    if (this.moving) {
+      this.walk += dt * (D.kind === 'quad' ? 14 : 9) * (sp / 80);
+      this.dx = mx;
+      this.dy = my;
+    } else if (this.aggro) {
+      this.dx = dx;
+      this.dy = dy;
+    }
+    if (D.kind === 'slime') this.walk += dt * 4;
+    for (const o of game.enemies) {
+      if (o === this || o.dying > 0) continue;
+      const ax = this.x - o.x,
+        ay = this.y - o.y,
+        dd = ax * ax + ay * ay,
+        r2 = (this.r + o.r) * 0.85;
+      if (dd < r2 * r2 && dd > 0) {
+        const q = Math.sqrt(dd);
+        this.x += (ax / q) * 50 * dt;
+        this.y += (ay / q) * 50 * dt;
+      }
     }
   }
-  e.max = Math.round(D.hp * (22 + lvl * 15) * hpM);
-  e.hp = e.max;
-  e.hpShow = e.max;
-  e.dmg = D.dmg * (5 + lvl * 2.4) * dmM;
-  e.r = D.r * e.sc;
-  const b = game.mode === 'dungeon' ? (game.DG ? game.DG.b : 0) : terr(x, y).b;
-  if (type === 'slime')
-    e.col =
-      b === 6
-        ? '#b07ae0'
-        : b === 4
-          ? '#8ad8ff'
-          : b === 5
-            ? '#9ac05a'
-            : b === 3
-              ? '#e0b85a'
-              : lvl > 8
-                ? '#6ab8e6'
-                : '#6fd66a';
-  if (type === 'golem') {
-    const gc = GOLEMCOL[b];
-    e.col = gc[0];
-    e.glow = gc[1];
+  /**
+   * Steer an enemy walking along (mx, my) around obstacles: look a little way ahead and, when
+   * it is blocked, turn toward the nearest free heading (45° steps), keeping to the same side
+   * for a moment so it goes round the obstacle instead of jittering against it.
+   */
+  steer(mx: number, my: number, dt: number): [number, number] {
+    const m = Math.hypot(mx, my),
+      a0 = Math.atan2(my, mx),
+      r = this.r * 0.6,
+      probe = r + 20,
+      free = (a: number) =>
+        !solidAt(this.x + Math.cos(a) * probe, this.y + Math.sin(a) * probe, r) &&
+        !solidAt(this.x + Math.cos(a) * probe * 0.5, this.y + Math.sin(a) * probe * 0.5, r);
+    if (this.detT > 0) {
+      this.detT -= dt;
+      const a = a0 + this.detA;
+      if (free(a)) return [Math.cos(a) * m, Math.sin(a) * m];
+    }
+    if (free(a0)) return [mx, my];
+    const side = this.side || (this.side = Math.random() < 0.5 ? 1 : -1);
+    for (let k = 1; k <= 4; k++)
+      for (const sd of [side, -side]) {
+        const off = sd * k * (Math.PI / 4),
+          a = a0 + off;
+        if (!free(a)) continue;
+        this.side = sd;
+        this.detA = off;
+        this.detT = 0.7;
+        return [Math.cos(a) * m, Math.sin(a) * m];
+      }
+    return [mx, my];
   }
-  if (type === 'wolf' && lvl > 8) e.col = '#5e5a6a';
-  if (o.elite && D.kind === 'hum') e.tint = o.elite === 'Vampiric' ? '#6a1a3a' : '#8a2a6a';
-  return e;
+  /** Clear line from the enemy to the hero through dungeon floor, rechecked a few times a second. */
+  sees(dt: number) {
+    this.losT = (this.losT || 0) - dt;
+    if (this.losT > 0) return this.los;
+    this.losT = 0.15 + Math.random() * 0.1;
+    this.los = clearLine(game.DG, this.x, this.y - 8, game.P.x, game.P.y - 8);
+    return this.los;
+  }
+  knockback(dt: number) {
+    moveEnt(this, this.kbx * dt, this.kby * dt, this.r * 0.6);
+    this.kbx *= Math.pow(0.002, dt);
+    this.kby *= Math.pow(0.002, dt);
+  }
+  strike(d: number, dx: number, dy: number) {
+    const D = ET[this.type],
+      a = Math.atan2(dy - 10, dx);
+    if (this.summon) {
+      this.summon = false;
+      for (let k = 0; k < 2; k++) {
+        const s = new Enemy(
+          'skeleton',
+          Math.max(1, this.lvl - 1),
+          this.x + rand(-50, 50),
+          this.y + rand(-30, 30),
+        );
+        s.minionOf = this;
+        s.aggro = true;
+        if (!solidAt(s.x, s.y, 8)) {
+          game.enemies.push(s);
+          burst(s.x, s.y, '#8ef7a0', 14, 80, 3, 40, 1);
+        }
+      }
+      return;
+    }
+    if (this.lunge) {
+      this.lunge = false;
+      const tx = game.P.x,
+        ty = game.P.y;
+      this.lp = { sx: this.x, sy: this.y, tx: lerp(this.x, tx, 0.92), ty: lerp(this.y, ty, 0.92) };
+      if (solidAt(this.lp.tx, this.lp.ty, 6)) {
+        this.lp.tx = this.x;
+        this.lp.ty = this.y;
+      }
+      this.leapT = 0;
+      return;
+    }
+    if (D.ai === 'ranged') {
+      SFX.shoot();
+      eProj(this, a, 380, 'barrow');
+      return;
+    }
+    if (D.ai === 'caster' || D.ai === 'summoner') {
+      SFX.zap();
+      const pk = D.proj || 'fire';
+      eProj(this, a, 240, 'orb', {
+        col: PROJCOL[pk],
+        slow: pk === 'ice' ? 1.5 : 0,
+        big: this.elite ? 1 : 0,
+      });
+      return;
+    }
+    this.swing = 0.2;
+    if (d < this.r + 30) {
+      hurtHero(this.dmg, this.x, this.y);
+      if (this.elite === 'Vampiric') {
+        this.hp = Math.min(this.max, this.hp + this.dmg * 0.8);
+        burst(this.x, this.y - 20, '#ff4a6a', 6, 60, 3);
+      }
+    }
+  }
 }
-export function makeBoss(bt, lvl, x, y, src) {
-  const B = BOSS[bt],
-    e = makeEnemy(B.base, lvl, x, y);
-  e.boss = B;
-  e.bt = bt;
-  e.sc = B.scale;
-  e.r = ET[B.base].r * B.scale * 0.8;
-  e.max = Math.round(B.hp * (40 + lvl * 26) * (src && src.mini ? 0.7 : 1));
-  e.hp = e.max;
-  e.hpShow = e.max;
-  e.dmg = B.dmg * (6 + lvl * 2.6);
-  e.spd = B.spd;
-  e.aggro = true;
-  e.abcd = 2.2;
-  e.last = '';
-  e.src = src;
-  e.home = { x, y };
-  if (B.col) e.col = B.col;
-  if (B.tint) e.tint = B.tint;
-  e.name = (src && src.bname ? src.bname + ', ' : '') + B.n;
-  if (src && src.mini) e.name = B.n;
-  return e;
-}
+
 export const DENS = {
   few: { cap: 3, night: 4, int: 4.5, grp: 0.15 },
   normal: { cap: 5, night: 7, int: 2.8, grp: 0.3 },
@@ -168,7 +593,7 @@ export function spawnEnemies() {
       const ex = x + rand(-30, 30),
         ey = y + rand(-24, 24);
       if (!walkT(terr(ex, ey))) continue;
-      game.enemies.push(makeEnemy(type, lv, ex, ey, { elite: k === 0 ? elite : null }));
+      game.enemies.push(new Enemy(type, lv, ex, ey, { elite: k === 0 ? elite : null }));
     }
     break;
   }
@@ -234,7 +659,7 @@ export function killEnemy(e) {
   }
   if (D.split && !e.small && !e.boss) {
     for (let k = 0; k < 2; k++) {
-      const s = makeEnemy(e.type, e.lvl, e.x + rand(-12, 12), e.y + rand(-8, 8), { sc: 0.62 });
+      const s = new Enemy(e.type, e.lvl, e.x + rand(-12, 12), e.y + rand(-8, 8), { sc: 0.62 });
       s.small = true;
       s.max = s.hp = Math.round(s.max * 0.35);
       s.hpShow = s.hp;
@@ -295,38 +720,7 @@ export function unstick(o, r = 8) {
     }
   }
 }
-/**
- * Steer an enemy walking along (mx, my) around obstacles: look a little way ahead and, when
- * it is blocked, turn toward the nearest free heading (45° steps), keeping to the same side
- * for a moment so it goes round the obstacle instead of jittering against it.
- */
-function steer(e, mx: number, my: number, dt: number): [number, number] {
-  const m = Math.hypot(mx, my),
-    a0 = Math.atan2(my, mx),
-    r = e.r * 0.6,
-    probe = r + 20,
-    free = (a: number) =>
-      !solidAt(e.x + Math.cos(a) * probe, e.y + Math.sin(a) * probe, r) &&
-      !solidAt(e.x + Math.cos(a) * probe * 0.5, e.y + Math.sin(a) * probe * 0.5, r);
-  if (e.detT > 0) {
-    e.detT -= dt;
-    const a = a0 + e.detA;
-    if (free(a)) return [Math.cos(a) * m, Math.sin(a) * m];
-  }
-  if (free(a0)) return [mx, my];
-  const side = e.side || (e.side = Math.random() < 0.5 ? 1 : -1);
-  for (let k = 1; k <= 4; k++)
-    for (const sd of [side, -side]) {
-      const off = sd * k * (Math.PI / 4),
-        a = a0 + off;
-      if (!free(a)) continue;
-      e.side = sd;
-      e.detA = off;
-      e.detT = 0.7;
-      return [Math.cos(a) * m, Math.sin(a) * m];
-    }
-  return [mx, my];
-}
+
 export function moveEnt(o, dx, dy, r) {
   const nx = o.x + dx,
     ny = o.y + dy;
@@ -348,301 +742,7 @@ export function inVillage(x, y) {
 }
 export function updateEnemies(dt) {
   const pVillage = inVillage(game.P.x, game.P.y);
-  for (const e of game.enemies) {
-    if (e.dead) continue;
-    // one pack member noticing the hero alerts the whole pack
-    if (e.pack != null && e.aggro && !e.packAlert) {
-      e.packAlert = true;
-      for (const o of game.enemies) if (o.pack === e.pack && !o.aggro) o.aggro = true;
-    }
-    if (e.dying > 0) {
-      e.dying -= dt;
-      if (e.dying <= 0) e.dead = true;
-      continue;
-    }
-    const D = ET[e.type];
-    e.flash -= dt;
-    e.hitSq = Math.max(0, e.hitSq - dt);
-    e.hpShow = lerp(e.hpShow, e.hp, 1 - Math.pow(0.02, dt));
-    if (e.swing > 0) e.swing -= dt;
-    const dx = game.P.x - e.x,
-      dy = game.P.y - e.y,
-      d = Math.hypot(dx, dy) || 1;
-    // far-away world enemies despawn; cave enemies stay until killed (they count for clearing)
-    if (d > 1150 && !e.boss && game.mode !== 'dungeon') {
-      e.dead = true;
-      continue;
-    }
-    if (
-      e.boss &&
-      e.src &&
-      !e.src.mini &&
-      Math.hypot(game.P.x - e.home.x, game.P.y - e.home.y) > 900
-    ) {
-      e.dead = true;
-      game.curBoss = null;
-      continue;
-    }
-    if (e.stun > 0 || e.frozen > 0) {
-      e.stun -= dt;
-      e.frozen -= dt;
-      e.wind = 0;
-      applyKB(e, dt);
-      continue;
-    }
-    if (e.boss) {
-      if (!e.dormant) bossAI(e, dt, dx, dy, d);
-      continue;
-    }
-    e.cd -= dt;
-    let mx = 0,
-      my = 0;
-    const sp =
-      e.spd *
-      (e.slow > 0 ? 0.5 : 1) *
-      (game.mode === 'world' && !e.fly && isPool(terr(e.x, e.y)) && !inPlaceNow(e.x, e.y)
-        ? WADE
-        : 1);
-    e.slow -= dt;
-    const inDg = game.mode === 'dungeon',
-      aggroR = inDg ? 300 : 260,
-      // underground, rock walls hide the hero: no noticing and no chasing through them
-      seen = !inDg || (d < 560 && sees(e, dt));
-    if (inDg && e.aggro && !seen) {
-      // lost sight: go and look where the hero was last seen, then give up
-      e.aggro = false;
-      e.hunt = { x: e.seenX ?? game.P.x, y: e.seenY ?? game.P.y, t: 5 };
-    }
-    if (
-      seen &&
-      (d < aggroR + (e.hunt ? 120 : 0) || (e.aggro && d < 520)) &&
-      (!pVillage || e.raid) &&
-      game.state === 'play'
-    ) {
-      e.aggro = true;
-      e.hunt = null;
-      e.seenX = game.P.x;
-      e.seenY = game.P.y;
-      const ai = D.ai;
-      if (e.charge) {
-        e.charge.t -= dt;
-        const c = e.charge;
-        if (c.t > 0) {
-          moveEnt(e, c.vx * dt, c.vy * dt, e.r * 0.6);
-          e.moving = true;
-          e.walk += dt * 20;
-          if (!c.hit && d < e.r + 16) {
-            c.hit = 1;
-            hurtHero(e.dmg * 1.3, e.x, e.y);
-          }
-          if (Math.random() < 0.5)
-            game.parts.push({
-              x: e.x,
-              y: e.y,
-              vx: rand(-30, 30),
-              vy: rand(-30, -5),
-              life: 0.4,
-              max: 0.4,
-              col: 'rgba(220,200,170,.7)',
-              sz: 4,
-              g: 0,
-            });
-        } else e.charge = null;
-        continue;
-      }
-      if (e.leapT != null) {
-        e.leapT += dt;
-        const L = e.lp,
-          k = clamp(e.leapT / 0.45, 0, 1);
-        e.x = lerp(L.sx, L.tx, k);
-        e.y = lerp(L.sy, L.ty, k);
-        e.air = Math.sin(k * Math.PI) * 50;
-        if (k >= 1) {
-          e.leapT = null;
-          e.air = 0;
-          burst(e.x, e.y, '#8a7a6a', 8, 90, 3);
-          if (Math.hypot(game.P.x - e.x, game.P.y - e.y) < e.r + 22) hurtHero(e.dmg, e.x, e.y);
-        }
-        continue;
-      }
-      if (e.wind > 0) {
-        e.wind -= dt;
-        e.dx = dx;
-        e.dy = dy;
-        if (e.wind <= 0) enemyStrike(e, d, dx, dy);
-      } else if (ai === 'ranged' || ai === 'caster' || ai === 'summoner') {
-        const R = D.range;
-        if (d > R * 0.85) {
-          mx = dx / d;
-          my = dy / d;
-        } else if (d < R * 0.45) {
-          mx = -dx / d;
-          my = -dy / d;
-        } else {
-          mx = (-dy / d) * 0.4 * Math.sin(game.time + e.ph);
-          my = (dx / d) * 0.4 * Math.sin(game.time + e.ph);
-        }
-        if (e.cd <= 0 && d < R + 40) {
-          e.wind = ai === 'ranged' ? 0.5 : 0.6;
-          e.cd = rand(1.6, 2.4);
-          if (
-            ai === 'summoner' &&
-            Math.random() < 0.4 &&
-            game.enemies.filter((o) => o.minionOf === e).length < 3
-          ) {
-            e.summon = true;
-            e.wind = 0.9;
-          }
-        }
-      } else if (ai === 'charger' && e.cd <= 0 && d > 110 && d < 330) {
-        const a = Math.atan2(dy, dx);
-        e.cd = 3;
-        game.teles.push({
-          type: 'line',
-          x: e.x,
-          y: e.y,
-          ang: a,
-          len: 360,
-          w: 34,
-          t: 0,
-          max: 0.7,
-          cb: () => {
-            if (e.dying > 0 || e.dead) return;
-            e.charge = { t: 0.55, vx: Math.cos(a) * 470, vy: Math.sin(a) * 470, hit: 0 };
-            SFX.roll();
-          },
-        });
-        e.stunWait = 0.7;
-      } else if (ai === 'lunger' && e.cd <= 0 && d < 210 && d > 50) {
-        e.cd = 2.6;
-        e.wind = 0.4;
-        e.lunge = true;
-      } else if (ai === 'swarm') {
-        const a = Math.atan2(dy, dx) + Math.sin(game.time * 3 + e.ph) * 0.9;
-        mx = Math.cos(a);
-        my = Math.sin(a);
-        if (e.flee > 0) {
-          e.flee -= dt;
-          mx = -mx;
-          my = -my;
-        }
-        if (d < e.r + 14 && e.cd <= 0) {
-          hurtHero(e.dmg, e.x, e.y);
-          e.cd = 1;
-          e.flee = 0.6;
-        }
-      } else if (ai === 'slam' && e.cd <= 0 && d < 100) {
-        e.cd = 2.6;
-        e.wind = 0.8;
-        const R = 78 * e.sc;
-        game.teles.push({
-          type: 'circle',
-          x: e.x,
-          y: e.y,
-          r: R,
-          t: 0,
-          max: 0.8,
-          cb: () => {
-            if (e.dying > 0 || e.dead || e.stun > 0 || e.frozen > 0) return;
-            SFX.slam();
-            game.shake = Math.max(game.shake, 6);
-            ring(e.x, e.y, '#d8c8a8', 24, R * 2.2, 4);
-            if (Math.hypot(game.P.x - e.x, (game.P.y - e.y) * 1.2) < R + 6)
-              hurtHero(e.dmg * 1.4, e.x, e.y);
-          },
-        });
-      } else {
-        if (d > e.r + 14) {
-          mx = dx / d;
-          my = dy / d;
-        }
-        if (d < e.r + 24 && e.cd <= 0) {
-          e.wind = D.kind === 'quad' ? 0.28 : 0.38;
-          e.cd = 1.15;
-          if (e.elite === 'Frenzied') e.cd *= 0.55;
-        }
-      }
-      if (e.stunWait > 0) {
-        e.stunWait -= dt;
-        mx = my = 0;
-      }
-    } else if (e.hunt) {
-      e.aggro = false;
-      const h = e.hunt,
-        hx = h.x - e.x,
-        hy = h.y - e.y,
-        hd = Math.hypot(hx, hy);
-      h.t -= dt;
-      // walk to the spot, then stand and look around for a moment
-      if (hd > 18 && h.t > 1.2) {
-        mx = (hx / hd) * 0.8;
-        my = (hy / hd) * 0.8;
-      } else h.t = Math.min(h.t, 1.2);
-      if (h.t <= 0) e.hunt = null;
-    } else {
-      e.aggro = false;
-      e.wt -= dt;
-      if (e.wt <= 0) {
-        e.wt = rand(1, 3);
-        const a = Math.random() * TAU;
-        e.wx = Math.random() < 0.4 ? 0 : Math.cos(a);
-        e.wy = Math.random() < 0.4 ? 0 : Math.sin(a);
-      }
-      mx = e.wx * 0.45;
-      my = e.wy * 0.45;
-    }
-    const speed = e.wind > 0 ? 0 : sp;
-    // walk around whatever stands in the way instead of pushing into it
-    if (speed > 0 && (mx || my)) [mx, my] = steer(e, mx, my, dt);
-    const vx = mx * speed,
-      vy = my * speed,
-      ox = e.x,
-      oy = e.y;
-    const nx = e.x + (vx + e.kbx) * dt,
-      ny = e.y + (vy + e.kby) * dt;
-    if (game.mode === 'world' && !e.raid && inVillage(nx, ny)) {
-      e.wx = -e.wx;
-      e.wy = -e.wy;
-      e.kbx = e.kby = 0;
-    } else moveEnt(e, (vx + e.kbx) * dt, (vy + e.kby) * dt, e.r * 0.6);
-    e.kbx *= Math.pow(0.002, dt);
-    e.kby *= Math.pow(0.002, dt);
-    // only walk when actually getting somewhere; stuck for a moment: go round the other way
-    const want = Math.hypot(vx, vy) * dt,
-      got = Math.hypot(e.x - ox, e.y - oy);
-    e.moving = Math.abs(mx) + Math.abs(my) > 0.1 && got > want * 0.25;
-    if (want > 0.2 && got < want * 0.3) {
-      e.stuckT = (e.stuckT || 0) + dt;
-      if (e.stuckT > 0.5) {
-        e.stuckT = 0;
-        e.side = -(e.side || 1);
-        e.detA = e.side * Math.PI * 0.5;
-        e.detT = 1.3;
-        if (!e.aggro) e.wt = 0; // a wanderer just picks a new way
-      }
-    } else e.stuckT = 0;
-    if (e.moving) {
-      e.walk += dt * (D.kind === 'quad' ? 14 : 9) * (sp / 80);
-      e.dx = mx;
-      e.dy = my;
-    } else if (e.aggro) {
-      e.dx = dx;
-      e.dy = dy;
-    }
-    if (D.kind === 'slime') e.walk += dt * 4;
-    for (const o of game.enemies) {
-      if (o === e || o.dying > 0) continue;
-      const ax = e.x - o.x,
-        ay = e.y - o.y,
-        dd = ax * ax + ay * ay,
-        r2 = (e.r + o.r) * 0.85;
-      if (dd < r2 * r2 && dd > 0) {
-        const q = Math.sqrt(dd);
-        e.x += (ax / q) * 50 * dt;
-        e.y += (ay / q) * 50 * dt;
-      }
-    }
-  }
+  for (const e of game.enemies) e.update(dt, pVillage);
   game.enemies = game.enemies.filter((e) => !e.dead);
 }
 /** Is the straight line from (ax, ay) to (bx, by) over dungeon floor all the way? */
@@ -655,74 +755,4 @@ export function clearLine(DG, ax: number, ay: number, bx: number, by: number) {
     if (!DG.isF(Math.floor(x / T), Math.floor(y / T))) return false;
   }
   return true;
-}
-/** Clear line from the enemy to the hero through dungeon floor, rechecked a few times a second. */
-function sees(e, dt) {
-  e.losT = (e.losT || 0) - dt;
-  if (e.losT > 0) return e.los;
-  e.losT = 0.15 + Math.random() * 0.1;
-  e.los = clearLine(game.DG, e.x, e.y - 8, game.P.x, game.P.y - 8);
-  return e.los;
-}
-function applyKB(e, dt) {
-  moveEnt(e, e.kbx * dt, e.kby * dt, e.r * 0.6);
-  e.kbx *= Math.pow(0.002, dt);
-  e.kby *= Math.pow(0.002, dt);
-}
-function enemyStrike(e, d, dx, dy) {
-  const D = ET[e.type],
-    a = Math.atan2(dy - 10, dx);
-  if (e.summon) {
-    e.summon = false;
-    for (let k = 0; k < 2; k++) {
-      const s = makeEnemy(
-        'skeleton',
-        Math.max(1, e.lvl - 1),
-        e.x + rand(-50, 50),
-        e.y + rand(-30, 30),
-      );
-      s.minionOf = e;
-      s.aggro = true;
-      if (!solidAt(s.x, s.y, 8)) {
-        game.enemies.push(s);
-        burst(s.x, s.y, '#8ef7a0', 14, 80, 3, 40, 1);
-      }
-    }
-    return;
-  }
-  if (e.lunge) {
-    e.lunge = false;
-    const tx = game.P.x,
-      ty = game.P.y;
-    e.lp = { sx: e.x, sy: e.y, tx: lerp(e.x, tx, 0.92), ty: lerp(e.y, ty, 0.92) };
-    if (solidAt(e.lp.tx, e.lp.ty, 6)) {
-      e.lp.tx = e.x;
-      e.lp.ty = e.y;
-    }
-    e.leapT = 0;
-    return;
-  }
-  if (D.ai === 'ranged') {
-    SFX.shoot();
-    eProj(e, a, 380, 'barrow');
-    return;
-  }
-  if (D.ai === 'caster' || D.ai === 'summoner') {
-    SFX.zap();
-    const pk = D.proj || 'fire';
-    eProj(e, a, 240, 'orb', {
-      col: PROJCOL[pk],
-      slow: pk === 'ice' ? 1.5 : 0,
-      big: e.elite ? 1 : 0,
-    });
-    return;
-  }
-  e.swing = 0.2;
-  if (d < e.r + 30) {
-    hurtHero(e.dmg, e.x, e.y);
-    if (e.elite === 'Vampiric') {
-      e.hp = Math.min(e.max, e.hp + e.dmg * 0.8);
-      burst(e.x, e.y - 20, '#ff4a6a', 6, 60, 3);
-    }
-  }
 }

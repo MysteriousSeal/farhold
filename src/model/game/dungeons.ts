@@ -5,7 +5,7 @@ import { SFX, ports } from '../../core/ports';
 import { mulberry, strSeed } from '../../core/math';
 import { settings } from '../../core/settings';
 import { DTABLE, ET, typesFor } from '../data/enemies';
-import { ELITES, dropAt, makeBoss, makeEnemy, unstick } from './enemies';
+import { ELITES, dropAt, Enemy, unstick } from './enemies';
 import { banner, burst, doFade, ring, toast } from './fx';
 import { genItem } from './items';
 import { questEvent } from './quests';
@@ -82,7 +82,7 @@ export function enterDungeon(p) {
     }
     slots.forEach((q, i) => {
       if (st.dead.includes(i)) return;
-      const e = makeEnemy(q.type, q.lv, q.x, q.y, { elite: q.elite });
+      const e = new Enemy(q.type, q.lv, q.x, q.y, { elite: q.elite });
       e.dg = true;
       e.dgi = i;
       if (q.pack != null) e.pack = q.pack;
@@ -90,7 +90,7 @@ export function enterDungeon(p) {
     });
     const bt = rpick(['bonelord', 'lich', 'brood']);
     if (!st.guardDead) {
-      const b = makeBoss(bt, p.lvl + 1, game.DG.chest.x, game.DG.chest.y + 80, {
+      const b = Enemy.boss(bt, p.lvl + 1, game.DG.chest.x, game.DG.chest.y + 80, {
         mini: true,
         key: p.key,
       });

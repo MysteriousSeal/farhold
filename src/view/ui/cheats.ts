@@ -1,7 +1,7 @@
 import { $ } from '../dom';
 import { TAU } from '../../core/math';
 import { ET } from '../../model/data/enemies';
-import { makeEnemy, unstick } from '../../model/game/enemies';
+import { Enemy, unstick } from '../../model/game/enemies';
 import { leaveDungeon } from '../../model/game/dungeons';
 import { arrivalY } from '../../model/world/poi';
 import { game } from '../../model/game/state';
@@ -34,7 +34,7 @@ function spotNearHero() {
 function spawn(type: string) {
   if (game.state !== 'play' || !game.P) return;
   const { x, y } = spotNearHero();
-  game.enemies.push(makeEnemy(type, game.P.lvl, x, y));
+  game.enemies.push(new Enemy(type, game.P.lvl, x, y));
 }
 
 const css = document.createElement('style');

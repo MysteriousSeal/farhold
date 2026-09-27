@@ -1,7 +1,7 @@
 import { SFX } from '../../core/ports';
 import { TAU, clamp, lerp, pick, rand } from '../../core/math';
 import { hurtHero } from './combat';
-import { PROJCOL, eProj, makeEnemy, moveEnt } from './enemies';
+import { PROJCOL, eProj, Enemy, moveEnt } from './enemies';
 import { banner, burst, ring } from './fx';
 import { game } from './state';
 import { solidAt } from '../world/chunks';
@@ -36,7 +36,7 @@ export function bossAI(e, dt, dx, dy, d) {
         if (B.minion === 'slime' && Math.random() < 0.5)
           for (let k2 = 0; k2 < 2; k2++)
             game.enemies.push(
-              Object.assign(makeEnemy('slime', e.lvl, e.x + rand(-40, 40), e.y + rand(-30, 30)), {
+              Object.assign(new Enemy('slime', e.lvl, e.x + rand(-40, 40), e.y + rand(-30, 30)), {
                 aggro: true,
                 col: e.col,
               }),
@@ -201,7 +201,7 @@ function bossAbility(e, a, dx, dy, d) {
     const n = e.enraged ? 4 : 3;
     let have = game.enemies.filter((o) => o.minionOf === e).length;
     for (let i = 0; i < n && have < 6; i++, have++) {
-      const s = makeEnemy(
+      const s = new Enemy(
         B.minion,
         Math.max(1, e.lvl - 2),
         e.x + rand(-80, 80),

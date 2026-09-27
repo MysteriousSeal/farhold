@@ -2,7 +2,7 @@ import { startWarp } from '../model/game/warp';
 import { SFX } from '../core/ports';
 import { openBossChest } from '../model/game/bossChest';
 import { enterDungeon, leaveDungeon, openChest } from '../model/game/dungeons';
-import { makeBoss } from '../model/game/enemies';
+import { Enemy } from '../model/game/enemies';
 import { banner, burst } from '../model/game/fx';
 import { save } from '../model/game/save';
 import { houseDoors, houseInteract } from '../model/game/houses';
@@ -116,7 +116,7 @@ export function visitPois() {
       !game.curBoss &&
       !game.enemies.some((e) => e.src === p)
     ) {
-      const b = makeBoss(p.boss, p.lvl, p.x, p.y - 20, p);
+      const b = Enemy.boss(p.boss, p.lvl, p.x, p.y - 20, p);
       game.enemies.push(b);
       game.curBoss = b;
       SFX.roar();
