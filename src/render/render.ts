@@ -211,12 +211,13 @@ function drawHero(c, t) {
       walk: hero.walk,
       life: 0.18,
     });
-  // a torch carried underground, in the other hand (behind the body unless facing us)
-  const torch =
+  // a torch carried underground, in the left hand
+  const lh =
       hero.torch > 0 && game.mode === 'dungeon' && !rolling && !leap
-        ? { x: game.P.x - hp.x, y: game.P.y + hp.y - z }
+        ? handPos(hero.dx, hero.dy, hero.moving, hero.walk, t, game.P.race, 1, L, true)
         : null,
-    torchBehind = hp.f !== 'down';
+    torch = lh ? { x: game.P.x + lh.x, y: game.P.y + lh.y - z } : null,
+    torchBehind = !!lh && lh.behind;
   if (torch && torchBehind) drawHeldTorch(c, torch.x, torch.y, t);
   c.save();
   if (rolling) {

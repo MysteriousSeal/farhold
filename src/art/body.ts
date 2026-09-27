@@ -26,6 +26,12 @@ export function bodyOf(L): Body {
  * Facing in 8 directions: side (right/left), down, up, and the four diagonals, which are drawn
  * as 3/4 views of the front ('down') or back ('up') pose. Left-facing poses are mirrored.
  */
+/**
+ * Index in `Rig.arms` of the figure's own right arm (the weapon arm), in local unflipped
+ * coordinates: facing us it is on our left (-x), from behind on our right (+x), from the side
+ * the near arm when facing +x and the far one when facing -x (mirrored).
+ */
+export const rightArm = (f: string, flip: boolean) => ((f === 'down') !== flip ? 0 : 1);
 export function faceOf(dx, dy) {
   if (!dx && !dy) return { f: 'down', flip: false, diag: false };
   const o = ((Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) % 8) + 8) % 8;
@@ -221,10 +227,10 @@ export function makeRig(
     arms.push({ a: shd, b: el, c: wr, far: side ? k < 0 : diag ? k === farS : false, k });
   }
   if (carry) {
-    // the weapon arm (+x in front views, -x from behind, the near arm from the side) on guard:
-    // the upper arm hangs at the side and the forearm comes up and forward to the hand, which
-    // sits at the carry target (the forearm is foreshortened when it points at the viewer)
-    const i = side ? 1 : carry.x >= 0 ? 1 : 0,
+    // the weapon arm (`carry.i`, see rightArm) on guard: the upper arm hangs at the side and
+    // the forearm comes up and forward to the hand, which sits at the carry target (the
+    // forearm is foreshortened when it points at the viewer)
+    const i = carry.i ?? (side ? 1 : carry.x >= 0 ? 1 : 0),
       A = arms[i],
       out = side ? -0.18 : (carry.x >= A.a[0] ? 1 : -1) * 0.1;
     A.b = along(A.a, out, ua * 0.92);

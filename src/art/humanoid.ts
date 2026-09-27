@@ -23,6 +23,7 @@ import {
   faceOf,
   handAt,
   makeRig,
+  rightArm,
   paintOf,
 } from './body';
 /* ================= ART: humanoid ================= */
@@ -642,17 +643,27 @@ function drawHead(c, L, V, E, tint, lw) {
 /** Stand-in look for callers that only know the race (average body). */
 const lookFor = (race, look?) => look || { race };
 /**
- * Where the weapon hand is (relative to the feet, scaled), from the body's skeleton: the +x
- * hand facing the viewer (and in front 3/4, where it is the far arm), the -x hand from behind,
- * the near hand from the side.
+ * Where a hand is (relative to the feet, scaled), from the body's skeleton: the right hand,
+ * which holds the weapon in every facing, or with `off` the left one. `px` is the side of the
+ * body it is on in local (unflipped) coordinates; `far` when it is behind the body (side and
+ * 3/4 views), `behind` also when facing away.
  */
-export function handPos(dx, dy, moving, walk, t, race, scale = 1, look?) {
+export function handPos(dx, dy, moving, walk, t, race, scale = 1, look?, off = false) {
   const { f, flip, diag } = faceOf(dx, dy),
     R = makeRig(lookFor(race, look), f, diag, moving, walk, t),
-    arm = R.arms[f === 'up' ? 0 : 1],
+    i = rightArm(f, flip) ^ (off ? 1 : 0),
+    arm = R.arms[i],
     [hx, hy] = handAt(arm, R.W),
     m = flip ? -1 : 1;
-  return { x: m * hx * scale, y: hy * scale, f, flip, behind: f === 'up' };
+  return {
+    x: m * hx * scale,
+    y: hy * scale,
+    f,
+    flip,
+    px: i ? 1 : -1,
+    far: arm.far,
+    behind: f === 'up' || arm.far,
+  };
 }
 const MELEE = ['warrior', 'sword', 'axe', 'club'];
 /**
@@ -660,22 +671,27 @@ const MELEE = ['warrior', 'sword', 'axe', 'club'];
  * the hand (a resting blade hangs beside the body); while attacking they follow the facing.
  */
 export function weaponBehind(h, kind, aiming = false) {
+  // a hand on the far side of the body keeps its weapon behind it
+  if (h.far) return true;
   return h.behind && (aiming || (kind !== 'ranger' && kind !== 'bow' && !MELEE.includes(kind)));
 }
 export function restAng(h, cls) {
   const a = restAng0(h, cls);
-  // mirrored 3/4 views mirror the angle too
-  return h.flip && h.f !== 'side' ? Math.PI - a : a;
+  // mirrored 3/4 views mirror the angle too (a staff's angle is a lean off upright)
+  if (!h.flip || h.f === 'side') return a;
+  return cls === 'mage' || cls === 'staff' ? -a : Math.PI - a;
 }
 function restAng0(h, cls) {
   // Bows are carried upright at the side, belly facing away from the body.
+  // front, back and 3/4 views: outward is the side of the body the hand is on (local px)
+  const out = h.px > 0;
   if (cls === 'ranger' || cls === 'bow')
-    return h.f === 'side' ? (h.flip ? Math.PI : 0) : h.f === 'down' ? 0 : Math.PI;
+    return h.f === 'side' ? (h.flip ? Math.PI : 0) : out ? 0 : Math.PI;
   if (cls === 'mage' || cls === 'staff')
-    return h.f === 'side' ? (h.flip ? -0.25 : 0.25) : h.f === 'down' ? 0.15 : -0.15;
+    return h.f === 'side' ? (h.flip ? -0.25 : 0.25) : out ? 0.15 : -0.15;
   if (h.f === 'side') return h.flip ? Math.PI - 0.5 : 0.5;
   // held low, angled ~45° outward so the tip ends around the knee
-  return h.f === 'down' ? Math.PI / 2 - 0.75 : Math.PI / 2 + 0.75;
+  return out ? Math.PI / 2 - 0.75 : Math.PI / 2 + 0.75;
 }
 /**
  * Axe head on a haft lying along +x, with its top end at `x`. The cutting edge faces -y:
@@ -858,16 +874,24 @@ export function carryPos(dx, dy, moving, walk, t, race, scale = 1, look?) {
     m = flip ? -1 : 1,
     // mirrored poses mirror the blade angle
     mir = (ang: number) => (flip ? Math.PI - ang : ang),
-    // the hand target in local (unflipped) coordinates: chest height, just outside the body
+    // the right arm (see rightArm); its hand target in local (unflipped) coordinates: chest
+    // height, just outside the body
+    i = rightArm(f, flip),
+    px = i ? 1 : -1,
+    far = R.arms[i].far,
+    // a blade held behind the body leans further out so it shows past the big head
     arm =
       f === 'side'
-        ? { x: 6.5, y: R.shY + 7 }
-        : { x: (f === 'down' ? 1 : -1) * (R.W.sh + 3.4), y: R.shY + 8 };
+        ? { x: far ? 8.5 : 6.5, y: R.shY + 7, i }
+        : { x: px * (R.W.sh + 3.4), y: R.shY + 8, i };
   return {
     x: m * arm.x * scale,
     y: arm.y * scale,
-    ang: f === 'side' ? -Math.PI / 2 + m * 0.3 : mir(-Math.PI / 2 + (f === 'down' ? 0.12 : -0.12)),
-    behind: f === 'up',
+    ang:
+      f === 'side'
+        ? -Math.PI / 2 + m * (far ? 0.6 : 0.3)
+        : mir(-Math.PI / 2 + px * (far ? 0.5 : 0.12)),
+    behind: f === 'up' || far,
     arm,
   };
 }
