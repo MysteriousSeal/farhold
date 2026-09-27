@@ -161,6 +161,11 @@ describe('dungeons', () => {
     useSeed('bravo');
     const D = genDungeon('c4,1', 5, 6, 'cave');
     expect(D.style).toBe('cave');
+    // earth brown in every biome; a built dungeon does not take those stairs
+    expect(D.stair).toBe('#c4926a');
+    expect(genDungeon('c9,2', 3, 4, 'cave').stair).toBe(D.stair);
+    expect(genDungeon('g1,2', 4, 0).stair).toBeUndefined();
+    expect(D.props.find((p) => p.k === 'stalagmite').col).toBe('#e2c4a0');
     expect(D.pillars).toEqual([]);
     expect(linked(D)).toBe(true);
     expect(D.isF(D.start.cx, D.start.cy + 1)).toBe(true);

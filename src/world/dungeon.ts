@@ -17,6 +17,13 @@ function dungeonPal(b) {
         ? ['#3a2c48', '#443454', '#6a5480', '#9a82b0']
         : ['#3d3648', '#463f52', '#6a6078', '#9a90a8'];
 }
+/** Dirt floor, umber rock, tan facets, pale clay. The same in every biome. */
+export const CAVE_FLOOR = '#7a4e32';
+/** The dark around a cavern's walkable ground. */
+export const CAVE_VOID = '#1a120c';
+function cavePal() {
+  return [CAVE_FLOOR, '#5c3a28', '#c4926a', '#e2c4a0'];
+}
 function genCrypt(key, lvl, b) {
   const rnd = mulberry((strSeed(key + 'dg') ^ game.SEED) >>> 0),
     GW = 58,
@@ -259,7 +266,7 @@ function genCavern(key, lvl, b) {
     }
     carve(x, y);
   }
-  const pal = dungeonPal(b),
+  const pal = cavePal(),
     D: Dungeon = {
       key,
       lvl,
@@ -354,10 +361,10 @@ export function genDungeonChunk(D, cx, cy) {
     T = D.T,
     ox = cx * CH,
     oy = cy * CH;
-  const pal = dungeonPal(D.b),
-    cave = D.style === 'cave';
+  const cave = D.style === 'cave',
+    pal = cave ? cavePal() : dungeonPal(D.b);
   const moss: { x: number; y: number; s: number }[] = [];
-  x.fillStyle = '#120e1a';
+  x.fillStyle = cave ? CAVE_VOID : '#120e1a';
   x.fillRect(0, 0, CH, CH);
   x.save();
   x.translate(-ox, -oy);
@@ -367,25 +374,25 @@ export function genDungeonChunk(D, cx, cy) {
     j0 = Math.floor(oy / T) - 1,
     j1 = Math.floor((oy + CH) / T) + 1,
     isF = D.isF;
-  // rough rock. Patches spill across cells, so the floor is not a grid of squares.
-  const rockFloor = (i, j, X, Y) => {
+  // One floor colour and one wall colour. Detail stays inside its cell: an oval
+  // that spills is sliced by the next cell's fill, which reads as a broken tile.
+  const grit = (i, j, X, Y, n, salt) => {
+      x.fillStyle = 'rgba(0,0,0,.16)';
+      for (let k = 0; k < n; k++) {
+        if (hs(i + k, j, salt) < 0.5) continue;
+        x.fillRect(
+          X + 3 + hs(i + k, j, salt + 1) * (T - 6),
+          Y + 3 + hs(i, j + k, salt + 2) * (T - 6),
+          2,
+          2,
+        );
+      }
+    },
+    rockFloor = (i, j, X, Y) => {
       const v = hs(i, j, 55);
       x.fillStyle = pal[0];
       x.fillRect(X, Y, T, T);
-      if (hs(i, j, 56) > 0.4) {
-        x.fillStyle = sh(pal[1], (hs(i >> 1, j >> 1, 57) - 0.5) * 0.2);
-        x.beginPath();
-        x.ellipse(
-          X + 8 + hs(i, j, 58) * (T - 16),
-          Y + 8 + hs(i, j, 59) * (T - 16),
-          7 + hs(i, j, 60) * 8,
-          5 + hs(i, j, 61) * 5,
-          hs(i, j, 62),
-          0,
-          Math.PI * 2,
-        );
-        x.fill();
-      }
+      grit(i, j, X, Y, 3, 56);
       if (v > 0.78) {
         x.strokeStyle = 'rgba(0,0,0,.38)';
         x.lineWidth = 1.5;
@@ -398,48 +405,17 @@ export function genDungeonChunk(D, cx, cy) {
       if (v < 0.14 && X >= ox && X < ox + CH && Y >= oy && Y < oy + CH)
         moss.push({ x: X + 20, y: Y + 22, s: (hs(i, j, 77) * 1e9) | 0 });
       if (!isF(i, j - 1)) {
-        const shade = x.createLinearGradient(0, Y, 0, Y + 18);
-        shade.addColorStop(0, 'rgba(0,0,0,.5)');
+        const shade = x.createLinearGradient(0, Y, 0, Y + 14);
+        shade.addColorStop(0, 'rgba(0,0,0,.35)');
         shade.addColorStop(1, 'rgba(0,0,0,0)');
         x.fillStyle = shade;
-        x.fillRect(X, Y, T, 18);
+        x.fillRect(X, Y, T, 14);
       }
     },
-    rockFace = (i, j, X, Y) => {
-      x.fillStyle = sh(pal[0], -0.12);
+    rockWall = (i, j, X, Y) => {
+      x.fillStyle = pal[1];
       x.fillRect(X, Y, T, T);
-      for (let k = 0; k < 3; k++) {
-        const bx = X + 4 + hs(i + k, j, 65) * (T - 8),
-          by = Y + 12 + hs(i, j + k, 66) * (T - 20),
-          rx = 9 + hs(i * 5 + k, j, 67) * 9;
-        x.fillStyle = hs(i, j + k, 68) < 0.5 ? pal[1] : sh(pal[1], -0.14);
-        x.beginPath();
-        x.ellipse(bx, by, rx, rx * 0.7, hs(i, j, 64) - 0.5, 0, Math.PI * 2);
-        x.fill();
-        x.strokeStyle = 'rgba(0,0,0,.35)';
-        x.lineWidth = 1.4;
-        x.stroke();
-        x.fillStyle = pal[2];
-        x.beginPath();
-        x.ellipse(bx - rx * 0.28, by - rx * 0.22, rx * 0.32, rx * 0.2, -0.5, 0, Math.PI * 2);
-        x.fill();
-      }
-    },
-    rockSide = (i, j, X, Y) => {
-      x.fillStyle = sh(pal[0], -0.28);
-      x.fillRect(X, Y, T, T);
-      x.fillStyle = 'rgba(0,0,0,.22)';
-      x.beginPath();
-      x.ellipse(
-        X + 6 + hs(i, j, 71) * (T - 12),
-        Y + 8 + hs(i, j, 72) * (T - 16),
-        8 + hs(i, j, 73) * 8,
-        6,
-        0,
-        0,
-        Math.PI * 2,
-      );
-      x.fill();
+      grit(i, j, X, Y, 2, 71);
     };
   for (let j = j0; j <= j1; j++)
     for (let i = i0; i <= i1; i++) {
@@ -491,7 +467,7 @@ export function genDungeonChunk(D, cx, cy) {
         if (!nb) continue;
         if (isF(i, j + 1)) {
           if (cave) {
-            rockFace(i, j, X, Y);
+            rockWall(i, j, X, Y);
             continue;
           }
           x.fillStyle = pal[1];
@@ -508,7 +484,7 @@ export function genDungeonChunk(D, cx, cy) {
           x.fillRect(X, Y, T, 10);
           x.fillStyle = pal[3];
           x.fillRect(X, Y, T, 2);
-        } else if (cave) rockSide(i, j, X, Y);
+        } else if (cave) rockWall(i, j, X, Y);
         else {
           x.fillStyle = pal[2];
           x.fillRect(X, Y, T, T);

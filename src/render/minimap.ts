@@ -6,6 +6,7 @@ import { CITY, STREETS } from '../world/city';
 import { isoShape } from '../world/contour';
 import { IT } from '../world/interior';
 import { poisNear } from '../world/poi';
+import { CAVE_FLOOR, CAVE_VOID } from '../world/dungeon';
 import { COL, terr } from '../world/terrain';
 /* ================= MINIMAP ================= */
 // The overworld map is an illustrated snapshot of the terrain around the hero: smooth biome
@@ -230,7 +231,8 @@ function drawSmoothIn(x, t, stepPx, w, alpha) {
   x.restore();
 }
 
-/* ---------- Caves: the floor plan is the square tiles, baked once per cave ---------- */
+/* ---------- Floor plans: square tiles, baked once. Caverns are earth brown; built
+   dungeons keep a biome tint. Houses pass their own floor colour. ---------- */
 const CAVE_PAL = { 3: '#a58a66', 4: '#7a90aa', 6: '#6a5480' };
 /** Sharp outline of the floor cells. Holes (walls inside a room) wind the other way. */
 function cellOutline(grid, GW, GH) {
@@ -272,7 +274,8 @@ function bakeCave(D, sc) {
     x = c.getContext('2d'),
     fill = cellOutline(grid, GW, GH),
     k = T * sc;
-  x.fillStyle = '#16111f';
+  const earth = D.style === 'cave';
+  x.fillStyle = earth ? CAVE_VOID : '#16111f';
   x.fillRect(0, 0, c.width, c.height);
   x.scale(k, k);
   x.lineCap = 'butt';
@@ -283,7 +286,7 @@ function bakeCave(D, sc) {
   x.fillStyle = 'rgba(0,0,0,.55)';
   x.fill(fill);
   x.restore();
-  x.fillStyle = D.miniCol || CAVE_PAL[D.b] || '#7a7088';
+  x.fillStyle = D.miniCol || (earth ? CAVE_FLOOR : CAVE_PAL[D.b] || '#7a7088');
   x.fill(fill);
   // faint flagstones
   x.save();
@@ -331,7 +334,7 @@ export function drawMini(dt) {
     R = 600;
     const sc = M / (2 * R);
     if (!D.miniImg) D.miniImg = bakeCave(D, sc);
-    mc.fillStyle = '#16111f';
+    mc.fillStyle = D.style === 'cave' ? CAVE_VOID : '#16111f';
     mc.fillRect(0, 0, M, M);
     mc.drawImage(D.miniImg, C - game.P.x * sc, C - game.P.y * sc);
     const at = (px: number, py: number) => [C + (px - game.P.x) * sc, C + (py - game.P.y) * sc];
