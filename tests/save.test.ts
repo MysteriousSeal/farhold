@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { SLOTS } from '../src/data/classes';
-import { deleteSave, listSaves, loadSave, migrate, save } from '../src/game/save';
-import { game } from '../src/game/state';
+import { SLOTS } from '../src/model/data/classes';
+import { deleteSave, listSaves, loadSave, migrate, save } from '../src/model/game/save';
+import { game } from '../src/model/game/state';
 
 const store = new Map<string, string>();
 globalThis.localStorage = {

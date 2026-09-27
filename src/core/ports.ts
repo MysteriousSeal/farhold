@@ -51,6 +51,16 @@ export const ports = {
   warmChunks: none as () => void,
   /** the camera zoom (world units to screen pixels) */
   zoom: (() => 1) as () => number,
+  /** the screen size in CSS pixels */
+  viewSize: (() => [1280, 720]) as () => [number, number],
+  /** make a HUD button pulse to draw the eye ('bags' after loot, 'skills' after a level) */
+  pulse: none as (button: 'bags' | 'skills') => void,
+  /** the red flash when the hero is hurt */
+  hurtFlash: none as () => void,
+  /** the line under "You died" */
+  deathText: none as (text: string) => void,
+  /** apply the music and sound volumes from the settings */
+  volumes: none as () => void,
   /** windows the model opens when the hero acts on something */
   open: {
     shop: none as (shop, merchant?: boolean) => void,

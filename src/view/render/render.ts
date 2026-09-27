@@ -1,0 +1,805 @@
+import { WARP_TIME } from '../../model/game/warp';
+import { heroStyle } from '../../model/game/style';
+import { drawCaveBit, drawMoss } from '../art/decor';
+import { drawDarkness, heroDark, markDark, underDark } from './darkness';
+import { torchLeft } from '../../model/game/consumables';
+import {
+  drawCityGround,
+  drawFountain,
+  drawGateArch,
+  drawTower,
+  drawWallSeg,
+  drawWell,
+  wallSegKey,
+} from '../art/city';
+import { wallPt } from '../../model/world/city';
+import { drawHouse } from '../art/houses';
+import { drawPortal } from '../art/buildings';
+import {
+  drawBoard,
+  drawCave,
+  drawChest,
+  drawStoneGate,
+  drawDPillar,
+  drawLamp,
+  drawPillar,
+  drawProp,
+  drawCaveMouth,
+  drawHeldTorch,
+  drawStairs,
+  drawStall,
+  drawTorch,
+  drawWaystone,
+} from '../art/buildings';
+import { crownY } from '../art/body';
+import { drawEnemy } from '../art/creatures';
+import { SPR, TREESET } from '../art/decor';
+import {
+  carryPos,
+  drawHumanoid,
+  drawWeapon,
+  handOver,
+  handPos,
+  restAng,
+  weaponBehind,
+} from '../art/humanoid';
+import { drawDrop, drawProj } from '../art/items';
+import { DPR, H, W, g, mkCanvas, shadow } from '../dom';
+import { OUT, TAU, clamp, lerp, rand } from '../../core/math';
+import { MATS } from '../../model/data/classes';
+import { addLight } from '../../model/game/fx';
+import { drawNpc } from './npcs';
+import { offers } from '../../model/game/quests';
+import { drawGlint, houseBack, houseFront, houseItems } from './interior';
+import { drawEvent } from '../art/events';
+import { drawFlora } from '../art/flora';
+import { drawRoads } from '../art/roads';
+import { roadsOf } from '../../model/world/roads';
+import { game, hero, lights, weather } from '../../model/game/state';
+import { joy } from '../../core/device';
+import { bgStep } from '../../model/world/chunks';
+import { getChunk } from './chunks';
+import { drawCliffs } from '../../model/world/cliffs';
+import { drawPools, drawShores } from '../../model/world/shores';
+import { poisNear } from '../../model/world/poi';
+import { CH, corr } from '../../model/world/terrain';
+/* ================= RENDER ================= */
+/** Blightlands minerals, each glowing in its own colour. */
+const MINERAL_GLOW: Record<string, string> = {
+  crystal: '#c060ff',
+  shard: '#c6ee55',
+  glass: '#b7c0ce',
+};
+/** Blightlands trees: the light sits in the crown, one colour per fruit. */
+const TREE_GLOW: Record<string, string> = {
+  blighttree: '#c060ff',
+  sporetree: '#c6ee55',
+  glasstree: '#b7c0ce',
+};
+export const zoom = () => clamp(Math.min(W, H) / 370, 1, 2.1);
+let vign = null;
+const WX = { rain: [], snow: [] };
+function drawTele(c, t) {
+  const k = clamp(t.t / t.max, 0, 1),
+    hero = t.hero;
+  const base = hero ? '255,170,60' : '255,60,40';
+  c.save();
+  if (t.type === 'circle') {
+    c.fillStyle = 'rgba(' + base + ',' + (t.t < 0 ? 0.05 : 0.14) + ')';
+    c.beginPath();
+    c.ellipse(t.x, t.y, t.r, t.r * 0.72, 0, 0, TAU);
+    c.fill();
+    c.strokeStyle = 'rgba(' + base + ',.8)';
+    c.lineWidth = 2.5;
+    c.setLineDash([8, 6]);
+    c.lineDashOffset = -game.time * 30;
+    c.stroke();
+    c.setLineDash([]);
+    if (t.t > 0) {
+      c.fillStyle = 'rgba(' + base + ',.28)';
+      c.beginPath();
+      c.ellipse(t.x, t.y, t.r * k, t.r * 0.72 * k, 0, 0, TAU);
+      c.fill();
+    }
+  } else {
+    c.translate(t.x, t.y);
+    c.rotate(t.ang);
+    c.fillStyle = 'rgba(' + base + ',.14)';
+    c.fillRect(0, -t.w / 2, t.len, t.w);
+    c.fillStyle = 'rgba(' + base + ',.3)';
+    c.fillRect(0, -t.w / 2, t.len * k, t.w);
+    c.strokeStyle = 'rgba(' + base + ',.8)';
+    c.lineWidth = 2;
+    c.setLineDash([8, 6]);
+    c.strokeRect(0, -t.w / 2, t.len, t.w);
+    c.setLineDash([]);
+  }
+  c.restore();
+}
+function drawZone(c, z) {
+  c.save();
+  if (z.type === 'burn') {
+    c.globalCompositeOperation = 'lighter';
+    const gr = c.createRadialGradient(z.x, z.y, 4, z.x, z.y, z.r);
+    gr.addColorStop(0, 'rgba(255,120,40,' + 0.35 * Math.min(1, z.t) + ')');
+    gr.addColorStop(1, 'rgba(255,60,20,0)');
+    c.fillStyle = gr;
+    c.beginPath();
+    c.ellipse(z.x, z.y, z.r, z.r * 0.7, 0, 0, TAU);
+    c.fill();
+  } else if (z.type === 'rain') {
+    c.strokeStyle = 'rgba(255,246,224,.5)';
+    c.lineWidth = 2;
+    c.setLineDash([6, 6]);
+    c.beginPath();
+    c.ellipse(z.x, z.y, z.r, z.r * 0.72, 0, 0, TAU);
+    c.stroke();
+    c.setLineDash([]);
+  } else if (z.type === 'nova') {
+    const k = 1 - z.t / z.max;
+    c.globalAlpha = 1 - k;
+    c.strokeStyle = '#dff4ff';
+    c.lineWidth = 8 * (1 - k) + 1;
+    c.beginPath();
+    c.ellipse(z.x, z.y + 10, z.r * k, z.r * 0.72 * k, 0, 0, TAU);
+    c.stroke();
+    c.fillStyle = 'rgba(180,230,255,.15)';
+    c.fill();
+  }
+  c.restore();
+}
+/** The hero with weapon and torch; `bodyOnly` leaves out the roll trail and overlays. */
+function drawHero(c, t, bodyOnly = false) {
+  const L = game.P.look,
+    w = game.P.eq.weapon,
+    wcol = w ? MATS[w.mat][1] : null,
+    glow = null, // held weapons show no rarity glow (ground loot keeps its glow)
+    rolling = hero.roll > 0,
+    leap = hero.leap;
+  let z = 0;
+  if (leap) {
+    const k = clamp(leap.t / leap.dur, 0, 1);
+    z = Math.sin(k * Math.PI) * 70;
+  }
+  const hp = handPos(
+      hero.dx,
+      hero.dy,
+      hero.moving && !rolling,
+      hero.walk,
+      t,
+      game.P.race,
+      1,
+      game.P.look,
+    ),
+    armed = !!w,
+    // a resting sword/axe is carried on the shoulder
+    carry =
+      armed && heroStyle() === 'warrior' && hero.atk <= 0 && hero.whirl <= 0 && !leap && !rolling
+        ? carryPos(hero.dx, hero.dy, hero.moving, hero.walk, t, game.P.race, 1, game.P.look)
+        : null,
+    // bare-handed: a jab toward the target, left and right fists in turn (local coordinates)
+    punch = !armed && hero.atk > 0 && hero.whirl <= 0 && !leap && !rolling ? jab(hp) : null,
+    wx = game.P.x + (carry ? carry.x : hp.x),
+    wy = game.P.y + (carry ? carry.y : hp.y) - z;
+  let ang = carry ? carry.ang : restAng(hp, heroStyle()),
+    sw = 0;
+  if (heroStyle() === 'warrior') {
+    if (hero.whirl > 0) ang = game.time * 22;
+    else if (hero.atk > 0) {
+      const s = hero.comboSw;
+      ang = hero.aim + s * lerp(-1.4, 1.4, 1 - hero.atk);
+    }
+  } else if (heroStyle() === 'ranger') {
+    if (hero.atk > 0) {
+      ang = hero.aim;
+      sw = hero.atk;
+    }
+  } else if (heroStyle() === 'mage' && hero.atk > 0)
+    ang = restAng(hp, 'mage') + (hp.flip ? -1 : 1) * 0.5 * hero.atk;
+  const wd = () => {
+    if (!rolling && armed) drawWeapon(c, wx, wy, ang, heroStyle(), sw, wcol, glow, w.style);
+  };
+  if (z) {
+    shadow(c, game.P.x, game.P.y, 12, 4.5, 0.3);
+  }
+  const behind = carry ? carry.behind : weaponBehind(hp, heroStyle(), hero.atk > 0),
+    // in the far hand (facing left): drawn over that hand, under the body
+    farW = behind && hero.whirl <= 0 && (carry ? carry.far : hp.far);
+  if (behind && hero.whirl <= 0 && !farW) wd();
+  const alpha = hero.inv > 0 && !leap && Math.sin(t * 50) > 0 ? 0.5 : null;
+  if (rolling && !bodyOnly && Math.random() < 0.7)
+    game.ghosts.push({
+      x: game.P.x,
+      y: game.P.y,
+      dx: hero.dx,
+      dy: hero.dy,
+      walk: hero.walk,
+      life: 0.18,
+    });
+  // a lit torch in the off hand (left hand)
+  const lh =
+      torchLeft() > 0 && !rolling && !leap
+        ? handPos(hero.dx, hero.dy, hero.moving, hero.walk, t, game.P.race, 1, L, true)
+        : null,
+    torch = lh ? { x: game.P.x + lh.x, y: game.P.y + lh.y - z } : null,
+    torchBehind = !!lh && lh.behind;
+  if (torch) addLight(torch.x, torch.y - 20, 190, 0.9, '#ffa04a'); // also at night outside
+  if (torch && torchBehind) drawHeldTorch(c, torch.x, torch.y, t);
+  c.save();
+  if (rolling) {
+    c.translate(game.P.x, game.P.y - 12);
+    c.rotate((1 - hero.roll / 0.3) * TAU * (hero.rdx < 0 ? -1 : 1));
+    c.translate(-game.P.x, -game.P.y + 12);
+  }
+  drawHumanoid(c, game.P.x, game.P.y - z, {
+    look: L,
+    dx: hero.dx,
+    dy: hero.dy,
+    moving: hero.moving,
+    walk: hero.walk,
+    time: t,
+    alpha,
+    noShadow: !!z,
+    carry: carry ? carry.arm : punch,
+    overFar: farW ? wd : undefined,
+  });
+  c.restore();
+  if (torch && !torchBehind) drawHeldTorch(c, torch.x, torch.y, t);
+  if (armed && (!behind || hero.whirl > 0)) {
+    wd();
+    if (!rolling && hero.whirl <= 0) handOver(c, wx, wy, L); // grip inside the fist
+  }
+  if (bodyOnly) return;
+  if (hero.warp) {
+    // channel cast bar above the hero
+    const k = Math.min(1, hero.warp.t / WARP_TIME),
+      bx = game.P.x - 28,
+      by = game.P.y + crownY(L);
+    c.save();
+    c.beginPath();
+    if (c.roundRect) c.roundRect(bx, by, 56, 8, 4);
+    else c.rect(bx, by, 56, 8);
+    c.fillStyle = 'rgba(20,15,30,.9)';
+    c.fill();
+    c.save();
+    c.clip();
+    c.fillStyle = '#8fb8ff';
+    c.fillRect(bx, by, 56 * k, 8);
+    c.fillStyle = 'rgba(255,255,255,.35)';
+    c.fillRect(bx, by, 56 * k, 3);
+    c.restore();
+    c.strokeStyle = OUT;
+    c.lineWidth = 1.6;
+    c.stroke();
+    c.font = '700 10px Fredoka,sans-serif';
+    c.textAlign = 'center';
+    c.lineWidth = 3;
+    c.strokeStyle = 'rgba(0,0,0,.85)';
+    c.strokeText('Warping…', game.P.x, by - 3);
+    c.fillStyle = '#d8e8ff';
+    c.fillText('Warping…', game.P.x, by - 3);
+    c.restore();
+  }
+  if (heroStyle() === 'warrior' && hero.atk > 0 && hero.whirl <= 0) {
+    c.save();
+    c.translate(game.P.x, game.P.y - 18);
+    c.rotate(hero.aim);
+    const s = hero.comboSw,
+      k = 1 - hero.atk,
+      fin = hero.combo === 0,
+      R = (fin ? 74 : 64) * (1 + (game.ST.arc - 1) * 0.6),
+      a0 = -1.4 * s,
+      a1 = lerp(-1.4, 1.4, k) * s;
+    c.globalAlpha = 0.55 * hero.atk + 0.15;
+    c.fillStyle = fin ? '#ffe7a0' : '#fff6e0';
+    c.beginPath();
+    c.arc(0, 0, R, Math.min(a0, a1), Math.max(a0, a1));
+    c.arc(0, 0, R * 0.45, Math.max(a0, a1), Math.min(a0, a1), true);
+    c.closePath();
+    c.fill();
+    c.restore();
+  }
+  if (hero.whirl > 0) {
+    c.save();
+    c.translate(game.P.x, game.P.y - 14);
+    c.globalAlpha = 0.4;
+    c.strokeStyle = '#fff6e0';
+    c.lineWidth = 10;
+    for (let i = 0; i < 2; i++) {
+      c.beginPath();
+      c.ellipse(
+        0,
+        0,
+        68 * game.ST.arc,
+        48 * game.ST.arc,
+        0,
+        game.time * 22 + i * Math.PI,
+        game.time * 22 + i * Math.PI + 2,
+      );
+      c.stroke();
+    }
+    c.restore();
+  }
+}
+
+/**
+ * Where a bare fist goes during a punch (drawHumanoid's carry target, local unflipped
+ * coordinates): out from the resting hand toward the aim, peaking mid-swing, at chest height.
+ */
+let dimCv: HTMLCanvasElement | null = null;
+/** The hero drawn solid on its own canvas, then laid over the dark at low opacity as one
+ * piece (parts drawn half-transparent one by one would show through each other). */
+function dimHero(t: number) {
+  const tf = g.getTransform(),
+    s = tf.a,
+    bw = 150,
+    bh = 190,
+    x0 = game.P.x - bw / 2,
+    y0 = game.P.y - 150,
+    w = Math.ceil(bw * s),
+    h = Math.ceil(bh * s);
+  if (!dimCv || dimCv.width !== w || dimCv.height !== h) dimCv = mkCanvas(w, h);
+  const c = dimCv.getContext('2d');
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.clearRect(0, 0, w, h);
+  c.setTransform(s, 0, 0, s, -x0 * s, -y0 * s);
+  drawHero(c, t, true);
+  g.save();
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.globalAlpha = 0.35;
+  g.drawImage(dimCv, Math.round(tf.a * x0 + tf.e), Math.round(tf.d * y0 + tf.f));
+  g.restore();
+}
+function jab(hp) {
+  const m = hp.flip ? -1 : 1,
+    k = Math.sin(Math.PI * clamp(1 - hero.atk, 0, 1)),
+    ext = 11 * k,
+    side = hp.f === 'side' ? 1 : hero.comboSw < 0 ? -1 : 1,
+    rest = { x: hp.f === 'side' ? hp.x * m : side * Math.abs(hp.x), y: hp.y };
+  return {
+    x: rest.x + Math.cos(hero.aim) * m * ext,
+    y: rest.y - 9 * k + Math.sin(hero.aim) * ext * 0.5,
+  };
+}
+export function render() {
+  lights.length = 0;
+  const z = zoom();
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  g.fillStyle = game.mode === 'dungeon' ? '#120e1a' : game.mode === 'house' ? '#140e1a' : '#3a76be';
+  g.fillRect(0, 0, W, H);
+  const sx = (Math.random() - 0.5) * game.shake,
+    sy = (Math.random() - 0.5) * game.shake,
+    cx = game.camX + game.camKX + game.kickX,
+    cy = game.camY + game.camKY + game.kickY;
+  g.setTransform(DPR * z, 0, 0, DPR * z, DPR * (W / 2 - cx * z + sx), DPR * (H / 2 - cy * z + sy));
+  const vw = W / z / 2,
+    vh = H / z / 2,
+    x0 = cx - vw,
+    x1 = cx + vw,
+    y0 = cy - vh,
+    y1 = cy + vh;
+  game.genBudget = game.state === 'play' ? 1 : 2;
+  const list = [],
+    cliffs = [],
+    moss = [],
+    shores = [],
+    pools = [],
+    flora = [];
+  for (let i = Math.floor((x0 - 40) / CH); i <= Math.floor((x1 + 40) / CH); i++)
+    for (let j = Math.floor((y0 - 40) / CH); j <= Math.floor((y1 + 130) / CH); j++) {
+      const ch = getChunk(i, j, true);
+      if (!ch) {
+        continue;
+      }
+      g.drawImage(ch.cvs, i * CH, j * CH, CH + 0.6, CH + 0.6);
+      for (const w of ch.waves) {
+        if (w[0] < x0 - 20 || w[0] > x1 + 20 || w[1] < y0 - 20 || w[1] > y1 + 20) continue;
+        const a = (Math.sin(game.time * 1.6 + w[2]) + 1) / 2;
+        g.strokeStyle = 'rgba(255,255,255,' + a * 0.45 + ')';
+        g.lineWidth = 2;
+        g.beginPath();
+        g.arc(w[0] + Math.sin(game.time + w[2]) * 3, w[1], 7 + a * 3, 3.6, 5.8);
+        g.stroke();
+      }
+      for (const d of ch.decor)
+        if (d.x > x0 - 60 && d.x < x1 + 60 && d.y > y0 - 10 && d.y < y1 + 130)
+          list.push({ y: d.y, d });
+      if (ch.cliffs) cliffs.push(...ch.cliffs);
+      if (ch.moss)
+        for (const m of ch.moss)
+          if (m.x > x0 - 30 && m.x < x1 + 30 && m.y > y0 - 20 && m.y < y1 + 20) moss.push(m);
+      if (ch.shores) shores.push(ch.shores);
+      if (ch.pools) pools.push(ch.pools);
+      if (ch.flora) flora.push(ch.flora);
+    }
+  // crisp vector shorelines and cliffs on top of all ground chunks
+  drawShores(g, shores, game.time);
+  drawPools(g, pools, game.time);
+  drawCliffs(g, cliffs);
+  const windK = 1 + weather.k * (weather.type === 'rain' ? 2 : 0);
+  if (game.mode === 'world') {
+    // dirt roads of the places around, under the grass and everything standing
+    const roads = [];
+    for (const p of game.activePois)
+      if (p.kind === 'village') {
+        const R = roadsOf(p);
+        roads.push(R);
+        flora.push(R.flora);
+      }
+    drawRoads(g, roads);
+  }
+  drawFlora(g, flora, x0, y0, x1, y1, game.time, windK);
+  if (game.mode === 'house') houseBack(g);
+  if (game.mode === 'dungeon')
+    for (const m of moss)
+      if (m.k) drawCaveBit(g, m, game.DG.b, game.time);
+      else drawMoss(g, m, game.DG.b === 6, game.time);
+  if (game.genBudget > 0) {
+    if (game.mode === 'world') bgStep(cx, cy);
+    else if (game.mode === 'dungeon') {
+      const ci = Math.floor(cx / CH),
+        cj = Math.floor(cy / CH);
+      outer: for (let r = 1; r <= 2; r++)
+        for (let i = ci - r; i <= ci + r; i++)
+          for (let j = cj - r; j <= cj + r; j++) {
+            if (!game.DG.ch.has(i + ',' + j)) {
+              getChunk(i, j, true);
+              break outer;
+            }
+          }
+    }
+  }
+  const vis = (x, y, m = 150) => x > x0 - m && x < x1 + m && y > y0 - m * 0.5 && y < y1 + m * 1.3;
+  if (game.mode === 'world') {
+    for (const p of game.state === 'play' || game.state === 'modal' || game.state === 'inv'
+      ? game.activePois
+      : poisNear(cx, cy, 700)) {
+      if (!vis(p.x, p.y, p.r + 200)) continue;
+      if (p.kind === 'village') {
+        if (p.city) {
+          // Hearthfire: crisp paving, then depth-sorted walls, towers, gate, fountain, well, shops
+          drawCityGround(g, p, x0 - 20, y0 - 20, x1 + 20, y1 + 60);
+          for (const [a0, a1] of p.wall.segs) {
+            const m = wallPt((a0 + a1) / 2);
+            if (vis(m.x, m.y, 120))
+              list.push({ y: wallSegKey(a0, a1), f: (c) => drawWallSeg(c, a0, a1) });
+          }
+          for (const tw of p.wall.towers)
+            if (vis(tw.x, tw.y, 160))
+              list.push({ y: tw.y + 11, f: (c) => drawTower(c, tw, game.time, '#c8423a') });
+          const sg = p.wall.towers
+            .filter((tw) => tw.gate && Math.abs(tw.a - Math.PI / 2) < 0.4)
+            .sort((a, b) => a.x - b.x);
+          if (sg.length === 2 && vis(0, sg[0].y, 200))
+            list.push({ y: sg[0].y + 14, f: (c) => drawGateArch(c, sg[0], sg[1]) });
+          list.push(
+            { y: p.fountain.y, f: (c) => drawFountain(c, p.fountain, game.time) },
+            { y: p.well.y, f: (c) => drawWell(c, p.well) },
+          );
+          for (const s of p.shops)
+            list.push({ y: s.y, f: (c) => drawStall(c, p, game.time, s, s.awning, s.goods) });
+        }
+        for (const h of p.houses)
+          if (vis(h.x, h.y)) list.push({ y: h.y, f: (c) => drawHouse(c, h, game.time, game.dark) });
+        list.push(
+          { y: p.stall.y, f: (c) => drawStall(c, p, game.time) },
+          {
+            y: p.board.y,
+            f: (c) =>
+              drawBoard(c, p, game.time, !offers.has(p.key) || offers.get(p.key).length > 0),
+          },
+          {
+            y: p.way.y,
+            f: (c) => drawWaystone(c, p, game.time, game.P ? game.P.wps.includes(p.key) : true),
+          },
+        );
+        for (const l of p.lamps)
+          list.push({ y: l.y, f: (c) => drawLamp(c, l, game.time, game.dark) });
+        for (const n of p.npcs)
+          if (vis(n.x, n.y)) list.push({ y: n.y, f: (c) => drawNpc(c, n, game.time) });
+      } else if (p.kind === 'lair') {
+        const cl = game.P && game.P.cleared[p.key];
+        if (!cl) {
+          g.save();
+          g.globalAlpha = 0.35 + Math.sin(game.time * 2) * 0.15;
+          g.strokeStyle = '#ff3a5a';
+          g.lineWidth = 3;
+          g.beginPath();
+          g.ellipse(p.x, p.y, 100, 72, 0, 0, TAU);
+          g.stroke();
+          g.restore();
+          addLight(p.x, p.y, 160, 0.5, '#ff3a5a');
+        }
+        for (const pl of p.pillars) list.push({ y: pl.y, f: (c) => drawPillar(c, pl, game.time) });
+        list.push({
+          y: p.y - 40,
+          f: (c) => {
+            const s = SPR.bones,
+              k = 1.35;
+            c.drawImage(s.c, p.x - s.ax * k, p.y - 40 - s.ay * k, s.w * k, s.h * k);
+          },
+        });
+        const chest = game.P && game.P.chests && game.P.chests[p.key];
+        if (chest) list.push({ y: chest.y, f: (c) => drawChest(c, chest, game.time) });
+      } else if (p.kind === 'cave') list.push({ y: p.y, f: (c) => drawCave(c, p, game.time) });
+      else if (p.kind === 'gate') list.push({ y: p.y, f: (c) => drawStoneGate(c, p, game.time) });
+    }
+  } else if (game.mode === 'house') houseItems(list);
+  else {
+    for (const t of game.DG.torches)
+      if (vis(t.x, t.y))
+        list.push({ y: t.y - 40, f: (c) => drawTorch(c, t, game.time, game.DG.style === 'cave') });
+    for (const p of game.DG.props)
+      if (vis(p.x, p.y)) list.push({ y: p.y, f: (c) => drawProp(c, p, game.time) });
+    for (const p of game.DG.pillars)
+      if (vis(p.x, p.y)) list.push({ y: p.y, f: (c) => drawDPillar(c, p) });
+    if (!game.DG.chest.hidden)
+      list.push({ y: game.DG.chest.y, f: (c) => drawChest(c, game.DG.chest, game.time) });
+    const portal = game.DG.portal;
+    if (portal) list.push({ y: portal.y, f: (c) => drawPortal(c, portal, game.time, !!hero.warp) });
+    g.save();
+    if (game.DG.style === 'cave') drawCaveMouth(g, game.DG.exit, game.time);
+    else drawStairs(g, game.DG.exit, game.time, game.DG.stair);
+    g.restore();
+  }
+  for (const t of game.teles) drawTele(g, t);
+  for (const zz of game.zones) drawZone(g, zz);
+  for (const d of game.drops)
+    if (vis(d.x, d.y)) list.push({ y: d.y, f: (c) => drawDrop(c, d, game.time) });
+  // the world event's scenery: the merchant's wagon, the falling meteor and its crater
+  const ev = game.ev;
+  if (game.mode === 'world' && ev && vis(ev.x, ev.y, 500))
+    list.push({
+      y: ev.kind === 'meteor' ? (ev.stage === 'fall' ? 1e9 : ev.y - 40) : ev.y,
+      f: (c) => drawEvent(c, ev, game.time),
+    });
+  // a patron's lost keepsake glinting on the ground (tavern "find" jobs)
+  if (game.mode === 'world' && game.P)
+    for (const q of game.P.quests)
+      if (q.type === 'task' && q.task === 'find' && !q.ready && vis(q.x, q.y))
+        list.push({ y: q.y, f: (c) => drawGlint(c, q.x, q.y, game.time) });
+  markDark(game.time);
+  for (const e of game.enemies)
+    if (vis(e.x, e.y, 200)) list.push({ y: e.y, f: (c) => drawEnemy(c, e, game.time) });
+  for (const gh of game.ghosts)
+    list.push({
+      y: gh.y - 1,
+      f: (c) =>
+        drawHumanoid(c, gh.x, gh.y, {
+          look: game.P.look,
+          dx: gh.dx,
+          dy: gh.dy,
+          moving: true,
+          walk: gh.walk,
+          time: game.time,
+          alpha: gh.life * 2,
+          noShadow: true,
+        }),
+    });
+  if (game.P && (game.state === 'play' || game.state === 'inv' || game.state === 'modal'))
+    list.push({ y: game.P.y, f: (c) => drawHero(c, game.time) });
+  list.sort((a, b) => a.y - b.y);
+  for (const it of list) {
+    if (it.d) {
+      const d = it.d,
+        s = SPR[d.k];
+      if (!s) continue;
+      let fade = false;
+      if (
+        game.P &&
+        TREESET.has(d.k) &&
+        game.P.y < d.y &&
+        game.P.y > d.y - 100 &&
+        Math.abs(game.P.x - d.x) < 34
+      )
+        fade = true;
+      if (fade) g.globalAlpha = 0.45;
+      if (TREESET.has(d.k)) {
+        const sk = Math.sin(game.time * 1.3 + d.ph) * 0.035 * windK;
+        g.save();
+        g.translate(d.x, d.y);
+        g.transform(1, 0, sk, 1, 0, 0);
+        g.drawImage(s.c, -s.ax, -s.ay, s.w, s.h);
+        g.restore();
+      } else g.drawImage(s.c, d.x - s.ax, d.y - s.ay, s.w, s.h);
+      const mineral = MINERAL_GLOW[d.k];
+      if (mineral) addLight(d.x, d.y - 20, 90, 0.7, mineral);
+      const treeGlow = TREE_GLOW[d.k];
+      if (treeGlow) addLight(d.x, d.y - 64, 90, 0.7, treeGlow);
+      if (d.k === 'mushroom' && game.dark > 0.3) addLight(d.x, d.y - 8, 40, 0.4, '#9aff9a');
+      g.globalAlpha = 1;
+    } else it.f(g, game.time);
+  }
+  if (game.mode === 'house') houseFront(g, game.time);
+  for (const p of game.projs) drawProj(g, p);
+  for (const p of game.parts) {
+    const a = clamp(p.life / p.max, 0, 1);
+    g.globalAlpha = p.smoke ? a * 0.6 : a;
+    if (p.glow) g.globalCompositeOperation = 'lighter';
+    g.fillStyle = p.col;
+    if (p.streak) {
+      g.fillRect(p.x, p.y, 1.6, 10);
+    } else if (p.smoke) {
+      g.beginPath();
+      g.arc(p.x, p.y, p.sz * (1.6 - a), 0, TAU);
+      g.fill();
+    } else g.fillRect(p.x - p.sz / 2, p.y - p.sz / 2, p.sz, p.sz);
+    g.globalCompositeOperation = 'source-over';
+  }
+  g.globalAlpha = 1;
+  if (game.dark > 0.25 || underDark())
+    for (const p of game.parts)
+      if (p.glow && p.life > p.max * 0.3 && lights.length < 60)
+        lights.push({ x: p.x, y: p.y, r: 20, i: 0.5 });
+  drawDarkness(g, game.time);
+  // in a pitch-black cave, the hero stays visible but dim
+  if (heroDark && underDark() >= 1 && game.P && game.state !== 'dead') dimHero(game.time);
+  g.textAlign = 'center';
+  g.lineJoin = 'round';
+  for (const t of game.texts) {
+    const a = clamp((t.life / t.max) * 2, 0, 1),
+      age = t.max - t.life,
+      pop = age < 0.12 ? 1 + (0.12 - age) * 5 : 1;
+    g.globalAlpha = a;
+    const s = (t.big ? 20 : 12 + (t.s.endsWith('!') ? 5 : 0)) * pop;
+    g.font = '700 ' + s.toFixed(1) + 'px Fredoka,sans-serif';
+    g.lineWidth = 3.5;
+    g.strokeStyle = 'rgba(30,20,40,.9)';
+    g.strokeText(t.s, t.x, t.y);
+    g.fillStyle = t.col;
+    g.fillText(t.s, t.x, t.y);
+  }
+  g.globalAlpha = 1;
+  // colored glow
+  if (game.dark > 0.2) {
+    g.globalCompositeOperation = 'lighter';
+    for (const l of lights) {
+      if (!l.col) continue;
+      const gr = g.createRadialGradient(l.x, l.y, 2, l.x, l.y, l.r * 0.7);
+      gr.addColorStop(0, hexA(l.col, 0.22 * l.i * game.dark));
+      gr.addColorStop(1, hexA(l.col, 0));
+      g.fillStyle = gr;
+      g.fillRect(l.x - l.r, l.y - l.r, l.r * 2, l.r * 2);
+    }
+    g.globalCompositeOperation = 'source-over';
+  }
+  // night: an even, light tint (no darkness spotlight around the hero)
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  if (game.dark > 0.02) {
+    g.fillStyle = 'rgba(20,28,70,' + (game.dark * 0.3).toFixed(3) + ')';
+    g.fillRect(0, 0, W, H);
+  }
+  if (game.dusk > 0.02) {
+    g.fillStyle = 'rgba(255,110,50,' + game.dusk * 0.13 + ')';
+    g.fillRect(0, 0, W, H);
+  }
+  if (game.mode === 'world' && game.P) {
+    const c2 = corr(Math.hypot(game.camX, game.camY));
+    if (c2 > 0) {
+      g.fillStyle = 'rgba(60,20,80,' + c2 * 0.16 + ')';
+      g.fillRect(0, 0, W, H);
+    }
+  }
+  drawWeather();
+  if (!vign || vign.w !== W || vign.h !== H) {
+    const c = mkCanvas(W, H),
+      x = c.getContext('2d'),
+      gr = x.createRadialGradient(
+        W / 2,
+        H / 2,
+        Math.min(W, H) * 0.35,
+        W / 2,
+        H / 2,
+        Math.max(W, H) * 0.75,
+      );
+    gr.addColorStop(0, 'rgba(20,15,40,0)');
+    gr.addColorStop(1, 'rgba(20,15,40,.5)');
+    x.fillStyle = gr;
+    x.fillRect(0, 0, W, H);
+    vign = { c, w: W, h: H };
+  }
+  g.drawImage(vign.c, 0, 0, W, H);
+  if (game.state === 'play' && game.P && game.P.hp < game.ST.hp * 0.3) {
+    g.fillStyle = 'rgba(200,30,30,' + (0.1 + Math.sin(game.time * 6) * 0.06) + ')';
+    g.fillRect(0, 0, W, H);
+  }
+  if (game.state === 'menu' || game.state === 'create' || game.state === 'help') {
+    g.fillStyle = 'rgba(20,18,45,.3)';
+    g.fillRect(0, 0, W, H);
+  }
+  if (joy.id !== null) {
+    g.globalAlpha = 0.45;
+    g.strokeStyle = '#fff6e0';
+    g.lineWidth = 3;
+    g.beginPath();
+    g.arc(joy.ox, joy.oy, 52, 0, TAU);
+    g.stroke();
+    g.globalAlpha = 0.8;
+    g.fillStyle = '#fff6e0';
+    g.beginPath();
+    g.arc(joy.ox + joy.x * 52, joy.oy + joy.y * 52, 24, 0, TAU);
+    g.fill();
+    g.globalAlpha = 1;
+  }
+  if (game.fade > 0) {
+    g.fillStyle = 'rgba(10,8,20,' + game.fade + ')';
+    g.fillRect(0, 0, W, H);
+  }
+}
+function hexA(h, a) {
+  const n = parseInt(h.slice(1), 16);
+  return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a.toFixed(3) + ')';
+}
+function drawWeather() {
+  const k = weather.k;
+  if (k < 0.02) return;
+  const type = weather.type;
+  if (type === 'rain') {
+    const n = Math.round(170 * k);
+    while (WX.rain.length < n)
+      WX.rain.push({ x: Math.random() * W, y: Math.random() * H, s: rand(700, 1000) });
+    g.strokeStyle = 'rgba(190,210,240,' + (0.35 * k + 0.1) + ')';
+    g.lineWidth = 1.3;
+    g.beginPath();
+    for (let i = 0; i < n; i++) {
+      const d = WX.rain[i];
+      g.moveTo(d.x, d.y);
+      g.lineTo(d.x - 4, d.y + 14);
+    }
+    g.stroke();
+    g.fillStyle = 'rgba(40,50,80,' + k * 0.18 + ')';
+    g.fillRect(0, 0, W, H);
+  } else {
+    const n = Math.round(110 * k);
+    while (WX.snow.length < n)
+      WX.snow.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        s: rand(30, 70),
+        r: rand(1.2, 3),
+        ph: rand(0, 9),
+      });
+    for (let i = 0; i < n; i++) {
+      const d = WX.snow[i];
+      g.fillStyle =
+        type === 'ash'
+          ? i % 7
+            ? 'rgba(80,70,90,.7)'
+            : 'rgba(255,120,60,.8)'
+          : 'rgba(255,255,255,.85)';
+      g.beginPath();
+      g.arc(d.x, d.y, d.r, 0, TAU);
+      g.fill();
+    }
+    if (type === 'snow') {
+      g.fillStyle = 'rgba(220,235,255,' + k * 0.08 + ')';
+      g.fillRect(0, 0, W, H);
+    }
+  }
+}
+let wfxLX, wfxLY;
+export function updateWeatherFx(dt) {
+  const cdx = (game.camX - (wfxLX || game.camX)) * zoom(),
+    cdy = (game.camY - (wfxLY || game.camY)) * zoom();
+  wfxLX = game.camX;
+  wfxLY = game.camY;
+  for (const d of WX.rain) {
+    d.y += d.s * dt - cdy;
+    d.x += -d.s * 0.28 * dt - cdx;
+    if (d.y > H) {
+      d.y -= H + 20;
+      d.x = Math.random() * W;
+    }
+    if (d.y < -20) d.y += H;
+    if (d.x < 0) d.x += W;
+    if (d.x > W) d.x -= W;
+  }
+  for (const d of WX.snow) {
+    d.y += d.s * dt - cdy;
+    d.x += Math.sin(game.time + d.ph) * 20 * dt - cdx;
+    if (d.y > H) d.y -= H;
+    if (d.y < 0) d.y += H;
+    if (d.x < 0) d.x += W;
+    if (d.x > W) d.x -= W;
+  }
+}

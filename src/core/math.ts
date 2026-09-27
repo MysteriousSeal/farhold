@@ -1,4 +1,5 @@
-import { game } from '../game/state';
+/** The world seed every hash and noise here depends on (game.SEED reads and writes it). */
+export const world = { seed: 1 };
 /** A name's possessive: "Oakes'" and "Pell's". */
 export const poss = (n: string) => n + (/s$/i.test(n) ? "'" : "'s");
 export const TAU = Math.PI * 2,
@@ -24,7 +25,7 @@ export function strSeed(s) {
 }
 
 export function hs(x, y, s) {
-  let h = (game.SEED + Math.imul(s, 2654435761)) | 0;
+  let h = (world.seed + Math.imul(s, 2654435761)) | 0;
   h = (h + Math.imul(x, 374761393) + Math.imul(y, 668265263)) | 0;
   h = Math.imul(h ^ (h >>> 13), 1274126177);
   h ^= h >>> 16;

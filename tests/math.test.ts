@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { clamp, fbm, hs, lerp, mixCol, mulberry, sh, strSeed, vn } from '../src/core/math';
-import { game } from '../src/game/state';
+import { game } from '../src/model/game/state';
 
 describe('core/math', () => {
   beforeEach(() => {

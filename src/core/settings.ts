@@ -1,4 +1,4 @@
-import { applyVolumes } from '../audio/sfx';
+import { ports } from './ports';
 /* ================= SETTINGS ================= */
 const SETK = 'farhold_settings_v1';
 export const settings = { music: 0.55, sfx: 0.8, density: 'normal' };
@@ -9,5 +9,5 @@ export function saveSettings() {
   try {
     localStorage.setItem(SETK, JSON.stringify(settings));
   } catch (e) {}
-  applyVolumes();
+  ports.volumes();
 }

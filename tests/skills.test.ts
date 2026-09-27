@@ -9,9 +9,9 @@ import {
   pointsFree,
   pointsNew,
   treeFx,
-} from '../src/data/skills';
-import { ADJ, LINKS, MASTERY, TREE, fxLines } from '../src/data/tree';
-import { game } from '../src/game/state';
+} from '../src/model/data/skills';
+import { ADJ, LINKS, MASTERY, TREE, fxLines } from '../src/model/data/tree';
+import { game } from '../src/model/game/state';
 
 // The passive skill tree: its shape, and the rules for points, the blinking Skills button and
 // mastery.

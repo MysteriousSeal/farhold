@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { strSeed } from '../src/core/math';
-import { game } from '../src/game/state';
-import { genDungeon } from '../src/world/dungeon';
-import { houseRoute, poiAt, poiCache } from '../src/world/poi';
-import { traceCliffs } from '../src/world/cliffs';
-import { PEAK_H, dangerAt, hField, terr, walkT } from '../src/world/terrain';
+import { game } from '../src/model/game/state';
+import { genDungeon } from '../src/model/world/dungeon';
+import { houseRoute, poiAt, poiCache } from '../src/model/world/poi';
+import { traceCliffs } from '../src/model/world/cliffs';
+import { PEAK_H, dangerAt, hField, terr, walkT } from '../src/model/world/terrain';
 
 const SEEDS = ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel'];
 const useSeed = (s: string) => {

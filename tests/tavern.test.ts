@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { strSeed } from '../src/core/math';
-import { game } from '../src/game/state';
-import { BAR_ROW, IT, genInterior, inSolid } from '../src/world/interior';
-import { pathToBar } from '../src/world/tavernPath';
+import { game } from '../src/model/game/state';
+import { BAR_ROW, IT, genInterior, inSolid } from '../src/model/world/interior';
+import { pathToBar } from '../src/model/world/tavernPath';
 
 // Tavern interiors: loose table clusters, seats on every side, the bar sealed at its open
 // end, and patrons able to walk to the bar. Generated for many villages, small and big.

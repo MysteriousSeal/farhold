@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { strSeed } from '../src/core/math';
-import { game } from '../src/game/state';
-import { genDungeon } from '../src/world/dungeon';
+import { game } from '../src/model/game/state';
+import { genDungeon } from '../src/model/world/dungeon';
 
 // Caves (natural caverns) and stone-gate crypts: layout rules that once broke, checked over
 // many generated levels.

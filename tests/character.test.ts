@@ -1,12 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MATS, SLOTS } from '../src/data/classes';
+import { MATS, SLOTS } from '../src/model/data/classes';
 import { mulberry } from '../src/core/math';
-import { pointsFree } from '../src/data/skills';
-import { genItem, helmSkins, itemStat, salvageAll, salvageable, upCost } from '../src/game/items';
-import { game } from '../src/game/state';
-import { OUTFIT } from '../src/data/classes';
-import { heroStyle, weaponStyle } from '../src/game/style';
-import { UNDERWEAR, calcStats, lookOfPlayer, xpNeed } from '../src/game/stats';
+import { pointsFree } from '../src/model/data/skills';
+import {
+  genItem,
+  helmSkins,
+  itemStat,
+  salvageAll,
+  salvageable,
+  upCost,
+} from '../src/model/game/items';
+import { game } from '../src/model/game/state';
+import { OUTFIT } from '../src/model/data/classes';
+import { heroStyle, weaponStyle } from '../src/model/game/style';
+import { UNDERWEAR, calcStats, lookOfPlayer, xpNeed } from '../src/model/game/stats';
 
 const hero = (o: Record<string, unknown> = {}) => ({
   race: 'human',
@@ -220,7 +227,7 @@ describe('player look', () => {
   });
 
   it('a second ring fills the empty ring slot, then replaces the weaker ring', async () => {
-    const { equipSlot } = await import('../src/game/items');
+    const { equipSlot } = await import('../src/model/game/items');
     const ring = (lvl: number) => ({ slot: 'ring', r: 1, lvl, plus: 0 });
     expect(equipSlot(ring(5), {})).toBe('ring');
     expect(equipSlot(ring(5), { ring: ring(3) })).toBe('ring2');
@@ -231,7 +238,7 @@ describe('player look', () => {
 
 describe('item power comparison', () => {
   it('scores weapons as damage and armor as toughness', async () => {
-    const { compareItem, fmtPct } = await import('../src/game/power');
+    const { compareItem, fmtPct } = await import('../src/model/game/power');
     game.P = hero();
     const axe = { slot: 'weapon', r: 2, mat: 1, plus: 0, st: { atk: 10 }, name: 'Axe' };
     const vest = { slot: 'armor', r: 1, mat: 1, plus: 0, st: { def: 5, hp: 20 }, name: 'Vest' };

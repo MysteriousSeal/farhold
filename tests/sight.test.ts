@@ -1,8 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { clearLine } from '../src/game/enemies';
-
-// combat pulls in the HUD (it needs a page); sight checks don't use it
-vi.mock('../src/game/combat', () => ({}));
+import { describe, expect, it } from 'vitest';
+import { clearLine } from '../src/model/game/enemies';
 
 // Underground aggro needs a clear line of sight: rock walls hide the hero.
 /** A small dungeon from a text map: '#' rock, '.' floor. */

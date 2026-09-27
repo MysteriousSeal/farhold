@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { faceOf, headY, makeRig, rightArm } from '../src/art/body';
-import { carryPos, handPos, restAng, weaponBehind } from '../src/art/humanoid';
+import { faceOf, headY, makeRig, rightArm } from '../src/view/art/body';
+import { carryPos, handPos, restAng, weaponBehind } from '../src/view/art/humanoid';
 
 // The humanoid skeleton, checked by numbers: weapons in the right hand in every facing, the
 // guard pose mirrored between sides, staffs upright, and a real sitting pose.

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SLOTS } from '../src/data/classes';
+import { SLOTS } from '../src/model/data/classes';
 import {
   QUICK,
   TORCH_COST,
@@ -12,16 +12,16 @@ import {
   torchLeft,
   torches,
   useQuick,
-} from '../src/game/consumables';
-import { RESET_MS, caveState, fmtClock, resetLeft } from '../src/game/dungeons';
-import { gearScore } from '../src/game/items';
-import { migrate } from '../src/game/save';
-import { game } from '../src/game/state';
-import { gameHour } from '../src/game/worldTick';
+} from '../src/model/game/consumables';
+import { RESET_MS, caveState, fmtClock, resetLeft } from '../src/model/game/dungeons';
+import { gearScore } from '../src/model/game/items';
+import { migrate } from '../src/model/game/save';
+import { game } from '../src/model/game/state';
+import { gameHour } from '../src/model/game/worldTick';
 
-// combat pulls in the HUD (it needs a page); consumables only use drinkPot from it
+// count the potions drunk through the quick slot
 const drank = vi.hoisted(() => ({ n: 0 }));
-vi.mock('../src/game/combat', () => ({ drinkPot: () => drank.n++ }));
+vi.mock('../src/model/game/combat', () => ({ drinkPot: () => drank.n++ }));
 
 // Consumables (potions and torches), the Q quick slot, cave cycles and the day clock.
 const hero = (o: Record<string, unknown> = {}) =>
