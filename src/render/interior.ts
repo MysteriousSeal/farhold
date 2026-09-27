@@ -24,10 +24,14 @@ export function houseFront(c: Ctx, t: number) {
   drawRoomFront(c, I);
   drawRoomLights(c, I, t);
   // job markers over patrons: ! an offer, ? ready to hand in, … still open
+  // (not while this patron's own bubble, "Job offer (E)" or "Hand in (E)", shows in its place)
+  const act = game.state === 'play' ? game.interact : null;
   I.npcs.forEach((n, i) => {
     if (n.role !== 'patron' || n.say) return;
     const job = patronJob(I, i);
-    if (job) jobMark(c, n.x, n.y + (n.seated ? n.sink || 0 : 0) + headY(n.look) - 12, job.mark, t);
+    if (!job) return;
+    if (act && act.tx === n.x && (act.label === 'Job offer' || act.label === 'Hand in')) return;
+    jobMark(c, n.x, n.y + (n.seated ? n.sink || 0 : 0) + headY(n.look) - 12, job.mark, t);
   });
   for (const n of I.npcs)
     if (n.say) speech(c, n.x, n.y + crownY(n.look) - 8, n.say, Math.min(1, n.sayT * 4));
