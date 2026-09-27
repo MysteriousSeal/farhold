@@ -2,7 +2,6 @@ import type { Look, Stats } from './types';
 import { sh } from '../../core/math';
 import { MATS, OUTFIT, RAR, SLOTS } from '../data/classes';
 import { treeFx } from '../data/skills';
-import { itemStat } from './items';
 import { game } from './state';
 /** Final stats for a hero `p` (level, gear, skills) without touching game state. */
 /** Attack while no weapon is equipped (fists), as a share of the usual attack. */
@@ -34,7 +33,7 @@ export function computeStats(p = game.P): Stats {
   s.def += l * 0.8;
   for (const k of SLOTS) {
     const it = p.eq[k];
-    if (it) for (const n in it.st) s[n] += itemStat(it, n);
+    if (it) for (const n in it.st) s[n] += it.stat(n);
   }
   // the passive skill tree (data/tree.ts)
   const F = treeFx(p),

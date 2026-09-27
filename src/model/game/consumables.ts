@@ -2,6 +2,7 @@ import { SFX } from '../../core/ports';
 import { drinkPot } from './combat';
 import { toast } from './fx';
 import { game } from './state';
+import { Item } from './items';
 /* ================= Consumables ================= */
 // Health potions (P.pot) and torches (P.cons.torch) sit in the bags' Consumables row, outside
 // the gear slots. A torch is lit by putting it in the off hand: it burns for TORCH_TIME seconds
@@ -32,7 +33,7 @@ export function lightTorch(fromWall = false) {
     }
     P.cons.torch--;
   }
-  P.eq.offhand = { kind: 'torch', name: 'Torch', left: TORCH_TIME, lvl: 0, r: 0, st: {} };
+  P.eq.offhand = new Item({ kind: 'torch', name: 'Torch', left: TORCH_TIME, lvl: 0, r: 0 });
   SFX.pick();
   toast(fromWall ? 'You take the torch' : 'You light a torch');
   return true;

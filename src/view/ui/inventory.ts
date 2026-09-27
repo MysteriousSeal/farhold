@@ -19,14 +19,7 @@ import {
 } from '../../model/game/consumables';
 import { toast } from '../../model/game/fx';
 import { fmtClock } from '../../core/format';
-import {
-  equipSlot,
-  gearScore,
-  itemName,
-  salvageAll,
-  salvageValue,
-  salvageable,
-} from '../../model/game/items';
+import { equipSlot, gearScore, salvageAll, salvageable } from '../../model/game/items';
 import { game } from '../../model/game/state';
 import { calcStats, xpNeed } from '../../model/game/stats';
 import { btn, consCanvas, goldPill, itemCard, iconCanvas, openModal, statLines } from './modal';
@@ -194,7 +187,7 @@ function slotCell(k: string) {
   d.title = it
     ? it.kind === 'torch'
       ? 'Lit torch'
-      : itemName(it)
+      : it.fullName
     : 'Empty ' + SLOT_NAME[k].toLowerCase() + ' slot';
   // a torch dragged from the Consumables row is lit in the off hand
   if (k === 'offhand')
@@ -274,7 +267,7 @@ function renderBags() {
   const bg = $('#iBag');
   game.P.inv.forEach((it) => {
     // same card as the vendor: power change vs worn, level and salvage value
-    const d = itemCard(it, salvageValue(it), !!selItem && !selItem.eq && selItem.it === it);
+    const d = itemCard(it, it.salvageValue, !!selItem && !selItem.eq && selItem.it === it);
     d.onclick = () => {
       selItem = { it };
       salvageArmed = false;
@@ -292,7 +285,7 @@ function renderBags() {
   const isUp = (it) => compareItem(it).overall > 0.005,
     junk = salvageable(game.P.inv).filter((it) => !isUp(it));
   if (junk.length) {
-    const gold = junk.reduce((a, it) => a + salvageValue(it), 0);
+    const gold = junk.reduce((a, it) => a + it.salvageValue, 0);
     $('#iBulk').appendChild(
       btn(
         salvageArmed
@@ -460,7 +453,7 @@ function renderDetail(dt: HTMLElement) {
     '<div class="nm" style="color:' +
     RAR[it.r].c +
     '">' +
-    itemName(it) +
+    it.fullName +
     '</div><div style="opacity:.75">' +
     RAR[it.r].n +
     ' ' +
@@ -508,9 +501,9 @@ function renderDetail(dt: HTMLElement) {
     } else bx.appendChild(btn('Equip', equip(equipSlot(it, game.P.eq))));
     bx.appendChild(
       btn(
-        'Salvage for ' + salvageValue(it) + ' gold',
+        'Salvage for ' + it.salvageValue + ' gold',
         () => {
-          game.P.gold += salvageValue(it);
+          game.P.gold += it.salvageValue;
           game.P.inv.splice(game.P.inv.indexOf(it), 1);
           selItem = null;
           SFX.coin();

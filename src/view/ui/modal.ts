@@ -2,7 +2,6 @@ import { drawIcon } from '../art/items';
 import { $, mkCanvas } from '../dom';
 import { RAR, STATN } from '../../model/data/classes';
 import { compareItem } from '../../model/game/power';
-import { itemStat } from '../../model/game/items';
 import { game } from '../../model/game/state';
 import { joy } from '../../core/device';
 import { setHud } from './hud';
@@ -56,8 +55,8 @@ export function statLines(it, cmp) {
   return Object.keys(STATN)
     .filter((k) => it.st[k] || (cmp && cmp.st[k]))
     .map((k) => {
-      const a = itemStat(it, k),
-        b = cmp ? itemStat(cmp, k) : 0,
+      const a = it.stat(k),
+        b = cmp ? cmp.stat(k) : 0,
         d = Math.round((a - b) * 10) / 10;
       return (
         '<div>' +

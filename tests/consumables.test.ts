@@ -15,7 +15,7 @@ import {
 } from '../src/model/game/consumables';
 import { RESET_MS, caveState, resetLeft } from '../src/model/game/dungeons';
 import { fmtClock } from '../src/core/format';
-import { gearScore } from '../src/model/game/items';
+import { Item, gearScore } from '../src/model/game/items';
 import { migrate } from '../src/model/game/save';
 import { game } from '../src/model/game/state';
 import { gameHour } from '../src/model/game/worldTick';
@@ -150,6 +150,26 @@ describe('save migration for new slots', () => {
     expect(p.eq).toHaveProperty('offhand', null);
     expect(p.cons).toEqual({});
     expect(p.quick).toBe('pot');
+  });
+
+  it('loaded items are Items again (bag, gear, shop stock)', () => {
+    const plain = { slot: 'ring', r: 1, lvl: 4, plus: 2, st: { atk: 10 }, name: 'Band', val: 9 };
+    const p = migrate({
+      name: 'Load',
+      lvl: 3,
+      xp: 0,
+      gold: 1,
+      pot: 2,
+      inv: [{ ...plain }],
+      eq: { ring: { ...plain } },
+      shops: { v1: { t: 0, items: [{ ...plain }] } },
+      cleared: {},
+    } as any);
+    for (const it of [p.inv[0], p.eq.ring, p.shops.v1.items[0]]) {
+      expect(it).toBeInstanceOf(Item);
+      expect(it.stat('atk')).toBe(12);
+      expect(it.fullName).toBe('+2 Band');
+    }
   });
 
   it('a lit torch survives a save and load', () => {

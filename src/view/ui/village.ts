@@ -6,7 +6,7 @@ import { compareItem } from '../../model/game/power';
 import { BAGMAX } from '../../model/game/drops';
 import { unstick } from '../../model/game/enemies';
 import { doFade, toast } from '../../model/game/fx';
-import { equipSlot, genItem, itemName, upCost } from '../../model/game/items';
+import { equipSlot, genItem } from '../../model/game/items';
 import { QMAX, abandonQuest, acceptQuest, genOffers, offers } from '../../model/game/quests';
 import { save } from '../../model/game/save';
 import { game } from '../../model/game/state';
@@ -50,7 +50,7 @@ function itemInfo(it) {
     '<div class="nm" style="color:' +
     RAR[it.r].c +
     '">' +
-    itemName(it) +
+    it.fullName +
     '</div><div class="desc">' +
     RAR[it.r].n +
     ' ' +
@@ -239,7 +239,7 @@ function renderBuy(v, body, s, pp) {
         buySel = null;
         save();
         SFX.buy();
-        toast('Bought ' + itemName(it));
+        toast('Bought ' + it.fullName);
         renderShop(v);
       },
       '',
@@ -473,7 +473,7 @@ function renderSmith(v) {
     const it = game.P.eq[k];
     if (!it || it.kind) continue; // a lit torch is not gear
     any = true;
-    const cost = upCost(it),
+    const cost = it.upgradeCost,
       max = it.plus >= 10,
       r2 = document.createElement('div');
     r2.className = 'row2';
@@ -490,7 +490,7 @@ function renderSmith(v) {
       '<div class="nm" style="color:' +
       RAR[it.r].c +
       '">' +
-      itemName(it) +
+      it.fullName +
       '</div><div class="stats sm">' +
       (max ? '<div>Fully upgraded</div>' : statLines(nx, it)) +
       '</div>';
@@ -508,7 +508,7 @@ function renderSmith(v) {
           calcStats();
           SFX.anvil();
           setTimeout(SFX.anvil, 150);
-          toast(itemName(it) + ' forged');
+          toast(it.fullName + ' forged');
           renderSmith(v);
         },
         '',

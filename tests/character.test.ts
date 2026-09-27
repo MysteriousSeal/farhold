@@ -2,14 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MATS, SLOTS } from '../src/model/data/classes';
 import { mulberry } from '../src/core/math';
 import { pointsFree } from '../src/model/data/skills';
-import {
-  genItem,
-  helmSkins,
-  itemStat,
-  salvageAll,
-  salvageable,
-  upCost,
-} from '../src/model/game/items';
+import { Item, genItem, helmSkins, salvageAll, salvageable } from '../src/model/game/items';
 import { game } from '../src/model/game/state';
 import { OUTFIT } from '../src/model/data/classes';
 import { heroStyle, weaponStyle } from '../src/model/game/style';
@@ -25,7 +18,7 @@ const hero = (o: Record<string, unknown> = {}): any => ({
   // a plain blade with no stats, so the base numbers are the hero's own
   eq: {
     ...Object.fromEntries(SLOTS.map((s) => [s, null])),
-    weapon: { slot: 'weapon', wc: 'warrior', r: 0, mat: 0, plus: 0, st: {} },
+    weapon: new Item({ slot: 'weapon', wc: 'warrior', r: 0, mat: 0, plus: 0, st: {} }),
   } as Record<string, any>,
   inv: [],
   sp: {},
@@ -61,15 +54,18 @@ describe('game/items', () => {
   it('forced slot and blacksmith upgrades', () => {
     const it = genItem(10, 0, 'armor');
     expect(it.slot).toBe('armor');
-    const base = itemStat(it, 'def');
+    const base = it.stat('def');
     it.plus = 5;
-    expect(itemStat(it, 'def')).toBe(Math.round(it.st.def * 1.5));
-    expect(itemStat(it, 'def')).toBeGreaterThanOrEqual(base);
-    expect(upCost({ ...it, plus: 3 })).toBeGreaterThan(upCost({ ...it, plus: 2 }));
+    expect(it.stat('def')).toBe(Math.round(it.st.def * 1.5));
+    expect(it.stat('def')).toBeGreaterThanOrEqual(base);
+    expect(new Item({ ...it, plus: 3 }).upgradeCost).toBeGreaterThan(
+      new Item({ ...it, plus: 2 }).upgradeCost,
+    );
   });
 
   it('salvage all keeps Epic and Legendary items and equipped gear', () => {
-    const mk = (r: number, val: number) => ({ slot: 'ring', r, val, st: {}, name: 'R' + r });
+    const mk = (r: number, val: number) =>
+      new Item({ slot: 'ring', r, val, st: {}, name: 'R' + r });
     const bag = [mk(0, 5), mk(1, 9), mk(2, 20), mk(3, 60), mk(4, 150), mk(2, 3)];
     const worn = mk(0, 7);
     const p: any = { ...hero({ gold: 10, inv: bag }), eq: { ring: worn } };
@@ -123,7 +119,7 @@ describe('game/stats', () => {
     expect(pointsFree()).toBe(5 - 3 - 1);
 
     game.P = hero();
-    game.P.eq.ring = {
+    game.P.eq.ring = new Item({
       slot: 'ring',
       r: 0,
       lvl: 1,
@@ -131,7 +127,7 @@ describe('game/stats', () => {
       plus: 0,
       st: { crit: 500 },
       name: 'Test Ring',
-    };
+    });
     calcStats();
     expect(game.ST.crit).toBe(75);
   });
@@ -248,8 +244,15 @@ describe('item power comparison', () => {
   it('scores weapons as damage and armor as toughness', async () => {
     const { compareItem, fmtPct } = await import('../src/model/game/power');
     game.P = hero();
-    const axe = { slot: 'weapon', r: 2, mat: 1, plus: 0, st: { atk: 10 }, name: 'Axe' };
-    const vest = { slot: 'armor', r: 1, mat: 1, plus: 0, st: { def: 5, hp: 20 }, name: 'Vest' };
+    const axe = new Item({ slot: 'weapon', r: 2, mat: 1, plus: 0, st: { atk: 10 }, name: 'Axe' });
+    const vest = new Item({
+      slot: 'armor',
+      r: 1,
+      mat: 1,
+      plus: 0,
+      st: { def: 5, hp: 20 },
+      name: 'Vest',
+    });
     const w = compareItem(axe);
     expect(w.dmg).toBeCloseTo(1, 5); // 10 → 20 attack doubles damage
     expect(w.tough).toBeCloseTo(0, 5);

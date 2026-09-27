@@ -3,6 +3,62 @@ import { clamp, pick, rand } from '../../core/math';
 import { MATS, RAR } from '../data/classes';
 import { game } from './state';
 /* ---- items ---- */
+/**
+ * A piece of gear (or the lit torch held in the off hand, kind 'torch'). Saves keep items as
+ * plain data; Item.from turns them back into items on load.
+ */
+export class Item {
+  id?: number;
+  slot?: string;
+  /** rarity index into RAR (0 common … 4 legendary) */
+  r = 0;
+  lvl = 1;
+  /** material index into MATS */
+  mat?: number;
+  style?: number;
+  /** smith upgrades, 0..10 */
+  plus?: number;
+  /** weapon class: warrior, ranger or mage */
+  wc?: string;
+  st: Record<string, number> = {};
+  name?: string;
+  /** merchant value in gold */
+  val?: number;
+  /** a lit torch: 'torch', with the seconds it has left */
+  kind?: string;
+  left?: number;
+  [extra: string]: any;
+  constructor(data: Partial<Item> = {}) {
+    Object.assign(this, data);
+  }
+  /** `o` as an Item (itself when it already is one; null stays null). */
+  static from(o): Item | null {
+    return o == null ? null : o instanceof Item ? o : new Item(o);
+  }
+  /** Stat `k` with the smith's upgrades: +10% health, attack and armor per level. */
+  stat(k: string) {
+    const v = this.st[k] || 0;
+    return k === 'atk' || k === 'def' || k === 'hp'
+      ? Math.round(v * (1 + 0.1 * (this.plus || 0)))
+      : v;
+  }
+  /** "+3 Iron Sword of Kings" */
+  get fullName() {
+    return (this.plus ? '+' + this.plus + ' ' : '') + this.name;
+  }
+  /** What the smith asks for the next upgrade. */
+  get upgradeCost() {
+    return Math.round((20 + this.lvl * 12) * RAR[this.r].m * Math.pow(1.45, this.plus || 0));
+  }
+  /** Salvaging an item yields half its merchant value. */
+  get salvageValue() {
+    return Math.ceil((this.val || 0) / 2);
+  }
+  /** Item level times rarity, +10% per upgrade: how strong a piece is (gear score, rings). */
+  get power() {
+    return this.lvl * RAR[this.r].m * (1 + 0.1 * (this.plus || 0));
+  }
+}
 
 export function genItem(lvl, bonus = 0, slot?, minR = 0) {
   slot =
@@ -123,7 +179,7 @@ export function genItem(lvl, bonus = 0, slot?, minR = 0) {
           'of Frost',
         ])
       : '';
-  return {
+  return new Item({
     id: ++game.uidN,
     slot,
     r,
@@ -135,7 +191,7 @@ export function genItem(lvl, bonus = 0, slot?, minR = 0) {
     st,
     name: pre + MATS[mat][0] + ' ' + B + suf,
     val: Math.round(lvl * 3 * R * R + 2),
-  };
+  });
 }
 /**
  * One of every helmet look: each metal as a Cap and a Helm.
@@ -148,43 +204,35 @@ export function helmSkins(lvl) {
     for (const shape of ['Cap', 'Helm']) {
       const r = shape === 'Helm' ? 3 : 0,
         R = RAR[r].m;
-      out.push({
-        id: ++game.uidN,
-        slot: 'helm',
-        r,
-        lvl: k,
-        mat,
-        style: 0,
-        plus: 0,
-        st: {
-          def: Math.round((1 + k * 0.55) * R),
-          hp: Math.round((4 + k * 2) * R),
-        },
-        name: MATS[mat][0] + ' ' + shape,
-        val: Math.round(k * 3 * R * R + 2),
-      });
+      out.push(
+        new Item({
+          id: ++game.uidN,
+          slot: 'helm',
+          r,
+          lvl: k,
+          mat,
+          style: 0,
+          plus: 0,
+          st: {
+            def: Math.round((1 + k * 0.55) * R),
+            hp: Math.round((4 + k * 2) * R),
+          },
+          name: MATS[mat][0] + ' ' + shape,
+          val: Math.round(k * 3 * R * R + 2),
+        }),
+      );
     }
   return out;
 }
-export const itemStat = (it, k) => {
-  const v = it.st[k] || 0;
-  return k === 'atk' || k === 'def' || k === 'hp' ? Math.round(v * (1 + 0.1 * (it.plus || 0))) : v;
-};
-export const itemName = (it) => (it.plus ? '+' + it.plus + ' ' : '') + it.name;
-export const upCost = (it) =>
-  Math.round((20 + it.lvl * 12) * RAR[it.r].m * Math.pow(1.45, it.plus || 0));
 /**
  * Gear score: one number that grows as you gear up. Each equipped item adds its item level
  * times a rarity factor (Common 1 … Legendary 2.2), +10% per blacksmith upgrade.
  */
 export const gearScore = (eq) =>
   Object.values(eq).reduce(
-    (a: number, it: any) =>
-      a + (it ? Math.round(it.lvl * 10 * RAR[it.r].m * (1 + 0.1 * (it.plus || 0))) : 0),
+    (a: number, it: any) => a + (it ? Math.round(it.power * 10) : 0),
     0,
   ) as number;
-/** Salvaging an item yields half its merchant value. */
-export const salvageValue = (it) => Math.ceil(it.val / 2);
 /** Rarity at and above which bulk salvage keeps items (Epic, Legendary). */
 export const SALVAGE_KEEP_R = 3;
 /** Bag items that "salvage all" would remove (equipped gear is never included). */
@@ -195,13 +243,11 @@ export const salvageable = (inv) => inv.filter((it) => it.r < SALVAGE_KEEP_R);
  */
 export function salvageAll(p, keep: (it) => boolean = () => false) {
   const junk = salvageable(p.inv).filter((it) => !keep(it)),
-    gold = junk.reduce((a, it) => a + salvageValue(it), 0);
+    gold = junk.reduce((a, it) => a + it.salvageValue, 0);
   p.inv = p.inv.filter((it) => !junk.includes(it));
   p.gold += gold;
   return { count: junk.length, gold };
 }
-
-const ringScore = (it) => it.lvl * RAR[it.r].m * (1 + 0.1 * (it.plus || 0));
 /**
  * Equipment slot an item goes into: its own slot, except rings, which fill an empty ring slot
  * first and otherwise replace the weaker ring.
@@ -210,5 +256,5 @@ export function equipSlot(it, eq) {
   if (it.slot !== 'ring') return it.slot;
   if (!eq.ring) return 'ring';
   if (!eq.ring2) return 'ring2';
-  return ringScore(eq.ring) <= ringScore(eq.ring2) ? 'ring' : 'ring2';
+  return eq.ring.power <= eq.ring2.power ? 'ring' : 'ring2';
 }

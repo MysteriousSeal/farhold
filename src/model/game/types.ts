@@ -4,33 +4,12 @@
 // index signature for those extras.
 
 export type Rec = Record<string, any>;
+/** Gear and the lit torch are Item objects (a class, model/game/items.ts). */
+export type { Item } from './items';
+import type { Item } from './items';
 
 /** Item stats by name (atk, hp, def, crit, critd, aspd, spd, leech...). */
 export type StatMap = Record<string, number>;
-
-/** A piece of gear, or a lit torch in the off hand (kind 'torch'). */
-export interface Item {
-  id?: number;
-  slot?: string;
-  /** rarity index into RAR (0 common … 4 legendary) */
-  r: number;
-  lvl: number;
-  /** material index into MATS */
-  mat?: number;
-  style?: number;
-  /** smith upgrades, 0..10 */
-  plus?: number;
-  /** weapon class: warrior, ranger or mage */
-  wc?: string;
-  st: StatMap;
-  name?: string;
-  /** merchant value in gold */
-  val?: number;
-  /** a lit torch: 'torch', with the seconds it has left */
-  kind?: string;
-  left?: number;
-  [extra: string]: any;
-}
 
 /** What the hero wears, by slot (null when empty). */
 export type Equipment = Record<string, Item | null>;
