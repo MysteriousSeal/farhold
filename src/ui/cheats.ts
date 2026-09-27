@@ -2,19 +2,22 @@ import { $ } from '../core/dom';
 import { TAU } from '../core/math';
 import { ET } from '../data/enemies';
 import { makeEnemy, unstick } from '../game/enemies';
+import { leaveDungeon } from '../game/dungeons';
 import { game } from '../game/state';
 import { startEvent } from '../game/events';
 import { banner, doFade, toast } from '../game/fx';
 import { gainXp } from '../game/combat';
 import { BAGMAX } from '../game/drops';
 import { helmSkins } from '../game/items';
+import { save } from '../game/save';
 import { xpNeed } from '../game/stats';
 import { PC, poiAt } from '../world/poi';
 import { solidAt } from '../world/chunks';
 /* ================= CHEATS (dev builds only, loaded from main.ts) ================= */
 // A button in the bottom-left corner opens a panel to spawn any regular enemy, at the
 // hero's level, right next to the hero; start a world event; gain a level; jump to the
-// nearest uncleared cave or stone-gate dungeon; or drop every helmet look into the bag.
+// nearest uncleared cave or stone-gate dungeon; reset every cave and dungeon; or drop every
+// helmet look into the bag.
 
 /** A free spot 70–110 units from the hero, or the hero's own position as a fallback. */
 function spotNearHero() {
@@ -39,14 +42,15 @@ css.textContent = `
   padding:6px 12px;border-radius:10px;border:2px solid #1c1008;background:#7a1e22;color:#ffe7a8;
   font:700 13px var(--f);cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.45)}
 #cheatPanel{position:fixed;left:12px;bottom:calc(env(safe-area-inset-bottom) + 52px);z-index:30;
-  display:none;width:min(340px,calc(100vw - 24px));max-height:calc(100vh - 180px);overflow:auto;
+  display:none;width:min(760px,calc(100vw - 24px));max-height:calc(100vh - 72px);overflow:auto;
+  columns:2 300px;column-gap:22px;
   padding:12px 14px 14px;border-radius:14px;border:2px solid #1c1008;
   background:rgba(24,18,34,.97);box-shadow:inset 0 0 0 2px #c9912c,0 8px 20px rgba(0,0,0,.55)}
 #cheatPanel.on{display:block}
-#cheatPanel .chead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+#cheatPanel .chead{column-span:all;display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
 #cheatPanel .chead b{font:700 17px var(--f);color:#f5c451}
 #cheatPanel .chead small{font:500 12px var(--f);color:#c8bfa8}
-#cheatPanel section{padding:10px 0 4px;border-top:1px solid rgba(201,145,44,.35)}
+#cheatPanel section{break-inside:avoid;padding:10px 0 4px;border-top:1px solid rgba(201,145,44,.35)}
 #cheatPanel h3{margin:0 0 2px;font:700 14px var(--f);color:#ffe7a8;letter-spacing:.3px}
 #cheatPanel p{margin:0 0 8px;font:400 12px var(--f);color:#b9b0c8}
 #cheatPanel .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
@@ -133,6 +137,31 @@ function toNearestPlace(kind: 'cave' | 'gate') {
     banner(best.name, 'Danger level ' + best.lvl);
   });
 }
+/** Every cave and stone-gate dungeon back to new: enemies, guardians, chests and first-clear
+ * bonuses. Lairs (boss skill points) are left alone. */
+function resetDungeons() {
+  if (game.state !== 'play' || !game.P) return;
+  if (game.mode === 'house') {
+    toast('Step outside first');
+    return;
+  }
+  const wipe = () => {
+    const P = game.P,
+      under = (k: string) => k[0] === 'c' || k[0] === 'g';
+    for (const k of Object.keys(P.cleared)) if (under(k)) delete P.cleared[k];
+    for (const k of Object.keys(P.dgClear)) if (under(k)) delete P.dgClear[k];
+    for (const k of Object.keys(P.caves)) if (under(k)) delete P.caves[k];
+    save();
+    toast('Every cave and dungeon is back to new');
+  };
+  // from inside one, step out to its entrance first
+  if (game.mode === 'dungeon')
+    doFade(() => {
+      leaveDungeon(true);
+      wipe();
+    });
+  else wipe();
+}
 /** Put every helmet look in the bag: each metal as a Cap and a Helm. */
 function giveHelms() {
   if (game.state !== 'play' || !game.P) return;
@@ -153,10 +182,11 @@ function giveHelms() {
   );
 }
 panel.innerHTML = '<div class="chead"><b>Cheats</b><small id="cheatLv"></small></div>';
-const hero = section('cHero', 'Hero', 'Level up, or jump to a cave or the nearest dungeon.');
+const hero = section('cHero', 'Hero', 'Level up, jump to a cave or dungeon, or reset them all.');
 add(hero, '+1 level', levelUp, 'wide');
 add(hero, 'Nearest dungeon', () => toNearestPlace('gate'), 'wide');
 add(hero, 'Nearest cave', () => toNearestPlace('cave'), 'wide');
+add(hero, 'Reset caves & dungeons', resetDungeons, 'wide');
 const gear = section('cGear', 'Gear', 'One of every metal, as a Cap and a Helm.');
 add(gear, 'All helmets', giveHelms, 'wide');
 const ev = section('cEv', 'World events', 'Start one right away, near you.', 'three');
