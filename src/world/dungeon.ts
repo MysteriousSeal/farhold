@@ -364,24 +364,28 @@ function genCavern(key, lvl, b) {
   D.grid = gr;
   return D;
 }
-/** Floor cell under the cave mouth: rock above it and to both upper sides, floor beside and
+/** Floor cell under the cave mouth: rock above it (ideally also to both upper sides), floor
  * below it (the hero arrives just below), nearest the first chamber's centre. Falls back
  * to the rock face straight north of the centre. */
 function caveMouth(isF, start): [number, number] {
-  let best: [number, number] | null = null,
-    bd = 1e9;
-  for (let j = start.y - 3; j <= start.y + start.h + 3; j++)
-    for (let i = start.x - 3; i <= start.x + start.w + 3; i++) {
-      if (!isF(i, j) || !isF(i - 1, j) || !isF(i + 1, j) || !isF(i, j + 1) || !isF(i, j + 2))
-        continue;
-      if (isF(i - 1, j - 1) || isF(i, j - 1) || isF(i + 1, j - 1)) continue;
-      const d = Math.hypot(i - start.cx, j - start.cy);
-      if (d < bd) {
-        bd = d;
-        best = [i, j];
+  // first a wide face (rock on three cells above, floor beside), then any rock face above
+  // floor with room below, both within the first chamber
+  for (const wide of [true, false]) {
+    let best: [number, number] | null = null,
+      bd = 1e9;
+    for (let j = start.y - 3; j <= start.y + start.h + 3; j++)
+      for (let i = start.x - 3; i <= start.x + start.w + 3; i++) {
+        if (!isF(i, j) || !isF(i, j + 1) || !isF(i, j + 2) || isF(i, j - 1)) continue;
+        if (wide && (!isF(i - 1, j) || !isF(i + 1, j) || isF(i - 1, j - 1) || isF(i + 1, j - 1)))
+          continue;
+        const d = Math.hypot(i - start.cx, j - start.cy);
+        if (d < bd) {
+          bd = d;
+          best = [i, j];
+        }
       }
-    }
-  if (best) return best;
+    if (best) return best;
+  }
   let j = start.cy;
   while (isF(start.cx, j - 1)) j--;
   return [start.cx, j];
