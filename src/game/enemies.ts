@@ -401,9 +401,25 @@ export function updateEnemies(dt) {
         ? WADE
         : 1);
     e.slow -= dt;
-    const aggroR = game.mode === 'dungeon' ? 300 : 260;
-    if ((d < aggroR || (e.aggro && d < 520)) && (!pVillage || e.raid) && game.state === 'play') {
+    const inDg = game.mode === 'dungeon',
+      aggroR = inDg ? 300 : 260,
+      // underground, rock walls hide the hero: no noticing and no chasing through them
+      seen = !inDg || (d < 560 && sees(e, dt));
+    if (inDg && e.aggro && !seen) {
+      // lost sight: go and look where the hero was last seen, then give up
+      e.aggro = false;
+      e.hunt = { x: e.seenX ?? game.P.x, y: e.seenY ?? game.P.y, t: 5 };
+    }
+    if (
+      seen &&
+      (d < aggroR + (e.hunt ? 120 : 0) || (e.aggro && d < 520)) &&
+      (!pVillage || e.raid) &&
+      game.state === 'play'
+    ) {
       e.aggro = true;
+      e.hunt = null;
+      e.seenX = game.P.x;
+      e.seenY = game.P.y;
       const ai = D.ai;
       if (e.charge) {
         e.charge.t -= dt;
@@ -547,6 +563,19 @@ export function updateEnemies(dt) {
         e.stunWait -= dt;
         mx = my = 0;
       }
+    } else if (e.hunt) {
+      e.aggro = false;
+      const h = e.hunt,
+        hx = h.x - e.x,
+        hy = h.y - e.y,
+        hd = Math.hypot(hx, hy);
+      h.t -= dt;
+      // walk to the spot, then stand and look around for a moment
+      if (hd > 18 && h.t > 1.2) {
+        mx = (hx / hd) * 0.8;
+        my = (hy / hd) * 0.8;
+      } else h.t = Math.min(h.t, 1.2);
+      if (h.t <= 0) e.hunt = null;
     } else {
       e.aggro = false;
       e.wt -= dt;
@@ -612,6 +641,29 @@ export function updateEnemies(dt) {
     }
   }
   game.enemies = game.enemies.filter((e) => !e.dead);
+}
+/** Clear line from the enemy to the hero through dungeon floor, rechecked a few times a second. */
+function sees(e, dt) {
+  e.losT = (e.losT || 0) - dt;
+  if (e.losT > 0) return e.los;
+  e.losT = 0.15 + Math.random() * 0.1;
+  const DG = game.DG,
+    T = DG.T,
+    ax = e.x,
+    ay = e.y - 8,
+    bx = game.P.x,
+    by = game.P.y - 8,
+    n = Math.ceil(Math.hypot(bx - ax, by - ay) / 10);
+  e.los = true;
+  for (let k = 1; k < n; k++) {
+    const x = ax + ((bx - ax) * k) / n,
+      y = ay + ((by - ay) * k) / n;
+    if (!DG.isF(Math.floor(x / T), Math.floor(y / T))) {
+      e.los = false;
+      break;
+    }
+  }
+  return e.los;
 }
 function applyKB(e, dt) {
   moveEnt(e, e.kbx * dt, e.kby * dt, e.r * 0.6);

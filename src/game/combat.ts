@@ -58,6 +58,9 @@ export function damageEnemy(e, mul, kx, ky, o: Rec = {}) {
   e.kbx += kx * kb;
   e.kby += ky * kb;
   e.aggro = true;
+  // a hit gives the hero away even from behind a wall: the enemy comes looking there
+  e.seenX = game.P.x;
+  e.seenY = game.P.y;
   if (o.stun && !e.boss) e.stun = Math.max(e.stun, o.stun);
   if (o.freeze) e.frozen = Math.max(e.frozen, e.boss ? o.freeze * 0.4 : o.freeze);
   ftext(
