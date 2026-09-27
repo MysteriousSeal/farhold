@@ -22,6 +22,7 @@ import {
   drawLamp,
   drawPillar,
   drawProp,
+  drawCaveMouth,
   drawStairs,
   drawStall,
   drawTorch,
@@ -493,7 +494,8 @@ export function render() {
     const portal = game.DG.portal;
     if (portal) list.push({ y: portal.y, f: (c) => drawPortal(c, portal, game.time, !!hero.warp) });
     g.save();
-    drawStairs(g, game.DG.exit, game.time, game.DG.stair);
+    if (game.DG.style === 'cave') drawCaveMouth(g, game.DG.exit, game.time);
+    else drawStairs(g, game.DG.exit, game.time, game.DG.stair);
     g.restore();
   }
   for (const t of game.teles) drawTele(g, t);

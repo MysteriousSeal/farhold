@@ -1,6 +1,6 @@
 import type { Dungeon } from '../game/types';
-import { mkCanvas } from '../core/dom';
-import { hs, mulberry, pick, sh, strSeed } from '../core/math';
+import { DPR, H, W, mkCanvas } from '../core/dom';
+import { clamp, hs, mulberry, pick, sh, strSeed } from '../core/math';
 import { game } from '../game/state';
 import { CH } from './terrain';
 /* ---------- Dungeons ---------- */
@@ -288,12 +288,16 @@ function genCavern(key, lvl, b) {
       stair: pal[2],
     };
   D.isF = isF;
+  // the way out is a daylit mouth in a north rock face of the first chamber
+  const [ei, ej] = caveMouth(isF, start);
+  D.exit = { x: ei * T + T / 2, y: ej * T + 6 };
   for (let y = 1; y < GH - 1; y++)
     for (let x = 1; x < GW - 1; x++)
       if (
         !isF(x, y) &&
         isF(x, y + 1) &&
         rnd() < 0.07 &&
+        !(y === ej - 1 && Math.abs(x - ei) < 3) &&
         !D.torches.some((t) => Math.abs(t.tx - x) < 4 && Math.abs(t.ty - y) < 3)
       )
         D.torches.push({ tx: x, ty: y, x: x * T + T / 2, y: (y + 1) * T + 2, ph: rnd() * 9 });
@@ -307,14 +311,30 @@ function genCavern(key, lvl, b) {
         if (!isF(gx, gy)) continue;
         if (Math.abs(gx - start.cx) + Math.abs(gy - start.cy) < 3) continue;
         if (Math.abs(gx - end.cx) + Math.abs(gy - end.cy) < 3) continue;
+        if (Math.abs(gx - ei) + Math.abs(gy - ej) < 3) continue;
         const k = r === start ? pick(['bones', 'remains', 'web']) : pick(dress),
           open = isF(gx - 1, gy) && isF(gx + 1, gy) && isF(gx, gy - 1) && isF(gx, gy + 1);
-        if (k === 'stalagmite' && !open) continue;
+        // bones and stalagmites are wider than a tile: only on open floor, clear of the rock
+        if (k !== 'web' && !open) continue;
         const prop: Record<string, any> = {
           k,
           x: gx * T + T / 2,
           y: gy * T + T * 0.72,
         };
+        if (k === 'web') {
+          // webs only where two rock faces meet, strung across the corner
+          const corners = [
+            [-1, -1],
+            [1, -1],
+            [-1, 1],
+            [1, 1],
+          ].filter(([sx, sy]) => !isF(gx + sx, gy) && !isF(gx, gy + sy));
+          if (!corners.length) continue;
+          const [sx, sy] = corners[(rnd() * corners.length) | 0];
+          prop.corner = [sx, sy];
+          prop.x = gx * T + T / 2 + (sx * T) / 2;
+          prop.y = gy * T + T / 2 + (sy * T) / 2;
+        }
         if (k === 'stalagmite') {
           prop.r = 10;
           prop.col = pal[3];
@@ -325,10 +345,31 @@ function genCavern(key, lvl, b) {
       }
     }
   }
-  D.exit = { x: start.cx * T + T / 2, y: start.cy * T + T / 2 };
   D.chest = { x: end.cx * T + T / 2, y: end.cy * T + T / 2 - 30, open: false };
   D.grid = gr;
   return D;
+}
+/** Floor cell under the cave mouth: rock above it and to both upper sides, floor beside and
+ * below it (the hero arrives just below), nearest the first chamber's centre. Falls back
+ * to the rock face straight north of the centre. */
+function caveMouth(isF, start): [number, number] {
+  let best: [number, number] | null = null,
+    bd = 1e9;
+  for (let j = start.y - 3; j <= start.y + start.h + 3; j++)
+    for (let i = start.x - 3; i <= start.x + start.w + 3; i++) {
+      if (!isF(i, j) || !isF(i - 1, j) || !isF(i + 1, j) || !isF(i, j + 1) || !isF(i, j + 2))
+        continue;
+      if (isF(i - 1, j - 1) || isF(i, j - 1) || isF(i + 1, j - 1)) continue;
+      const d = Math.hypot(i - start.cx, j - start.cy);
+      if (d < bd) {
+        bd = d;
+        best = [i, j];
+      }
+    }
+  if (best) return best;
+  let j = start.cy;
+  while (isF(start.cx, j - 1)) j--;
+  return [start.cx, j];
 }
 /** Opens lone rock tiles, one-tile rock ribs and corner-only pinches, which draw as square
  * blocks. It only ever adds floor, so nothing that was reachable stops being so. */
@@ -379,7 +420,9 @@ function reaches(gr, GW, GH, start, end) {
   return seen[end.cy * GW + end.cx] === 1;
 }
 export function genDungeonChunk(D, cx, cy) {
-  const cvs = mkCanvas(CH, CH),
+  // painted at screen resolution (DPR × camera zoom, up to 3×) so floor detail stays sharp
+  const res = Math.min(3, Math.ceil(DPR * clamp(Math.min(W, H) / 370, 1, 2.1))),
+    cvs = mkCanvas(CH * res, CH * res),
     x = cvs.getContext('2d'),
     T = D.T,
     ox = cx * CH,
@@ -387,6 +430,7 @@ export function genDungeonChunk(D, cx, cy) {
   const cave = D.style === 'cave',
     pal = cave ? cavePal() : dungeonPal(D.b);
   const moss: { x: number; y: number; s: number; k?: string }[] = [];
+  x.scale(res, res);
   x.fillStyle = cave ? CAVE_VOID : '#120e1a';
   x.fillRect(0, 0, CH, CH);
   x.save();
@@ -436,13 +480,13 @@ export function genDungeonChunk(D, cx, cy) {
           k: roots ? 'roots' : q < 0.45 ? 'pebbles' : q < 0.75 ? 'crystal' : 'puddle',
         });
       }
-      if (!isF(i, j - 1)) {
-        const shade = x.createLinearGradient(0, Y, 0, Y + 14);
-        shade.addColorStop(0, 'rgba(0,0,0,.35)');
-        shade.addColorStop(1, 'rgba(0,0,0,0)');
-        x.fillStyle = shade;
-        x.fillRect(X, Y, T, 14);
-      }
+      // crisp shadow bands under and beside the rock, not fades that stop at tile edges
+      x.fillStyle = 'rgba(0,0,0,.2)';
+      if (!isF(i, j - 1)) x.fillRect(X, Y, T, 7);
+      if (!isF(i - 1, j))
+        x.fillRect(X, Y + (isF(i, j - 1) ? 0 : 7), 4, T - (isF(i, j - 1) ? 0 : 7));
+      if (!isF(i + 1, j))
+        x.fillRect(X + T - 4, Y + (isF(i, j - 1) ? 0 : 7), 4, T - (isF(i, j - 1) ? 0 : 7));
     },
     rockWall = (i, j, X, Y) => {
       x.fillStyle = pal[1];

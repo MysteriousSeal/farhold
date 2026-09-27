@@ -619,7 +619,8 @@ export function getChunk(i, j, gen) {
           );
     if (game.bgGen && game.bgGen.cx === i && game.bgGen.cy === j) game.bgGen = null;
     map.set(k, c);
-    if (map.size > 44) {
+    // dungeon chunks are painted at up to 3× resolution, so fewer are kept
+    if (map.size > (game.mode === 'dungeon' ? 20 : 44)) {
       const a = [...map.entries()].sort((p, q) => p[1].last - q[1].last);
       for (let n = 0; n < 10; n++) map.delete(a[n][0]);
     }

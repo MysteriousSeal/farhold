@@ -612,15 +612,21 @@ export function drawProp(c, p, t) {
     c.drawImage(s.c, -s.ax, -s.ay, s.w, s.h);
   } else if (k === 'web') {
     // cobweb: irregular spokes, sagging spiral threads, a torn strand, dewdrops, maybe a spider
+    // `corner` [sx, sy]: a quarter web strung between two rock faces, hub in the corner
     const rnd = mulberry(((p.x * 73 + p.y * 151) | 0) ^ 0x5bd1),
-      n = 9 + ((rnd() * 3) | 0),
+      cor = p.corner,
+      n = cor ? 5 + ((rnd() * 2) | 0) : 9 + ((rnd() * 3) | 0),
       spokes: number[][] = [];
     for (let i = 0; i < n; i++) {
-      const a = (i / n) * TAU + (rnd() - 0.5) * 0.35,
-        r = 22 * (0.72 + rnd() * 0.4);
-      spokes.push([Math.cos(a) * r, Math.sin(a) * r * 0.72]);
+      const a = cor
+          ? Math.atan2(-cor[1], -cor[0]) +
+            (i / (n - 1) - 0.5) * (Math.PI / 2) +
+            (i && i < n - 1 ? (rnd() - 0.5) * 0.2 : 0)
+          : (i / n) * TAU + (rnd() - 0.5) * 0.35,
+        r = (cor ? 30 : 22) * (0.72 + rnd() * 0.4);
+      spokes.push([Math.cos(a) * r, Math.sin(a) * r * (cor ? 1 : 0.72)]);
     }
-    shadow(c, 0, 5, 18, 5, 0.1);
+    if (!cor) shadow(c, 0, 5, 18, 5, 0.1);
     c.lineCap = 'round';
     c.strokeStyle = 'rgba(242,242,252,.6)';
     c.lineWidth = 1.1;
@@ -635,7 +641,7 @@ export function drawProp(c, p, t) {
     c.lineWidth = 0.9;
     c.beginPath();
     for (let f = 0.2; f < 0.98; f += 0.12)
-      for (let i = 0; i < n; i++) {
+      for (let i = 0; i < (cor ? n - 1 : n); i++) {
         if (f > 0.85 && i === torn) continue;
         const [ax, ay] = spokes[i],
           [bx, by] = spokes[(i + 1) % n];
@@ -664,7 +670,8 @@ export function drawProp(c, p, t) {
     c.arc(0, 0, 1.8, 0, TAU);
     c.fill();
     if (rnd() < 0.35) {
-      // a small spider on the hub
+      // a small spider on the hub (out on the threads for a corner web, off the rock)
+      if (cor) c.translate(-cor[0] * 11, -cor[1] * 11);
       c.strokeStyle = '#1e1624';
       c.lineWidth = 1.1;
       c.beginPath();
@@ -763,6 +770,68 @@ export function drawChest(c, ch, t) {
   }
   c.restore();
   if (!ch.open) addLight(ch.x, ch.y - 14, 110, 0.6, '#ffd27a');
+}
+/** A cave's way out: a rough opening in the north rock face with daylight at its far end,
+ * spilling onto the floor in front. `s` is the floor point at the foot of the face. */
+export function drawCaveMouth(c, s, t) {
+  const rnd = mulberry(((s.x * 31 + s.y * 17) | 0) ^ 0x2c1f),
+    base = -6,
+    n = 9,
+    pts: number[][] = [];
+  // an uneven arch: wide at the floor, lumpy along the top
+  for (let k = 0; k <= n; k++) {
+    const a = Math.PI + (k / n) * Math.PI,
+      w = 23 + (k && k < n ? (rnd() - 0.5) * 5 : 0),
+      h = 31 + (k && k < n ? (rnd() - 0.5) * 6 : 0);
+    pts.push([Math.cos(a) * w, base + Math.sin(a) * h]);
+  }
+  const arch = (grow: number) => {
+    c.beginPath();
+    c.moveTo(pts[0][0] - grow, base);
+    for (const [x, y] of pts) c.lineTo(x + Math.sign(x) * grow, y - grow);
+    c.lineTo(pts[n][0] + grow, base);
+    c.closePath();
+  };
+  c.save();
+  c.translate(s.x, s.y);
+  c.lineJoin = 'round';
+  // daylight on the floor in front
+  const pulse = 1 + Math.sin(t * 0.9) * 0.06,
+    spill = c.createRadialGradient(0, base + 4, 2, 0, base + 10, 46 * pulse);
+  spill.addColorStop(0, 'rgba(255,236,184,.42)');
+  spill.addColorStop(1, 'rgba(255,236,184,0)');
+  c.fillStyle = spill;
+  c.beginPath();
+  c.ellipse(0, base + 10, 46 * pulse, 24 * pulse, 0, 0, TAU);
+  c.fill();
+  // rim of paler rock, then the tunnel glowing toward the outside
+  arch(4);
+  c.fillStyle = '#8a5c3c';
+  c.strokeStyle = OUT;
+  c.lineWidth = 2.5;
+  c.fill();
+  c.stroke();
+  const glow = c.createLinearGradient(0, base, 0, base - 30);
+  glow.addColorStop(0, '#3a2418');
+  glow.addColorStop(0.55, '#b88a56');
+  glow.addColorStop(1, '#fff0c4');
+  arch(0);
+  c.fillStyle = glow;
+  c.fill();
+  c.lineWidth = 2;
+  c.stroke();
+  // a couple of fallen stones at the foot
+  for (const sx of [-1, 1]) {
+    const r = 3.5 + rnd() * 2;
+    c.beginPath();
+    c.ellipse(sx * (22 + rnd() * 3), base + 1, r, r * 0.72, 0, 0, TAU);
+    c.fillStyle = '#a07a58';
+    c.fill();
+    c.lineWidth = 1.6;
+    c.stroke();
+  }
+  c.restore();
+  addLight(s.x, s.y - 10, 130, 0.7, '#ffe2a0');
 }
 export function drawStairs(c, s, t, col = '#9a90a8') {
   c.save();
