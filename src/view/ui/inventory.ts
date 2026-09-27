@@ -12,14 +12,11 @@ import {
   TORCH_MAX,
   TORCH_TIME,
   lightTorch,
-  quickKind,
-  torchLeft,
-  torches,
   type QuickKind,
 } from '../../model/game/consumables';
 import { toast } from '../../model/game/fx';
 import { fmtClock } from '../../core/format';
-import { equipSlot, gearScore, salvageAll, salvageable } from '../../model/game/items';
+import { equipSlot, gearScore } from '../../model/game/items';
 import { game } from '../../model/game/state';
 import { calcStats, xpNeed } from '../../model/game/stats';
 import { btn, consCanvas, goldPill, itemCard, iconCanvas, openModal, statLines } from './modal';
@@ -283,7 +280,7 @@ function renderBags() {
   }
   // items that would make the hero stronger (the ▲ badge) are never bulk-salvaged
   const isUp = (it) => compareItem(it).overall > 0.005,
-    junk = salvageable(game.P.inv).filter((it) => !isUp(it));
+    junk = game.P.salvageable.filter((it) => !isUp(it));
   if (junk.length) {
     const gold = junk.reduce((a, it) => a + it.salvageValue, 0);
     $('#iBulk').appendChild(
@@ -297,7 +294,7 @@ function renderBags() {
             render();
             return;
           }
-          const r = salvageAll(game.P, isUp);
+          const r = game.P.salvageAll(isUp);
           salvageArmed = false;
           if (selItem && !selItem.eq && !game.P.inv.includes(selItem.it)) selItem = null;
           SFX.coin();
@@ -310,7 +307,7 @@ function renderBags() {
   } else salvageArmed = false;
   // consumables have their own row and never take bag space: the Q quick slot, then the stacks
   const row = $('#iCons'),
-    qk = quickKind(),
+    qk = game.P.quickKind,
     q = document.createElement('div');
   q.className = 'cell potcell quick';
   q.appendChild(consCanvas(qk));
@@ -327,7 +324,7 @@ function renderBags() {
   );
   row.appendChild(q);
   for (const k of QUICK) {
-    const n = k === 'torch' ? torches() : game.P.pot,
+    const n = k === 'torch' ? game.P.torches : game.P.pot,
       c = document.createElement('div');
     c.className = 'cell potcell' + (selItem && selItem.cons === k ? ' sel' : '');
     c.style.opacity = n > 0 ? '' : '.45';
@@ -377,7 +374,7 @@ function dropZone(el: HTMLElement, ok: (k: QuickKind) => boolean, fn: (k: QuickK
 /** A consumable stack: what it does, how many are left, using it and putting it on Q. */
 function renderCons(dt: HTMLElement, k: QuickKind) {
   const pot = k === 'pot',
-    n = pot ? game.P.pot : torches(),
+    n = pot ? game.P.pot : game.P.torches,
     lines = pot
       ? [
           ['Restores', Math.round(game.ST.hp * 0.45 * (game.ST.potMul || 1)) + ' health'],
@@ -389,7 +386,7 @@ function renderCons(dt: HTMLElement, k: QuickKind) {
           ['You have', n + ' / ' + TORCH_MAX],
           ['Held in', 'the off hand'],
         ];
-  if (quickKind() === k) lines.push(['Shortcut', 'Q']);
+  if (game.P.quickKind === k) lines.push(['Shortcut', 'Q']);
   dt.innerHTML =
     '<div class="nm" style="color:' +
     CONS[k].col +
@@ -403,7 +400,7 @@ function renderCons(dt: HTMLElement, k: QuickKind) {
   const bx = dt.querySelector('.acts');
   bx.appendChild(
     btn(
-      pot ? 'Drink' : torchLeft() > 0 ? 'Light a fresh one' : 'Hold in off hand',
+      pot ? 'Drink' : game.P.torchLeft > 0 ? 'Light a fresh one' : 'Hold in off hand',
       () => {
         if (pot) drinkPot();
         else lightTorch();
@@ -413,7 +410,7 @@ function renderCons(dt: HTMLElement, k: QuickKind) {
       n <= 0,
     ),
   );
-  if (quickKind() !== k)
+  if (game.P.quickKind !== k)
     bx.appendChild(
       btn(
         'Put on Q',
@@ -430,7 +427,7 @@ function renderLitTorch(dt: HTMLElement) {
   dt.innerHTML =
     '<div class="nm" style="color:#ffb45a">Lit torch</div><div style="opacity:.75">Off hand</div>' +
     '<div class="stats"><div>Burns for <b>' +
-    fmtClock(torchLeft() * 1000) +
+    fmtClock(game.P.torchLeft * 1000) +
     '</b></div></div><div class="acts"></div>';
   dt.querySelector('.acts').appendChild(
     btn(

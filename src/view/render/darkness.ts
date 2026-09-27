@@ -1,7 +1,7 @@
 import { DPR, H, W, mkCanvas } from '../dom';
 import { hexA } from '../../core/math';
 import { game, lights } from '../../model/game/state';
-import { torchLeft } from '../../model/game/consumables';
+
 /* ================= Underground darkness ================= */
 // Caves are very dark and crypts dim. Light comes from the hero (a small glow, or a carried
 // torch), wall torches, the cave mouth, chests, portals and glowing effects. Enemies left in
@@ -22,7 +22,7 @@ function baseLights(t: number): Light[] {
     L: Light[] = [];
   // the hero's own light: a lit torch, or (in crypts only) a small glow; caves are pitch black
   if (game.P) {
-    const torch = torchLeft() > 0;
+    const torch = game.P.torchLeft > 0;
     if (torch || D.style !== 'cave')
       L.push({
         x: game.P.x,

@@ -1,6 +1,5 @@
 import { game } from '../game/state';
 import { heroStyle } from '../game/style';
-import { ADJ, MASTERY, TREE } from './tree';
 /* ---- skill trees ---- */
 // Per-style trees: only their active skills (s1, s2) are still used, see skillTree().
 export const TREES = {
@@ -267,63 +266,5 @@ export const SKILLN = {
   mage: ['Frost nova', 'Meteor'],
 };
 /* ---------- points, active skill ranks and the passive tree (data/tree.ts) ---------- */
-/** Active skills unlock by themselves at these levels; points buy ranks up to SKILL_MAX. */
-export const SKILL_LVL = [2, 6],
-  SKILL_MAX = 4;
-/** Rank of an active skill ('s1', 's2'): 0 while locked, 1 when unlocked, +1 per point spent. */
-export const rank = (id: string) => {
-  const i = id === 's1' ? 0 : id === 's2' ? 1 : -1;
-  if (i < 0 || !game.P || game.P.lvl < SKILL_LVL[i]) return 0;
-  return Math.min(SKILL_MAX, 1 + ((game.P.sp && game.P.sp[id]) || 0));
-};
-/** Skill points from lair bosses: one for each boss's first defeat. */
-export const bossPoints = (p = game.P) => (p.bossDone || []).length;
-/** Every point the hero has earned, spent or not. */
-export const pointsEarned = (p = game.P) => p.lvl - 1 + bossPoints(p);
-/** The Skills button blinks only for points earned since the tree was last opened. */
-export const pointsNew = (p = game.P) => canSpend(p) && pointsEarned(p) > (p.ptsSeen || 0);
-export const ownedNodes = (p = game.P): string[] => p.tree || [];
-/** Points not yet spent: one per level after the first, plus one per lair boss. */
-export function pointsFree(p = game.P) {
-  const sp = p.sp || {};
-  return (
-    p.lvl - 1 + bossPoints(p) - ownedNodes(p).length - (sp.s1 || 0) - (sp.s2 || 0) - masteryRanks(p)
-  );
-}
-/** Mastery ranks bought, all kinds together. */
-export const masteryRanks = (p = game.P) =>
-  Object.values((p.mastery || {}) as Record<string, number>).reduce((a, n) => a + n, 0);
-/** Mastery opens once every node but the keystones is learned. */
-export function masteryOpen(p = game.P) {
-  const own = new Set(ownedNodes(p));
-  return Object.values(TREE).every((n) => n.kind === 'start' || n.kind === 'key' || own.has(n.id));
-}
-/**
- * Is there anything a free point could buy right now: a tree node next to an owned one, or
- * a rank on an unlocked active skill that isn't maxed? (Leftover points with nothing to
- * buy, e.g. a full tree, don't count.)
- */
-export function canSpend(p = game.P) {
-  if (pointsFree(p) <= 0) return false;
-  if ((['s1', 's2'] as const).some((id) => rank(id) > 0 && rank(id) < SKILL_MAX)) return true;
-  if (masteryOpen(p)) return true;
-  return Object.keys(TREE).some((id) => canLearn(id, p));
-}
-/** Can the tree node be learned now (not owned, next to an owned node or the start)? */
-export function canLearn(id: string, p = game.P) {
-  const own = new Set(['start', ...ownedNodes(p)]);
-  return !own.has(id) && (ADJ[id] || []).some((n) => own.has(n));
-}
-/** The summed effects of every tree node the hero owns. */
-export function treeFx(p = game.P) {
-  const F: Record<string, number> = {};
-  for (const id of ownedNodes(p)) {
-    const n = TREE[id];
-    if (n) for (const k in n.fx) F[k] = (F[k] || 0) + n.fx[k];
-  }
-  for (const m of MASTERY) {
-    const r = (p.mastery && p.mastery[m.k]) || 0;
-    for (const k in m.fx) F[k] = (F[k] || 0) + m.fx[k] * r;
-  }
-  return F;
-}
+/** Rank of active skill s1 or s2 for the hero in play (0 before a game starts). */
+export const rank = (id: string) => (game.P ? game.P.rank(id) : 0);

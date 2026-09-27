@@ -2,7 +2,7 @@ import { WARP_TIME } from '../../model/game/warp';
 import { heroStyle } from '../../model/game/style';
 import { drawCaveBit, drawMoss } from '../art/caveFloor';
 import { drawDarkness, heroDark, markDark, underDark } from './darkness';
-import { torchLeft } from '../../model/game/consumables';
+
 import {
   drawCityGround,
   drawFountain,
@@ -219,7 +219,7 @@ function drawHero(c, t, bodyOnly = false) {
     });
   // a lit torch in the off hand (left hand)
   const lh =
-      torchLeft() > 0 && !rolling && !leap
+      game.P.torchLeft > 0 && !rolling && !leap
         ? handPos(hero.dx, hero.dy, hero.moving, hero.walk, t, game.P.race, 1, L, true)
         : null,
     torch = lh ? { x: game.P.x + lh.x, y: game.P.y + lh.y - z } : null,

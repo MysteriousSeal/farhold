@@ -7,10 +7,6 @@ import {
   TORCH_TIME,
   burnTorch,
   lightTorch,
-  quickCount,
-  quickKind,
-  torchLeft,
-  torches,
   useQuick,
 } from '../src/model/game/consumables';
 import { RESET_MS, caveState, resetLeft } from '../src/model/game/dungeons';
@@ -18,6 +14,7 @@ import { fmtClock } from '../src/core/format';
 import { Item, gearScore } from '../src/model/game/items';
 import { migrate } from '../src/model/game/save';
 import { game } from '../src/model/game/state';
+import { Hero } from '../src/model/game/hero';
 import { gameHour } from '../src/model/game/worldTick';
 
 // count the potions drunk through the quick slot
@@ -26,7 +23,7 @@ vi.mock('../src/model/game/combat', () => ({ drinkPot: () => drank.n++ }));
 
 // Consumables (potions and torches), the Q quick slot, cave cycles and the day clock.
 const hero = (o: Record<string, unknown> = {}) =>
-  ({
+  new Hero({
     lvl: 5,
     pot: 3,
     cons: {},
@@ -35,7 +32,7 @@ const hero = (o: Record<string, unknown> = {}) =>
     caves: {},
     cleared: {},
     ...o,
-  }) as any;
+  });
 
 describe('torches', () => {
   beforeEach(() => {
@@ -49,23 +46,22 @@ describe('torches', () => {
   });
 
   it('counts the torches in the bags', () => {
-    expect(torches()).toBe(3);
-    expect(torches(hero())).toBe(0);
-    expect(torches(null)).toBe(0);
+    expect(game.P.torches).toBe(3);
+    expect(hero().torches).toBe(0);
   });
 
   it('lighting one takes it from the bags into the off hand', () => {
     expect(lightTorch()).toBe(true);
-    expect(torches()).toBe(2);
+    expect(game.P.torches).toBe(2);
     expect(game.P.eq.offhand.kind).toBe('torch');
-    expect(torchLeft()).toBe(TORCH_TIME);
+    expect(game.P.torchLeft).toBe(TORCH_TIME);
   });
 
   it('a torch from a cave wall is free', () => {
     game.P = hero();
     expect(lightTorch(true)).toBe(true);
-    expect(torchLeft()).toBe(TORCH_TIME);
-    expect(torches()).toBe(0);
+    expect(game.P.torchLeft).toBe(TORCH_TIME);
+    expect(game.P.torches).toBe(0);
   });
 
   it('cannot light one with none left', () => {
@@ -77,23 +73,23 @@ describe('torches', () => {
   it('a lit torch burns down and disappears', () => {
     lightTorch();
     burnTorch(100);
-    expect(torchLeft()).toBeCloseTo(TORCH_TIME - 100);
+    expect(game.P.torchLeft).toBeCloseTo(TORCH_TIME - 100);
     burnTorch(TORCH_TIME);
-    expect(torchLeft()).toBe(0);
+    expect(game.P.torchLeft).toBe(0);
     expect(game.P.eq.offhand).toBeNull();
   });
 
   it('only burns while held (bag torches keep)', () => {
     burnTorch(1000);
-    expect(torches()).toBe(3);
+    expect(game.P.torches).toBe(3);
   });
 
   it('lighting a fresh one replaces the burning one', () => {
     lightTorch();
     burnTorch(250);
     lightTorch();
-    expect(torchLeft()).toBe(TORCH_TIME);
-    expect(torches()).toBe(1);
+    expect(game.P.torchLeft).toBe(TORCH_TIME);
+    expect(game.P.torches).toBe(1);
   });
 
   it('a lit torch adds nothing to gear score and breaks no stats', () => {
@@ -106,14 +102,14 @@ describe('torches', () => {
 describe('the Q quick slot', () => {
   it('holds potions by default', () => {
     game.P = hero({ quick: undefined });
-    expect(quickKind()).toBe('pot');
-    expect(quickCount()).toBe(3);
+    expect(game.P.quickKind).toBe('pot');
+    expect(game.P.quickCount).toBe(3);
   });
 
   it('can hold torches instead', () => {
     game.P = hero({ quick: 'torch', cons: { torch: 7 } });
-    expect(quickKind()).toBe('torch');
-    expect(quickCount()).toBe(7);
+    expect(game.P.quickKind).toBe('torch');
+    expect(game.P.quickCount).toBe(7);
   });
 
   it('only potions and torches can go on it', () => {
@@ -130,8 +126,8 @@ describe('the Q quick slot', () => {
   it('with a torch on Q, pressing Q lights one', () => {
     game.P = hero({ quick: 'torch', cons: { torch: 2 } });
     useQuick();
-    expect(torchLeft()).toBe(TORCH_TIME);
-    expect(torches()).toBe(1);
+    expect(game.P.torchLeft).toBe(TORCH_TIME);
+    expect(game.P.torches).toBe(1);
   });
 });
 

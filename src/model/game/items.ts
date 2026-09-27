@@ -8,25 +8,25 @@ import { game } from './state';
  * plain data; Item.from turns them back into items on load.
  */
 export class Item {
-  id?: number;
-  slot?: string;
+  declare id?: number;
+  declare slot?: string;
   /** rarity index into RAR (0 common … 4 legendary) */
   r = 0;
   lvl = 1;
   /** material index into MATS */
-  mat?: number;
-  style?: number;
+  declare mat?: number;
+  declare style?: number;
   /** smith upgrades, 0..10 */
-  plus?: number;
+  declare plus?: number;
   /** weapon class: warrior, ranger or mage */
-  wc?: string;
+  declare wc?: string;
   st: Record<string, number> = {};
-  name?: string;
+  declare name?: string;
   /** merchant value in gold */
-  val?: number;
+  declare val?: number;
   /** a lit torch: 'torch', with the seconds it has left */
-  kind?: string;
-  left?: number;
+  declare kind?: string;
+  declare left?: number;
   [extra: string]: any;
   constructor(data: Partial<Item> = {}) {
     Object.assign(this, data);
@@ -233,21 +233,6 @@ export const gearScore = (eq) =>
     (a: number, it: any) => a + (it ? Math.round(it.power * 10) : 0),
     0,
   ) as number;
-/** Rarity at and above which bulk salvage keeps items (Epic, Legendary). */
-export const SALVAGE_KEEP_R = 3;
-/** Bag items that "salvage all" would remove (equipped gear is never included). */
-export const salvageable = (inv) => inv.filter((it) => it.r < SALVAGE_KEEP_R);
-/**
- * Salvage every bag item below Epic, except those `keep` spares (the caller keeps upgrades);
- * returns how many items went and the gold gained.
- */
-export function salvageAll(p, keep: (it) => boolean = () => false) {
-  const junk = salvageable(p.inv).filter((it) => !keep(it)),
-    gold = junk.reduce((a, it) => a + it.salvageValue, 0);
-  p.inv = p.inv.filter((it) => !junk.includes(it));
-  p.gold += gold;
-  return { count: junk.length, gold };
-}
 /**
  * Equipment slot an item goes into: its own slot, except rings, which fill an empty ring slot
  * first and otherwise replace the weaker ring.

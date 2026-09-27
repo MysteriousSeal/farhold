@@ -10,7 +10,7 @@ import { banner, burst, doFade, ring, toast } from './fx';
 import { genItem } from './items';
 import { questEvent } from './quests';
 import { save } from './save';
-import { torchLeft } from './consumables';
+
 import { game } from './state';
 import { solidAt } from '../world/chunks';
 import { genDungeon } from '../world/dungeon';
@@ -46,7 +46,7 @@ export function enterDungeon(p) {
     game.camX = game.P.x;
     game.camY = game.P.y;
     // caves are pitch black beyond their torches and the mouth
-    if (p.kind === 'cave' && torchLeft() <= 0)
+    if (p.kind === 'cave' && game.P.torchLeft <= 0)
       toast("It's pitch dark. Light a torch, or take one from a wall");
     // enemy spawns are seeded per cave and cycle, so the same ones stay dead between visits
     const slots = [],

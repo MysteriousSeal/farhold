@@ -1,9 +1,11 @@
 import { SLOTS } from '../data/classes';
 import { game } from './state';
 import { Item } from './items';
+import { Hero } from './hero';
 const KEY = 'farhold_save_v2',
   OLDKEY = 'farhold_save_v1';
-export function migrate(p) {
+export function migrate(o): Hero {
+  const p = Hero.from(o);
   p.sp = p.sp || {};
   p.wps = p.wps || ['v0,0'];
   p.wpInfo = p.wpInfo || { 'v0,0': { name: 'Hearthfire', x: 0, y: 0, lvl: 1 } };
@@ -49,7 +51,7 @@ export function migrate(p) {
   p.eq = p.eq || {};
   for (const k of SLOTS) if (!(k in p.eq)) p.eq[k] = null;
   // saves hold items as plain data: make them Items again (bag, gear, shop stock)
-  p.inv = p.inv.map((it) => Item.from(it));
+  p.inv = (p.inv || []).map((it) => Item.from(it));
   for (const k of Object.keys(p.eq)) p.eq[k] = Item.from(p.eq[k]);
   for (const sh of Object.values(p.shops || {}) as any[])
     if (sh && sh.items) sh.items = sh.items.map((it) => Item.from(it));

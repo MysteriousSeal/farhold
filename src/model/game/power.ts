@@ -1,6 +1,7 @@
 import { equipSlot } from './items';
 import { STYLE_CD, heroStyle } from './style';
 import { game } from './state';
+import { Hero } from './hero';
 import { computeStats } from './stats';
 /* ================= ITEM POWER ================= */
 // How much stronger an item would make the hero, from the real combat formulas:
@@ -27,7 +28,7 @@ export function powerOf(style: string, s) {
 /** Relative change (0.14 = +14%) if `it` replaced the item in its slot. */
 export function compareItem(it, p = game.P) {
   // a weapon brings its own fighting style (a bow makes you fight at range)
-  const p2 = { ...p, eq: { ...p.eq, [equipSlot(it, p.eq)]: it } },
+  const p2 = new Hero({ ...p, eq: { ...p.eq, [equipSlot(it, p.eq)]: it } }),
     sb = heroStyle(p2),
     a = powerOf(heroStyle(p), computeStats(p)),
     b = powerOf(sb, computeStats(p2)),

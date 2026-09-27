@@ -1,21 +1,7 @@
 import { SFX } from '../audio/sfx';
 import { $ } from '../dom';
 import { OUT, TAU, clamp } from '../../core/math';
-import {
-  SKILLCD,
-  SKILL_LVL,
-  SKILL_MAX,
-  bossPoints,
-  pointsEarned,
-  canLearn,
-  ownedNodes,
-  pointsFree,
-  rank,
-  skillTree,
-  treeFx,
-  masteryOpen,
-  masteryRanks,
-} from '../../model/data/skills';
+import { SKILLCD, rank, skillTree } from '../../model/data/skills';
 import { LINKS, MASTERY, TREE, fxLines, type TreeNode } from '../../model/data/tree';
 import { toast } from '../../model/game/fx';
 import { save } from '../../model/game/save';
@@ -23,6 +9,7 @@ import { game } from '../../model/game/state';
 import { calcStats } from '../../model/game/stats';
 import { STYLE_NAME, heroStyle } from '../../model/game/style';
 import { btn, hdr, openModal, wireClose } from './modal';
+import { SKILL_LVL, SKILL_MAX } from '../../model/game/hero';
 /* ================= UI: the skill tree (K) ================= */
 // A pannable, zoomable map of the passive tree (data/tree.ts) on a canvas, with a side panel:
 // the two active skills of the current fighting style (ranked with points), the selected
@@ -43,11 +30,11 @@ let sel: string | null = null,
 export function openSkillTree() {
   if (game.state !== 'play') return;
   sel = null;
-  game.P.ptsSeen = pointsEarned();
+  game.P.ptsSeen = game.P.pointsEarned;
   render();
 }
 function render() {
-  const free = pointsFree();
+  const free = game.P.pointsFree;
   openModal(
     hdr(
       'Skill tree',
@@ -56,7 +43,7 @@ function render() {
         '</b> <span class="stptw">' +
         (free === 1 ? 'point' : 'points') +
         '</span> to spend · one per level, one per lair boss (' +
-        bossPoints() +
+        game.P.bossPoints +
         ' so far)',
     ) +
       '<div class="stwrap"><div class="stview" id="stView"><canvas id="stC"></canvas>' +
@@ -76,7 +63,7 @@ function render() {
 }
 /** Refresh the side panel and the points in the header, keeping the canvas. */
 function side() {
-  const free = pointsFree(),
+  const free = game.P.pointsFree,
     pts = document.querySelector('.stpts');
   if (pts) pts.textContent = String(free);
   // the word follows the count as points are spent ("1 point", "0 points")
@@ -92,7 +79,7 @@ function side() {
 /** Mastery: endless ranks once the tree is done (everything but the keystones). */
 function mastery(free: number) {
   const el = $('#stMast'),
-    open = masteryOpen();
+    open = game.P.masteryOpen;
   el.innerHTML =
     '<h4>Mastery <small>' +
     (open ? 'endless ranks' : 'opens when every node but the keystones is learned') +
@@ -179,8 +166,8 @@ function details(free: number) {
       '<div class="desc sthelp">Drag to move around, scroll or use + and − to zoom. Learn a node next to one you own. Notables are big bonuses; keystones are powerful but come with a drawback.</div>';
     return;
   }
-  const owned = n.kind === 'start' || ownedNodes().includes(n.id),
-    ok = canLearn(n.id);
+  const owned = n.kind === 'start' || game.P.tree.includes(n.id),
+    ok = game.P.canLearn(n.id);
   el.innerHTML =
     '<div class="stnm" style="color:' +
     BR_COL[n.br] +
@@ -210,7 +197,7 @@ function details(free: number) {
     btn(
       why || 'Learn (1 point)',
       () => {
-        game.P.tree = [...ownedNodes(), n.id];
+        game.P.tree = [...game.P.tree, n.id];
         flash = { id: n.id, t: 0 };
         calcStats();
         SFX.lvl();
@@ -224,11 +211,11 @@ function details(free: number) {
 }
 function summary() {
   const el = $('#stSum'),
-    lines = fxLines(treeFx()),
+    lines = fxLines(game.P.treeFx()),
     cost = game.P.lvl * 25;
   el.innerHTML =
     '<h4>Your tree <small>' +
-    ownedNodes().length +
+    game.P.tree.length +
     ' nodes</small></h4>' +
     (lines.length
       ? '<ul class="stfx sm">' +
@@ -237,7 +224,8 @@ function summary() {
           .join('') +
         '</ul>'
       : '<div class="desc">Nothing learned yet.</div>');
-  const spent = ownedNodes().length + (game.P.sp.s1 || 0) + (game.P.sp.s2 || 0) + masteryRanks();
+  const spent =
+    game.P.tree.length + (game.P.sp.s1 || 0) + (game.P.sp.s2 || 0) + game.P.masteryRanks;
   el.appendChild(
     btn(
       'Reset all for ' + cost + ' gold',
@@ -379,8 +367,8 @@ const STARS = Array.from({ length: 160 }, (_, i) => {
 });
 function draw(t: number) {
   const c = cx,
-    own = new Set(['start', ...ownedNodes()]),
-    free = pointsFree();
+    own = new Set(['start', ...game.P.tree]),
+    free = game.P.pointsFree;
   c.clearRect(0, 0, W, H);
   const bg = c.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.7);
   bg.addColorStop(0, '#1d2350');
@@ -444,7 +432,8 @@ function draw(t: number) {
     }
   }
   // nodes
-  for (const n of Object.values(TREE)) node(c, n, own.has(n.id), canLearn(n.id) && free > 0, t);
+  for (const n of Object.values(TREE))
+    node(c, n, own.has(n.id), game.P.canLearn(n.id) && free > 0, t);
 }
 function node(c: CanvasRenderingContext2D, n: TreeNode, owned: boolean, open: boolean, t: number) {
   const [x, y] = toScreen(n.x, n.y),

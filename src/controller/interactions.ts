@@ -8,7 +8,7 @@ import { save } from '../model/game/save';
 import { houseDoors, houseInteract } from '../model/game/houses';
 import { eventInteract } from '../model/game/events';
 import { game, hero } from '../model/game/state';
-import { lightTorch, torchLeft } from '../model/game/consumables';
+import { lightTorch } from '../model/game/consumables';
 import { openBoard, openPotions, openShop, openTravel } from '../view/ui/village';
 /* ================= INTERACTIONS ================= */
 /**
@@ -46,7 +46,7 @@ export function findInteract() {
           tr.x,
           tr.y,
           56,
-          torchLeft() > 0 ? 'Swap for a fresh torch' : 'Take torch',
+          game.P.torchLeft > 0 ? 'Swap for a fresh torch' : 'Take torch',
           () => {
             tr.taken = true;
             // the bracket stays empty until the cave's next cycle (saved with its progress)

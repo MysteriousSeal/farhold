@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { SLOTS } from '../src/model/data/classes';
 import { deleteSave, listSaves, loadSave, migrate, save } from '../src/model/game/save';
 import { game } from '../src/model/game/state';
+import { Hero } from '../src/model/game/hero';
 
 const store = new Map<string, string>();
 globalThis.localStorage = {
@@ -31,6 +32,22 @@ describe('game/save', () => {
     expect(p.eq.weapon.plus).toBe(0);
     expect(p.inv[0].style).toBe(0);
     expect(p.kills).toBe(0);
+  });
+
+  it('a loaded hero is a Hero, with its points and torches worked out', () => {
+    const p = migrate({
+      ...{ lvl: 6, tree: ['x'], sp: { s1: 1 }, bossDone: ['l1'], cons: { torch: 2 } },
+      ...{ treeV: 1, tree2: 1 }, // a save from the current skill tree (no refund)
+    });
+    expect(p).toBeInstanceOf(Hero);
+    expect(p.pointsEarned).toBe(6);
+    expect(p.pointsFree).toBe(4);
+    expect(p.torches).toBe(2);
+    expect(p.quickKind).toBe('pot');
+    // what gets saved is the data, not the worked-out values
+    const back = JSON.parse(JSON.stringify(p));
+    expect(back).not.toHaveProperty('pointsFree');
+    expect(back.lvl).toBe(6);
   });
 
   it('moves a legacy v1 save into a slot', () => {

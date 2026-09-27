@@ -6,6 +6,7 @@
 export type Rec = Record<string, any>;
 /** Gear and the lit torch are Item objects (a class, model/game/items.ts). */
 export type { Item } from './items';
+export type { Hero } from './hero';
 import type { Item } from './items';
 
 /** Item stats by name (atk, hp, def, crit, critd, aspd, spd, leech...). */
@@ -20,58 +21,6 @@ export interface Look {
   hair?: number;
   hairC?: string;
   fem?: boolean;
-  [extra: string]: any;
-}
-
-/** The hero: everything saved with them. */
-export interface Hero {
-  name: string;
-  seed: string;
-  race: string;
-  gender?: string;
-  lvl: number;
-  xp: number;
-  gold: number;
-  hp: number;
-  /** health potions */
-  pot: number;
-  x: number;
-  y: number;
-  look: Look;
-  inv: Item[];
-  eq: Equipment;
-  /** active skill ranks bought (s1, s2) */
-  sp: Record<string, number>;
-  /** passive tree nodes owned */
-  tree: string[];
-  mastery?: Record<string, number>;
-  /** points already seen on the skill tree (the Skills button stops blinking) */
-  ptsSeen?: number;
-  /** lair bosses beaten (one skill point each) */
-  bossDone: string[];
-  /** consumables besides potions: torch counts */
-  cons: Record<string, number>;
-  /** what the Q quick slot uses */
-  quick: 'pot' | 'torch';
-  /** places cleared, by key */
-  cleared: Record<string, number | boolean>;
-  /** saved cycles of caves and dungeons, by key */
-  caves: Record<string, Rec>;
-  dgClear: Record<string, number>;
-  chests: Record<string, Rec>;
-  /** waystones found, and their names and positions */
-  wps: string[];
-  wpInfo: Record<string, { name: string; x: number; y: number; lvl: number }>;
-  home: string;
-  quests: Rec[];
-  questLog: Rec[];
-  /** where the hero goes back to on leaving a cave or house */
-  ret?: { x: number; y: number };
-  /** time of day, 0..1 */
-  tod: number;
-  kills: number;
-  /** the tavern drink in effect */
-  buff?: { k: string; t: number } | null;
   [extra: string]: any;
 }
 

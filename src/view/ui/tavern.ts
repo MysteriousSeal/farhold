@@ -9,7 +9,7 @@ import { acceptTask, declineTask, patronJob, taskDeliver } from '../../model/gam
 import type { Interior } from '../../model/world/interior';
 import { poisNear } from '../../model/world/poi';
 import { btn, consCanvas, goldPill, hdr, openModal, wireClose } from './modal';
-import { TORCH_COST, TORCH_MAX, TORCH_TIME, torches } from '../../model/game/consumables';
+import { TORCH_COST, TORCH_MAX, TORCH_TIME } from '../../model/game/consumables';
 import { QICON } from './questUi';
 import { closeAll } from './screens';
 import { fmtClock } from '../../core/format';
@@ -201,7 +201,7 @@ function renderTavern(I: Interior) {
     ),
   );
   // torches: carried in the Consumables row, lit in the off hand
-  const have = torches(),
+  const have = game.P.torches,
     tr = document.createElement('div');
   tr.className = 'tvrow';
   tr.appendChild(consCanvas('torch'));

@@ -5,12 +5,12 @@ import { clearBonusXp, resetLeft } from '../../model/game/dungeons';
 import { fmtClock } from '../../core/format';
 import { $, H, W } from '../dom';
 import { clamp } from '../../core/math';
-import { pointsNew, rank, SKILLCD, skillTree } from '../../model/data/skills';
+import { rank, SKILLCD, skillTree } from '../../model/data/skills';
 import { game, hero } from '../../model/game/state';
 import { xpNeed } from '../../model/game/stats';
 import { POT_CD } from '../../model/game/combat';
 import { gameHour } from '../../model/game/worldTick';
-import { quickCount, quickKind } from '../../model/game/consumables';
+
 import { consCanvas } from './modal';
 import { isTouch } from '../../core/device';
 import { mini } from '../render/minimap';
@@ -147,8 +147,8 @@ export function updHud() {
   $('#ptt').textContent = game.P.pot;
   // the Q quick slot: whichever consumable it holds, its count, the potion cooldown sweep,
   // dimmed when none are left
-  const qk = quickKind(),
-    qn = quickCount(qk);
+  const qk = game.P.quickKind,
+    qn = game.P.quickCount;
   if (quickShown !== qk) {
     if (!quickShown) {
       // the top bar's potion counter: the same flask as in the bags
@@ -258,7 +258,7 @@ export function updHud() {
     : active
       ? '<div class="qhdr">Quests <small>' + active + ' untracked · L</small></div>'
       : '';
-  $('#skillsBtn').classList.toggle('pulse', pointsNew());
+  $('#skillsBtn').classList.toggle('pulse', game.P.pointsNew);
 }
 
 /** Keep the interaction prompt floating over its target (called every frame). */

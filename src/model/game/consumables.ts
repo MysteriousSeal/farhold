@@ -16,18 +16,11 @@ export const TORCH_MAX = 20;
 /** The barmaid's price for one torch. */
 export const TORCH_COST = 100;
 
-/** Unlit torches in the bags. */
-export const torches = (p = game.P) => (p && p.cons && p.cons.torch) || 0;
-/** Seconds left on the torch held in the off hand (0 without one). */
-export function torchLeft(p = game.P) {
-  const o = p && p.eq && p.eq.offhand;
-  return o && o.kind === 'torch' ? Math.max(0, o.left) : 0;
-}
 /** Put a lit torch in the off hand: one from the bags, or (`fromWall`) a cave's wall torch. */
 export function lightTorch(fromWall = false) {
   const P = game.P;
   if (!fromWall) {
-    if (torches() <= 0) {
+    if (game.P.torches <= 0) {
       toast('No torches left');
       return false;
     }
@@ -51,12 +44,9 @@ export function burnTorch(dt: number) {
 /** Consumables the quick slot can hold. */
 export const QUICK = ['pot', 'torch'] as const;
 export type QuickKind = (typeof QUICK)[number];
-export const quickKind = (): QuickKind => (game.P && game.P.quick) || 'pot';
-/** How many of the quick slot's consumable are left. */
-export const quickCount = (k: QuickKind = quickKind()) => (k === 'torch' ? torches() : game.P.pot);
 /** Q (and the touch potion button): use the consumable in the quick slot. */
 export function useQuick() {
   if (!game.P) return;
-  if (quickKind() === 'torch') lightTorch();
+  if (game.P.quickKind === 'torch') lightTorch();
   else drinkPot();
 }

@@ -1,29 +1,31 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MATS, SLOTS } from '../src/model/data/classes';
 import { mulberry } from '../src/core/math';
-import { pointsFree } from '../src/model/data/skills';
-import { Item, genItem, helmSkins, salvageAll, salvageable } from '../src/model/game/items';
+
+import { Item, genItem, helmSkins } from '../src/model/game/items';
 import { game } from '../src/model/game/state';
+import { Hero } from '../src/model/game/hero';
 import { OUTFIT } from '../src/model/data/classes';
 import { heroStyle, weaponStyle } from '../src/model/game/style';
 import { UNDERWEAR, calcStats, lookOfPlayer, xpNeed } from '../src/model/game/stats';
 
-const hero = (o: Record<string, unknown> = {}): any => ({
-  race: 'human',
-  lvl: 1,
-  hp: 1,
-  skin: '#f7d4b2',
-  hair: 0,
-  hairC: '#2b1d14',
-  // a plain blade with no stats, so the base numbers are the hero's own
-  eq: {
-    ...Object.fromEntries(SLOTS.map((s) => [s, null])),
-    weapon: new Item({ slot: 'weapon', wc: 'warrior', r: 0, mat: 0, plus: 0, st: {} }),
-  } as Record<string, any>,
-  inv: [],
-  sp: {},
-  ...o,
-});
+const hero = (o: Record<string, unknown> = {}): any =>
+  new Hero({
+    race: 'human',
+    lvl: 1,
+    hp: 1,
+    skin: '#f7d4b2',
+    hair: 0,
+    hairC: '#2b1d14',
+    // a plain blade with no stats, so the base numbers are the hero's own
+    eq: {
+      ...Object.fromEntries(SLOTS.map((s) => [s, null])),
+      weapon: new Item({ slot: 'weapon', wc: 'warrior', r: 0, mat: 0, plus: 0, st: {} }),
+    } as Record<string, any>,
+    inv: [],
+    sp: {},
+    ...o,
+  });
 
 describe('game/items', () => {
   beforeEach(() => {
@@ -68,14 +70,14 @@ describe('game/items', () => {
       new Item({ slot: 'ring', r, val, st: {}, name: 'R' + r });
     const bag = [mk(0, 5), mk(1, 9), mk(2, 20), mk(3, 60), mk(4, 150), mk(2, 3)];
     const worn = mk(0, 7);
-    const p: any = { ...hero({ gold: 10, inv: bag }), eq: { ring: worn } };
-    expect(salvageable(p.inv).map((it) => it.r)).toEqual([0, 1, 2, 2]);
-    const res = salvageAll(p);
+    const p = hero({ gold: 10, inv: bag, eq: { ring: worn } });
+    expect(p.salvageable.map((it) => it.r)).toEqual([0, 1, 2, 2]);
+    const res = p.salvageAll();
     expect(res).toEqual({ count: 4, gold: 3 + 5 + 10 + 2 });
     expect(p.gold).toBe(10 + 20);
     expect(p.inv.map((it) => it.r)).toEqual([3, 4]);
     expect(p.eq.ring).toBe(worn);
-    expect(salvageAll(p)).toEqual({ count: 0, gold: 0 });
+    expect(p.salvageAll()).toEqual({ count: 0, gold: 0 });
   });
 
   it('xp curve', () => {
@@ -116,7 +118,7 @@ describe('game/stats', () => {
     game.P = hero({ lvl: 6, tree: ['gi0', 'gi1', 'gf'], sp: { s1: 1 } });
     calcStats();
     expect(game.ST.hp).toBe(Math.round((120 + 5 * 14) * 1.15));
-    expect(pointsFree()).toBe(5 - 3 - 1);
+    expect(game.P.pointsFree).toBe(5 - 3 - 1);
 
     game.P = hero();
     game.P.eq.ring = new Item({
