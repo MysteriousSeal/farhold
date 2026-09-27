@@ -102,9 +102,38 @@ function drawPortrait() {
 
 /** Which consumable the HUD quick slot currently shows (to swap its icon only on change). */
 let quickShown = '';
+/* ---- in-game clock: a pill under the minimap ---- */
+const SUN_SVG =
+    '<svg viewBox="0 0 20 20"><g stroke="#f5c451" stroke-width="2" stroke-linecap="round"><path d="M10 1.5v2.5M10 16v2.5M1.5 10h2.5M16 10h2.5M4 4l1.8 1.8M14.2 14.2L16 16M4 16l1.8-1.8M14.2 5.8L16 4"/></g><circle cx="10" cy="10" r="4.4" fill="#ffd66a" stroke="#241a2e" stroke-width="1.6"/></svg>',
+  MOON_SVG =
+    '<svg viewBox="0 0 20 20"><path d="M13.5 3.2A7 7 0 1 0 16.8 13 5.6 5.6 0 0 1 13.5 3.2Z" fill="#dfe6ff" stroke="#241a2e" stroke-width="1.6" stroke-linejoin="round"/><circle cx="8.6" cy="12" r="1.1" fill="#b8c2e6"/></svg>';
+let clockEl: HTMLElement | null = null,
+  clockTxt = '';
+/** The in-game hour of the day: 6:00 at dawn's end, dusk at 18:00, night from about 20:00. */
+export const gameHour = (tod: number) => (6 + tod * 24) % 24;
+function clock() {
+  if (!clockEl) {
+    clockEl = document.createElement('div');
+    clockEl.id = 'clock';
+    clockEl.title = 'Time of day';
+    document.body.appendChild(clockEl);
+  }
+  return clockEl;
+}
+function updateClock() {
+  const h = gameHour(game.P.tod || 0),
+    hh = Math.floor(h),
+    mm = Math.floor((h - hh) * 6) * 10, // shown in 10-minute steps
+    night = h >= 19.5 || h < 5,
+    txt = (night ? 'm' : 's') + String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+  if (txt === clockTxt) return;
+  clockTxt = txt;
+  clock().innerHTML = (night ? MOON_SVG : SUN_SVG) + '<b>' + txt.slice(1) + '</b>';
+}
 export function setHud(on) {
   $('#hud').classList.toggle('on', on);
   mini.style.display = on ? 'block' : 'none';
+  clock().style.display = on ? 'flex' : 'none';
   $('#touch').classList.toggle('on', on && isTouch);
   $('#topbtns').style.display = on ? 'flex' : 'none';
   $('#topbtns').classList.toggle('touch', isTouch);
@@ -130,6 +159,7 @@ export function updHud() {
   $('#lvt').textContent = String(game.P.lvl);
   $('#nmt').textContent = game.P.name;
   $('#gdt').textContent = fmt(game.P.gold);
+  updateClock();
   $('#ptt').textContent = game.P.pot;
   // the Q quick slot: whichever consumable it holds, its count, the potion cooldown sweep,
   // dimmed when none are left

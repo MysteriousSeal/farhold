@@ -740,6 +740,30 @@ input.txt {
   display: none;
   z-index: 5;
 }
+/* in-game clock: a pill hanging from the bottom of the minimap ring */
+#clock {
+  position: fixed;
+  right: calc(12px + 112px);
+  top: calc(env(safe-area-inset-top) + 10px + 225px - 14px);
+  transform: translateX(50%);
+  z-index: 6;
+  display: none;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px 2px 5px;
+  border-radius: 999px;
+  background: rgba(24, 18, 34, 0.9);
+  border: 1.5px solid #140e1c;
+  box-shadow: inset 0 0 0 1px rgba(201, 145, 44, 0.6);
+  font: 700 15px/20px var(--f);
+  color: #fff3d0;
+  text-shadow: 0 1px 2px #000;
+  pointer-events: none;
+}
+#clock svg {
+  width: 18px;
+  height: 18px;
+}
 /* menu buttons: a carved panel in the bottom-right corner with key badges (desktop); a
    column under the minimap on touch screens */
 #topbtns {
@@ -1517,6 +1541,11 @@ input.txt {
   #mini {
     width: 150px;
     height: 150px;
+  }
+  #clock {
+    right: calc(12px + 75px);
+    top: calc(env(safe-area-inset-top) + 10px + 150px - 12px);
+    font-size: 13px;
   }
   #topbtns.touch {
     top: calc(env(safe-area-inset-top) + 176px);
