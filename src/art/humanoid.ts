@@ -58,7 +58,7 @@ export function drawHumanoid(c, x, y, o) {
   const fl = o.flash,
     frz = o.frozen;
   const tint = (col) => (fl ? '#ffffff' : frz ? mixCol(col, '#9fe0ff', 0.55) : col);
-  const R = makeRig(L, f, diag, !!o.moving, o.walk || 0, t, o.carry),
+  const R = makeRig(L, f, diag, !!o.moving, o.walk || 0, t, o.carry, !!o.sit),
     K = paintOf(L, tint),
     A = L.armor,
     // the head and hair are drawn at the classic head size, scaled onto the neck
@@ -77,7 +77,8 @@ export function drawHumanoid(c, x, y, o) {
   head(() => hairBehind(c, L, V, tint));
   // side and 3/4: the far arm is behind the body. Front and back: both arms are drawn
   // under the torso, so the chest and hips keep their outline and the hands stay visible.
-  const armsBack = !side && !diag;
+  const armsBack = !side && !diag,
+    lapLeg = (g) => !!o.sit && !up && !g.far;
   for (const a of R.arms) if (a.far) drawArm(c, R, a, K, lw, L);
   if (o.overFar) {
     c.save();
@@ -88,14 +89,18 @@ export function drawHumanoid(c, x, y, o) {
   if (L.robe) drawRobe(c, R, K, L, lw, tint, sw * 2);
   else if (L.noLegs) drawTatters(c, R, K, lw);
   else {
+    // seated facing us or from the side, the near thighs come forward over the lap: those
+    // legs are drawn after the body instead
     for (const g of R.legs) if (g.far) drawLeg(c, R, g, K, lw, L);
-    for (const g of R.legs) if (!g.far) drawLeg(c, R, g, K, lw, L);
+    for (const g of R.legs) if (!g.far && !lapLeg(g)) drawLeg(c, R, g, K, lw, L);
   }
   // from behind, an arm raised on guard stays over the cape so its hand holds the hilt
   const lifted = up && o.carry ? R.arms[o.carry.i ?? 1] : null;
   if (armsBack) for (const a of R.arms) if (a !== lifted) drawArm(c, R, a, K, lw, L);
   drawNeck(c, R, K, lw);
   drawTorso(c, R, K, L, lw, tint);
+  if (!L.robe && !L.noLegs)
+    for (const g of R.legs) if (!g.far && lapLeg(g)) drawLeg(c, R, g, K, lw, L);
   if (L.cape && up) drawCape(c, R, tint(L.cape), lw, sw, true);
   if (lifted) drawArm(c, R, lifted, K, lw, L);
   for (const a of R.arms) if (!a.far && !armsBack) drawArm(c, R, a, K, lw, L);

@@ -110,6 +110,7 @@ export function makeRig(
   walk: number,
   t: number,
   carry?,
+  sit = false,
 ) {
   const B = bodyOf(L),
     bulk = (L.race === 'dwarf' ? 1.15 : 1) * (L.bulk || 1),
@@ -130,7 +131,16 @@ export function makeRig(
     // the hips dip as the legs part, and rise with the breath when standing
     drop = mv ? Math.abs(Math.sin(ph)) * 0.6 : 0,
     breath = mv ? 0 : Math.sin(t * 2.4) * 0.2,
-    hipY = ankY - (thigh + shin) * 0.96 + drop,
+    // seated: where the knee sits from the hip (thighs point the way the body faces: toward
+    // us from the front, forward from the side, away from behind), shins hanging to the floor
+    sitK: P = !sit
+      ? [0, 0]
+      : side
+        ? [thigh, thigh * 0.05]
+        : diag
+          ? [thigh * 0.75, (up ? -0.3 : 0.3) * thigh]
+          : [0, (up ? -0.3 : 0.5) * thigh],
+    hipY = sit ? ankY - shin - sitK[1] : ankY - (thigh + shin) * 0.96 + drop,
     waistY = hipY - 4.2 * hk,
     shY = waistY - 8.0 * hk - breath,
     neckY = shY - 0.25,
@@ -182,7 +192,11 @@ export function makeRig(
       ank = [k * (W.legX + 0.4) - k * lift * 0.2, ankY - lift * 0.9 + swing * 0.8];
     }
     let knee: P;
-    if (side) {
+    if (sit) {
+      // knees apart a little from the front and back
+      knee = [hip[0] + sitK[0] + (side || diag ? 0 : k * 0.7), hip[1] + sitK[1]];
+      ank = [knee[0] + (side ? 0.4 : 0), knee[1] + shin];
+    } else if (side) {
       // the knee bends toward the front (+x), never back into the seat
       const fore = ik(hip, ank, thigh, shin, -1)[0],
         aft = ik(hip, ank, thigh, shin, 1)[0];
@@ -828,6 +842,6 @@ export function drawCape(c: Ctx, R: Rig, col: string, lw: number, sw: number, ov
   turned(c, R, () => drawParts(c, [{ p, col, shade: over ? 2 : 0 }], lw));
 }
 /** Height of the head centre above the feet for this look, standing (portraits frame on it). */
-export const headY = (L) => makeRig(L, 'down', false, false, 0, 0).hy;
+export const headY = (L, sit = false) => makeRig(L, 'down', false, false, 0, 0, null, sit).hy;
 /** A point just above the hair, for bars and floating text. */
 export const crownY = (L) => headY(L) - HEAD_R - 10;
