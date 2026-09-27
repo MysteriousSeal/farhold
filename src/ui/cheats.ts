@@ -14,7 +14,7 @@ import { solidAt } from '../world/chunks';
 /* ================= CHEATS (dev builds only, loaded from main.ts) ================= */
 // A button in the bottom-left corner opens a panel to spawn any regular enemy, at the
 // hero's level, right next to the hero; start a world event; gain a level; jump to the
-// nearest uncleared cave; or drop every helmet look into the bag.
+// nearest uncleared cave or dungeon; or drop every helmet look into the bag.
 
 /** A free spot 70–110 units from the hero, or the hero's own position as a fallback. */
 function spotNearHero() {
@@ -94,11 +94,10 @@ function levelUp() {
   $('#cheatLv').textContent = 'Level ' + game.P.lvl;
 }
 /**
- * Jump to the entrance of the nearest cave not yet cleared (from the open world only); with
- * `atLevel`, the nearest one whose level is closest to the hero's (searching farther out,
- * since caves get harder away from Hearthfire).
+ * Jump to the nearest uncleared entrance (from the open world only). `kinds` is `cave`,
+ * `gate`, or both.
  */
-function toNearestCave(atLevel = false) {
+function toNearestPlace(kinds: string[]) {
   if (game.state !== 'play' || !game.P) return;
   if (game.mode !== 'world') {
     toast('Step outside first');
@@ -106,24 +105,21 @@ function toNearestCave(atLevel = false) {
   }
   const ci = Math.floor(game.P.x / PC),
     cj = Math.floor(game.P.y / PC);
-  const R = atLevel ? 16 : 8;
+  const R = 8;
   let best = null,
     bd = 1e9;
   for (let i = ci - R; i <= ci + R; i++)
     for (let j = cj - R; j <= cj + R; j++) {
       const q = poiAt(i, j);
-      if (!q || q.kind !== 'cave' || game.P.cleared[q.key]) continue;
-      // (a level off counts as ten cells of walking)
-      const d =
-        Math.hypot(q.x - game.P.x, q.y - game.P.y) +
-        (atLevel ? Math.abs(q.lvl - game.P.lvl) * 10 * PC : 0);
+      if (!q || !kinds.includes(q.kind) || game.P.cleared[q.key]) continue;
+      const d = Math.hypot(q.x - game.P.x, q.y - game.P.y);
       if (d < bd) {
         bd = d;
         best = q;
       }
     }
   if (!best) {
-    toast('No uncleared cave nearby');
+    toast(kinds.length > 1 ? 'No uncleared dungeon nearby' : 'No uncleared cave nearby');
     return;
   }
   doFade(() => {
@@ -157,10 +153,10 @@ function giveHelms() {
   );
 }
 panel.innerHTML = '<div class="chead"><b>Cheats</b><small id="cheatLv"></small></div>';
-const hero = section('cHero', 'Hero', 'Level up, or jump straight to a cave to clear.');
+const hero = section('cHero', 'Hero', 'Level up, or jump to a cave or the nearest dungeon.');
 add(hero, '+1 level', levelUp, 'wide');
-add(hero, 'Nearest cave', () => toNearestCave());
-add(hero, 'Cave at my level', () => toNearestCave(true));
+add(hero, 'Nearest dungeon', () => toNearestPlace(['cave', 'gate']), 'wide');
+add(hero, 'Nearest cave', () => toNearestPlace(['cave']), 'wide');
 const gear = section('cGear', 'Gear', 'One of every metal, as a Cap and a Helm.');
 add(gear, 'All helmets', giveHelms, 'wide');
 const ev = section('cEv', 'World events', 'Start one right away, near you.', 'three');
