@@ -120,7 +120,8 @@ export function updHud() {
   $('#hpt').textContent = fmt(Math.ceil(game.P.hp)) + ' / ' + fmt(game.ST.hp);
   $('#hud').classList.toggle('low', hpK > 0 && hpK < 0.3);
   $('#xpb').style.width = xpK * 100 + '%';
-  $('#xpt').textContent = Math.floor(xpK * 100) + '%';
+  $('#xpt').textContent =
+    fmt(Math.floor(game.P.xp)) + ' / ' + fmt(need) + ' (' + Math.floor(xpK * 100) + '%)';
   $('#xpbar').title = 'Experience: ' + fmt(Math.floor(game.P.xp)) + ' / ' + fmt(need);
   $('#lvt').textContent = String(game.P.lvl);
   $('#nmt').textContent = game.P.name;
