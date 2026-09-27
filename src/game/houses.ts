@@ -334,7 +334,7 @@ function barmaidWork(n, dt: number) {
 /** Interaction candidates inside a house: residents to talk to, and the way out. */
 /** Just over the top of an NPC's drawn head (seated ones and the barmaid sit lower): where
  * their interaction bubble points. */
-const headTop = (n) => n.y + (n.seated ? n.sink || 0 : 0) + headY(n.look) - HEAD_R - 2;
+export const headTop = (n) => n.y + (n.seated ? n.sink || 0 : 0) + headY(n.look) - HEAD_R - 2;
 export function houseInteract(cand) {
   const I = game.HS;
   if (I.counter) {
@@ -369,8 +369,9 @@ export function houseInteract(cand) {
     if (job && job.mark === '!') cand(n.x, n.y + 6, TALK_R, 'Job offer', () => openJob(I, i), ly);
     else if (job && job.mark === '?')
       cand(n.x, n.y + 6, TALK_R, 'Hand in', () => handInTask(job.q), ly);
-    else if (job) cand(n.x, n.y + 6, TALK_R, 'Talk', () => remind(n), ly);
-    else cand(n.x, n.y + 6, TALK_R, 'Talk', () => talkTo(n), ly);
+    // while they speak, their white bubble takes the prompt's place (E moves to the next line)
+    else if (job) cand(n.x, n.y + 6, TALK_R, 'Talk', () => remind(n), ly, n.x, !!n.say);
+    else cand(n.x, n.y + 6, TALK_R, 'Talk', () => talkTo(n), ly, n.x, !!n.say);
   });
   cand(I.door.x, I.door.y - 6, 50, 'Go outside', () => leaveHouse(), I.door.y - 60);
 }

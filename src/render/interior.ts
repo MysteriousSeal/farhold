@@ -3,8 +3,9 @@ import { drawRoomBack, drawRoomFront, drawRoomLights, partitionPieces } from '..
 import { OUT } from '../core/math';
 import { drawNpc } from '../game/npcs';
 import { game } from '../game/state';
+import { headTop } from '../game/houses';
 import { patronJob } from '../game/tavernQuests';
-import { crownY, headY } from '../art/body';
+import { headY } from '../art/body';
 /* ================= RENDER: house interiors ================= */
 // render.ts calls these while game.mode === 'house': the room shell behind everything, the
 // furniture, partitions and residents into its depth-sorted list, then the front wall,
@@ -34,7 +35,8 @@ export function houseFront(c: Ctx, t: number) {
     jobMark(c, n.x, n.y + (n.seated ? n.sink || 0 : 0) + headY(n.look) - 12, job.mark, t);
   });
   for (const n of I.npcs)
-    if (n.say) speech(c, n.x, n.y + crownY(n.look) - 8, n.say, Math.min(1, n.sayT * 4));
+    // the tail ends just over the head, where the Talk prompt pointed
+    if (n.say) speech(c, n.x, headTop(n) - 8, n.say, Math.min(1, n.sayT * 4));
 }
 
 /** A bobbing quest mark over a patron's head. */

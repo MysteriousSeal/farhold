@@ -18,12 +18,13 @@ import { openBoard, openPotions, openShop, openTravel } from '../ui/village';
 export function findInteract() {
   let best = null,
     bd = 1e9;
-  // (x, y) is where the hero stands to act, within r; the bubble points at (tx ?? x, ty)
-  const cand = (x, y, r, label, act, ty, tx?) => {
+  // (x, y) is where the hero stands to act, within r; the bubble points at (tx ?? x, ty).
+  // `quiet`: E still works but the prompt stays hidden (someone's speech bubble is there)
+  const cand = (x, y, r, label, act, ty, tx?, quiet = false) => {
     const d = Math.hypot(game.P.x - x, game.P.y - y);
     if (d < r && d < bd) {
       bd = d;
-      best = { label, act, tx: tx ?? x, ty };
+      best = { label, act, tx: tx ?? x, ty, quiet };
     }
   };
   if (game.mode === 'dungeon') {

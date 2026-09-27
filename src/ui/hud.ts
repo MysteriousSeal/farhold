@@ -178,7 +178,8 @@ export function updHud() {
     }
   }
   const a = $('#bAct');
-  if (game.interact) {
+  // hidden while the person talked to answers in their own bubble (touch keeps its button)
+  if (game.interact && (!game.interact.quiet || isTouch)) {
     a.style.display = 'block';
     a.textContent = game.interact.label + (isTouch ? '' : ' (E)');
   } else a.style.display = 'none';
