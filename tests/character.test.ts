@@ -174,6 +174,16 @@ describe('player look', () => {
     expect(L.cloth).toBe(OUTFIT.cloth);
     expect(L.robe).toBe(false);
     expect(L.helm).toBe(MATS[1][1]);
+    expect(L.helmK).toBe(0);
+
+    const closed = hero();
+    closed.eq.helm = { ...gear('helm', 'Iron Helm'), r: 3 };
+    expect(lookOfPlayer(closed).helmK).toBe(1);
+    expect(lookOfPlayer(closed).plume).toBeTruthy();
+    const coif = hero();
+    coif.eq.helm = { ...gear('helm', 'Iron Coif'), r: 3 };
+    expect(lookOfPlayer(coif).helmK).toBe(2);
+    expect(lookOfPlayer(coif).plume).toBeUndefined();
 
     p.eq.pants = gear('pants', 'Iron Leggings');
     p.eq.gloves = gear('gloves', 'Iron Gloves');

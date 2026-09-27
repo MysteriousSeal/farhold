@@ -123,8 +123,11 @@ export function lookOfPlayer(p) {
   }
   if (e.amulet) L.amulet = RAR[e.amulet.r].c;
   if (e.helm) {
+    const n = e.helm.name || '';
     L.helm = MATS[e.helm.mat][1];
-    if (e.helm.r >= 3) L.plume = RAR[e.helm.r].c;
+    // 0 open cap, 1 closed helm, 2 mail coif. A helm with no name keeps the closed dome.
+    L.helmK = /Coif/.test(n) ? 2 : /Cap/.test(n) ? 0 : 1;
+    if (e.helm.r >= 3 && L.helmK === 1) L.plume = RAR[e.helm.r].c;
   }
   L.boots = e.boots ? sh(MATS[e.boots.mat][1], -0.35) : sh(p.skin, -0.12);
   if (e.armor && e.armor.r >= 2 && L.cape) L.cape = sh(RAR[e.armor.r].c, -0.35);

@@ -39,7 +39,7 @@ export function hairBack(c: Ctx, L, hy: number, v: View, col: string) {
       reach = L.fem ? 1.25 : 0.72; // how far round the sides the curls go (× π)
     for (let k = 0; k < n; k++) {
       const a = -Math.PI / 2 - Math.PI * reach + (k / (n - 1)) * Math.PI * reach * 2;
-      if (L.helm && Math.sin(a) < -0.05) continue;
+      if (L.helm && L.helmK !== 0 && Math.sin(a) < -0.05) continue;
       c.beginPath();
       c.arc(Math.cos(a) * 9.8, hy + Math.sin(a) * 9.8 + (L.fem ? 1 : 0), 4.2, 0, TAU);
       c.fillStyle = k % 2 ? sh(col, -0.1) : col;

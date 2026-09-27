@@ -114,7 +114,7 @@ const EAR_HAIR = new Set([0, 2, 3, 6, 7, 8, 10, 12]);
 const showEars = (L) =>
   (!L.race || L.race === 'human') &&
   EAR_HAIR.has(L.hair) &&
-  !L.helm &&
+  (!L.helm || L.helmK === 0) &&
   !L.hood &&
   !L.cowl &&
   !L.hat &&
@@ -162,7 +162,7 @@ function faceDetails(c, L, V, E: number, hy: number, HR: number, skin: string, t
   c.save();
   c.lineCap = 'round';
   // brows (the angry look draws its own; a helmet hides them)
-  if (!L.angry && !L.helm) {
+  if (!L.angry && (!L.helm || L.helmK === 0)) {
     c.strokeStyle = browC;
     c.lineWidth = b === 3 ? 1.7 : 1.05;
     const brow = (x: number, w: number, dir: number) => {
@@ -240,6 +240,125 @@ function faceDetails(c, L, V, E: number, hy: number, HR: number, skin: string, t
   }
   c.restore();
 }
+function helmShine(c, x, y) {
+  c.fillStyle = 'rgba(255,255,255,.45)';
+  c.beginPath();
+  c.ellipse(x, y, 2.6, 1.5, -0.45, 0, TAU);
+  c.fill();
+}
+/** Open cap: a high crown and a short brim, so the face stays visible. */
+function drawCap(c, hy, col, side, up, fd) {
+  c.fillStyle = col;
+  c.strokeStyle = OUT;
+  const yb = hy - 3.1;
+  c.beginPath();
+  c.arc(0, hy - 2.2, 8.8, Math.PI, 0);
+  c.lineTo(8.6, yb);
+  c.lineTo(-8.6, yb);
+  c.closePath();
+  c.fill();
+  c.stroke();
+  c.beginPath();
+  if (side) {
+    c.moveTo(1.2, yb);
+    c.lineTo(9.2, yb + 1.1);
+    c.quadraticCurveTo(10.4, yb + 2.6, 8.4, yb + 2.8);
+    c.lineTo(0.6, yb + 1.1);
+  } else if (up) {
+    c.moveTo(-10.4, yb + 0.2);
+    c.quadraticCurveTo(0, yb + 2.6, 10.4, yb + 0.2);
+    c.quadraticCurveTo(0, yb - 0.8, -10.4, yb + 0.2);
+  } else {
+    const s = fd ? 1.8 : 0;
+    c.moveTo(-10.2, yb);
+    c.quadraticCurveTo(-11.6 + s, yb + 2.4, -6.5 + s, yb + 3.1);
+    c.lineTo(7.2 + s, yb + 3.1);
+    c.quadraticCurveTo(11.4 + s, yb + 2.2, 9.6, yb);
+  }
+  c.closePath();
+  c.fill();
+  c.stroke();
+  helmShine(c, side ? 1.5 : -3.2, hy - 7.2);
+}
+/** Closed dome with a nasal. A rare helm wears the plume. */
+function drawHelmDome(c, hy, col, side, up, fd, plume) {
+  c.fillStyle = col;
+  c.strokeStyle = OUT;
+  c.beginPath();
+  c.arc(0, hy - 0.5, 11.5, Math.PI, 0);
+  c.lineTo(11.5, hy + 0.5);
+  c.lineTo(-11.5, hy + 0.5);
+  c.closePath();
+  c.fill();
+  c.stroke();
+  c.fillStyle = 'rgba(255,255,255,.45)';
+  c.beginPath();
+  c.ellipse(-4, hy - 6, 3, 1.8, -0.5, 0, TAU);
+  c.fill();
+  if (!up && !side) rr(c, -1.2 + (fd ? 3.3 : 0), hy - 1, 2.4, 5, 1, col);
+  if (plume) {
+    c.fillStyle = plume;
+    c.beginPath();
+    c.moveTo(-1, hy - 11);
+    c.quadraticCurveTo(side ? -14 : 0, hy - 24, side ? -18 : 2, hy - 15);
+    c.quadraticCurveTo(side ? -8 : 3, hy - 16, 2, hy - 11);
+    c.fill();
+    c.stroke();
+  }
+}
+function mailRings(c, path, col, top, bot, hole) {
+  c.save();
+  c.clip(path, hole ? 'evenodd' : 'nonzero');
+  c.strokeStyle = sh(col, -0.38);
+  c.lineWidth = 0.75;
+  for (let r = 0, y = top; y < bot; r++, y += 2.4)
+    for (let k = -6; k <= 6; k++) {
+      c.beginPath();
+      c.arc(k * 2.5 + (r % 2) * 1.25, y, 1.05, 0, Math.PI);
+      c.stroke();
+    }
+  c.restore();
+}
+/** Mail hood over the skull and the neck. The face stays open from the front. */
+function drawCoif(c, hy, col, side, up, fd, lw) {
+  c.fillStyle = col;
+  c.strokeStyle = OUT;
+  const p = new Path2D(),
+    hole = !side && !up;
+  if (side) {
+    p.moveTo(2.4, hy + 0.5);
+    p.quadraticCurveTo(1.2, hy - 8, -1.5, hy - 11);
+    p.quadraticCurveTo(-9, hy - 12.2, -11.2, hy - 3);
+    p.quadraticCurveTo(-12, hy + 5, -7.5, hy + 8);
+    p.lineTo(-4.5, hy + 15);
+    p.quadraticCurveTo(0.5, hy + 16.5, 2.6, hy + 12);
+    p.lineTo(3.2, hy + 2.2);
+    p.closePath();
+  } else if (up) {
+    p.arc(0, hy - 0.4, 11.3, 0, TAU);
+    p.moveTo(-7.5, hy + 8);
+    p.lineTo(-5.5, hy + 16);
+    p.lineTo(5.5, hy + 16);
+    p.lineTo(7.5, hy + 8);
+    p.closePath();
+  } else {
+    p.moveTo(-8, hy + 6);
+    p.quadraticCurveTo(-12.2, hy + 3, -11.2, hy - 1);
+    p.arc(0, hy - 1, 11.2, Math.PI, 0);
+    p.quadraticCurveTo(12.2, hy + 3, 8, hy + 6);
+    p.lineTo(6.2, hy + 16);
+    p.quadraticCurveTo(0, hy + 18.2, -6.2, hy + 16);
+    p.closePath();
+    const ox = fd ? 2.2 : 0;
+    p.moveTo(ox + 5.8, hy + 1.6);
+    p.ellipse(ox, hy + 1.5, 6.1, 6.6, 0, 0, TAU);
+  }
+  c.fill(p, hole ? 'evenodd' : 'nonzero');
+  c.stroke(p);
+  mailRings(c, p, col, hy - 11, hy + 16, hole);
+  c.strokeStyle = OUT;
+  c.lineWidth = lw;
+}
 /** Hair that falls over the back, the head, the face and headgear (head centre at 0, 0). */
 function drawHead(c, L, V, E, tint, lw) {
   const { up, side, diag, fd } = V,
@@ -247,7 +366,7 @@ function drawHead(c, L, V, E, tint, lw) {
     skin = tint(L.skin);
   if (L.hairC) hairFront(c, L, hy, V, tint(L.hairC), lw);
   // ears
-  if (L.race === 'elf' && !L.helm && !L.cowl) {
+  if (L.race === 'elf' && (!L.helm || L.helmK === 0) && !L.cowl) {
     c.fillStyle = skin;
     const ear = (k) => {
       c.beginPath();
@@ -313,7 +432,7 @@ function drawHead(c, L, V, E, tint, lw) {
     c.arc(0, hy, HR, 0, TAU);
     c.fillStyle = skin;
     c.fill();
-    const hasHair = !L.helm && L.hair !== 3 && L.hairC && !L.cowl && !L.hat;
+    const hasHair = (!L.helm || L.helmK === 0) && L.hair !== 3 && L.hairC && !L.cowl && !L.hat;
     if (hasHair) {
       c.save();
       c.beginPath();
@@ -566,28 +685,11 @@ function drawHead(c, L, V, E, tint, lw) {
       c.fill();
     }
     if (L.helm) {
-      c.fillStyle = tint(L.helm);
-      c.beginPath();
-      c.arc(0, hy - 0.5, 11.5, Math.PI, 0);
-      c.lineTo(11.5, hy + 0.5);
-      c.lineTo(-11.5, hy + 0.5);
-      c.closePath();
-      c.fill();
-      c.stroke();
-      c.fillStyle = 'rgba(255,255,255,.45)';
-      c.beginPath();
-      c.ellipse(-4, hy - 6, 3, 1.8, -0.5, 0, TAU);
-      c.fill();
-      if (!up && !side) rr(c, -1.2 + (fd ? 3.3 : 0), hy - 1, 2.4, 5, 1, tint(L.helm));
-      if (L.plume) {
-        c.fillStyle = tint(L.plume);
-        c.beginPath();
-        c.moveTo(-1, hy - 11);
-        c.quadraticCurveTo(side ? -14 : 0, hy - 24, side ? -18 : 2, hy - 15);
-        c.quadraticCurveTo(side ? -8 : 3, hy - 16, 2, hy - 11);
-        c.fill();
-        c.stroke();
-      }
+      const kind = L.helmK == null ? 1 : L.helmK,
+        col = tint(L.helm);
+      if (kind === 0) drawCap(c, hy, col, side, up, fd);
+      else if (kind === 2) drawCoif(c, hy, col, side, up, fd, lw);
+      else drawHelmDome(c, hy, col, side, up, fd, L.plume && tint(L.plume));
     }
   }
 }
