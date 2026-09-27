@@ -86,6 +86,13 @@ export function sh(hex, f) {
   }
   return hexs(r, g2, b);
 }
+/** '#rrggbb' as an rgba() colour with alpha `a` (clamped to 0..1). */
+export function hexA(hex: string, a: number) {
+  const n = parseInt(hex.slice(1), 16);
+  return (
+    'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + clamp(a, 0, 1) + ')'
+  );
+}
 export function mixCol(a, b, t = 0.5) {
   const A = parseInt(a.slice(1), 16),
     B = parseInt(b.slice(1), 16);

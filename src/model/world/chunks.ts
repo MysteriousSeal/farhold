@@ -439,18 +439,21 @@ const DECOR_R = {
   palm: 7,
   log: 10,
 };
+/** The nearest chunk around world point (cx, cy), in the two rings round its own, that `map`
+ * doesn't hold yet (null when all are there). */
+export function nextMissing(map: Map<string, unknown>, cx: number, cy: number) {
+  const ci = Math.floor(cx / CH),
+    cj = Math.floor(cy / CH);
+  for (let r = 1; r <= 2; r++)
+    for (let i = ci - r; i <= ci + r; i++)
+      for (let j = cj - r; j <= cj + r; j++) if (!map.has(i + ',' + j)) return [i, j];
+  return null;
+}
 export function bgStep(cx, cy) {
   if (game.mode !== 'world') return;
   if (!game.bgGen) {
-    const ci = Math.floor(cx / CH),
-      cj = Math.floor(cy / CH);
-    outer: for (let r = 1; r <= 2; r++)
-      for (let i = ci - r; i <= ci + r; i++)
-        for (let j = cj - r; j <= cj + r; j++)
-          if (!WCH.has(i + ',' + j)) {
-            game.bgGen = startGen(i, j);
-            break outer;
-          }
+    const next = nextMissing(WCH, cx, cy);
+    if (next) game.bgGen = startGen(next[0], next[1]);
   }
   if (game.bgGen) {
     if (WCH.has(game.bgGen.cx + ',' + game.bgGen.cy)) {

@@ -13,7 +13,8 @@ import {
   torches,
   useQuick,
 } from '../src/model/game/consumables';
-import { RESET_MS, caveState, fmtClock, resetLeft } from '../src/model/game/dungeons';
+import { RESET_MS, caveState, resetLeft } from '../src/model/game/dungeons';
+import { fmtClock } from '../src/core/format';
 import { gearScore } from '../src/model/game/items';
 import { migrate } from '../src/model/game/save';
 import { game } from '../src/model/game/state';

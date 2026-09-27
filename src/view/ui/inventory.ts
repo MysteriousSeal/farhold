@@ -18,7 +18,7 @@ import {
   type QuickKind,
 } from '../../model/game/consumables';
 import { toast } from '../../model/game/fx';
-import { fmtClock } from '../../model/game/dungeons';
+import { fmtClock } from '../../core/format';
 import {
   equipSlot,
   gearScore,
@@ -85,8 +85,6 @@ export function toggleChar() {
   charOpen = game.state === 'play' ? true : !charOpen;
   open();
 }
-/** Kept for callers that simply want the bags. */
-export const openInv = toggleBags;
 
 function winHead(title: string, sub: string, which: string) {
   return (

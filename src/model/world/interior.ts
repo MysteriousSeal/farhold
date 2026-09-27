@@ -235,6 +235,19 @@ const WALL_TALL = new Set([
   WALL_DEPTH = 18;
 /** How far behind a table's front edge its back chairs stand: the seat tucks under the top. */
 const CHAIR_IN = 22;
+/** A furniture piece on cells (cx, cy, cw × ch), anchored at its front edge's centre, with
+ * seed `s` for its variations; `extra` overrides anything (a custom anchor, flip...). */
+function mkFurn(
+  k: string,
+  cx: number,
+  cy: number,
+  cw: number,
+  ch: number,
+  s: number,
+  extra = {},
+): Furn {
+  return { k, cx, cy, cw, ch, x: (cx + cw / 2) * IT, y: (cy + ch) * IT - 4, s, ...extra };
+}
 /* ---------- furnishing ---------- */
 function furnish(I: Interior, rnd: () => number) {
   const { GW, GH, grid } = I,
@@ -288,17 +301,7 @@ function furnish(I: Interior, rnd: () => number) {
       for (let j = cy; j < cy + ch; j++) for (let i = cx; i < cx + cw; i++) occ[at(i, j)] = 0;
       return null;
     }
-    const f: Furn = {
-      k,
-      cx,
-      cy,
-      cw,
-      ch,
-      x: (cx + cw / 2) * IT,
-      y: (cy + ch) * IT - 4,
-      s: rnd(),
-      ...extra,
-    };
+    const f = mkFurn(k, cx, cy, cw, ch, rnd(), extra);
     I.furn.push(f);
     return f;
   };
@@ -503,17 +506,7 @@ function furnishSmithy(I: Interior, v) {
     dc = I.door.cx,
     cy = d - 2, // counter row
     put = (k: string, cx: number, cyy: number, cw = 1, ch = 1, extra: Partial<Furn> = {}) =>
-      I.furn.push({
-        k,
-        cx,
-        cy: cyy,
-        cw,
-        ch,
-        x: (cx + cw / 2) * IT,
-        y: (cyy + ch) * IT - 4,
-        s: ((cx * 7 + cyy * 13) % 10) / 10,
-        ...extra,
-      });
+      I.furn.push(mkFurn(k, cx, cyy, cw, ch, ((cx * 7 + cyy * 13) % 10) / 10, extra));
   // working corner on the side away from the door: the forge with its bellows beside it,
   // the quench trough in front of it and the anvil at the smith's right hand
   const L = dc > w / 2,
@@ -572,17 +565,7 @@ function furnishTavern(I: Interior, rnd: () => number, big: boolean) {
   const w = I.GW - 2,
     dc = I.door.cx,
     put = (k: string, cx: number, cy: number, cw = 1, ch = 1, extra: Partial<Furn> = {}) => {
-      const f: Furn = {
-        k,
-        cx,
-        cy,
-        cw,
-        ch,
-        x: (cx + cw / 2) * IT,
-        y: (cy + ch) * IT - 4,
-        s: rnd(),
-        ...extra,
-      };
+      const f = mkFurn(k, cx, cy, cw, ch, rnd(), extra);
       I.furn.push(f);
       return f;
     };

@@ -22,6 +22,33 @@ export const CAVE_VOID = '#1a120c';
 export function cavePal() {
   return [CAVE_FLOOR, '#5c3a28', '#c4926a', '#e2c4a0'];
 }
+/** Marks grid cell (x, y) as floor; the outer border always stays rock. */
+const carver = (gr: Uint8Array, GW: number, GH: number) => (x: number, y: number) => {
+  if (x > 0 && y > 0 && x < GW - 1 && y < GH - 1) gr[y * GW + x] = 1;
+};
+/** Is grid cell (x, y) floor? (Outside the grid is rock.) */
+const floorOf = (gr: Uint8Array, GW: number, GH: number) => (x: number, y: number) =>
+  x >= 0 && y >= 0 && x < GW && y < GH && gr[y * GW + x] === 1;
+/** The rooms as a chain from the first, each followed by the nearest one left: the order
+ * the passages join them. */
+function chainRooms(rooms) {
+  const order = [rooms[0]],
+    left = rooms.slice(1);
+  while (left.length) {
+    const a = order[order.length - 1];
+    let bi = 0,
+      bd = 1e9;
+    left.forEach((r, i) => {
+      const d = Math.hypot(r.cx - a.cx, r.cy - a.cy);
+      if (d < bd) {
+        bd = d;
+        bi = i;
+      }
+    });
+    order.push(left.splice(bi, 1)[0]);
+  }
+  return order;
+}
 function genCrypt(key, lvl, b) {
   const rnd = mulberry((strSeed(key + 'dg') ^ game.SEED) >>> 0),
     GW = 58,
@@ -42,26 +69,10 @@ function genCrypt(key, lvl, b) {
       continue;
     rooms.push({ x, y, w, h, cx: x + (w >> 1), cy: y + (h >> 1) });
   }
-  const carve = (x, y) => {
-    if (x > 0 && y > 0 && x < GW - 1 && y < GH - 1) gr[y * GW + x] = 1;
-  };
+  const carve = carver(gr, GW, GH);
   for (const r of rooms)
     for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) carve(x, y);
-  const order = [rooms[0]],
-    left = rooms.slice(1);
-  while (left.length) {
-    const a = order[order.length - 1];
-    let bi = 0,
-      bd = 1e9;
-    left.forEach((r, i) => {
-      const d = Math.hypot(r.cx - a.cx, r.cy - a.cy);
-      if (d < bd) {
-        bd = d;
-        bi = i;
-      }
-    });
-    order.push(left.splice(bi, 1)[0]);
-  }
+  const order = chainRooms(rooms);
   const tunnel = (a, b) => {
     let x = a.cx,
       y = a.cy;
@@ -112,7 +123,7 @@ function genCrypt(key, lvl, b) {
     enemiesPlaced: false,
     style: 'crypt',
   };
-  const isF = (x, y) => x >= 0 && y >= 0 && x < GW && y < GH && gr[y * GW + x] === 1;
+  const isF = floorOf(gr, GW, GH);
   D.isF = isF;
   for (let y = 1; y < GH - 1; y++)
     for (let x = 1; x < GW - 1; x++)
@@ -169,9 +180,7 @@ function genCavern(key, lvl, b) {
     seeds.push({ cx: 16, cy: 16, rx: 6, ry: 5 });
     seeds.push({ cx: 40, cy: 40, rx: 6, ry: 5 });
   }
-  const carve = (x, y) => {
-    if (x > 0 && y > 0 && x < GW - 1 && y < GH - 1) gr[y * GW + x] = 1;
-  };
+  const carve = carver(gr, GW, GH);
   const rooms = [];
   for (const s of seeds) {
     let x0 = s.cx,
@@ -200,21 +209,7 @@ function genCavern(key, lvl, b) {
     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) mark(s.cx + dx, s.cy + dy);
     rooms.push({ x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1, cx: s.cx, cy: s.cy });
   }
-  const order = [rooms[0]],
-    left = rooms.slice(1);
-  while (left.length) {
-    const a = order[order.length - 1];
-    let bi = 0,
-      bd = 1e9;
-    left.forEach((r, i) => {
-      const d = Math.hypot(r.cx - a.cx, r.cy - a.cy);
-      if (d < bd) {
-        bd = d;
-        bi = i;
-      }
-    });
-    order.push(left.splice(bi, 1)[0]);
-  }
+  const order = chainRooms(rooms);
   const tunnel = (a, b) => {
     let x = a.cx,
       y = a.cy;
@@ -247,7 +242,7 @@ function genCavern(key, lvl, b) {
   if (order.length > 4) tunnel(order[1], order[order.length - 2]);
   const start = order[0],
     end = order[order.length - 1];
-  const isF = (x, y) => x >= 0 && y >= 0 && x < GW && y < GH && gr[y * GW + x] === 1;
+  const isF = floorOf(gr, GW, GH);
   // a wobbling passage can miss: cut a plain corridor so the end is always reachable
   if (!reaches(gr, GW, GH, start, end)) {
     let x = start.cx,

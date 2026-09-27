@@ -8,6 +8,7 @@ import { toast } from '../../model/game/fx';
 import { QMAX, TRACK_MAX, abandonQuest, activeQuests, setTracked } from '../../model/game/quests';
 import { game } from '../../model/game/state';
 import { hdr, openModal, wireClose } from './modal';
+import { ago, esc, fmt } from '../../core/format';
 import { QICON, counted, questProgress, questWhere } from './questUi';
 /* ================= QUEST JOURNAL (L) ================= */
 // Two panes: on the left every accepted bounty (up to QMAX) grouped by type under collapsible
@@ -25,16 +26,6 @@ const GROUPS: [string, string][] = [
 const collapsed = new Set<string>(['done']);
 let selId: number | string | null = null,
   showDetail = false; // narrow screens: details pane instead of the list
-
-const fmt = (n: number) => n.toLocaleString('en-US');
-function ago(t: number) {
-  const m = Math.floor((Date.now() - t) / 60000);
-  if (m < 1) return 'just now';
-  if (m < 60) return m + ' min ago';
-  const h = Math.floor(m / 60);
-  return h < 24 ? h + ' h ago' : Math.floor(h / 24) + ' d ago';
-}
-const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
 /* ---------- flavour: a seeded line from whoever posted the bounty (data/flavour.ts) ---------- */
 const flavourOf = (q) => {

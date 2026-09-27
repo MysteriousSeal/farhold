@@ -1,5 +1,5 @@
 import { DPR, H, W, mkCanvas } from '../dom';
-import { clamp } from '../../core/math';
+import { hexA } from '../../core/math';
 import { game, lights } from '../../model/game/state';
 import { torchLeft } from '../../model/game/consumables';
 /* ================= Underground darkness ================= */
@@ -103,10 +103,4 @@ export function drawDarkness(g: CanvasRenderingContext2D, t: number) {
     g.fillRect(l.x - l.r, l.y - l.r, l.r * 2, l.r * 2);
   }
   g.restore();
-}
-function hexA(h: string, a: number) {
-  const n = parseInt(h.slice(1), 16);
-  return (
-    'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + clamp(a, 0, 1) + ')'
-  );
 }

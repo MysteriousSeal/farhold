@@ -1,8 +1,6 @@
 import { clamp, fbm, lerp, vn } from '../../core/math';
 /* ================= WORLD ================= */
-export const CH = 512,
-  RES = 4,
-  N = CH / RES;
+export const CH = 512;
 export const BIOMES = [
   'Meadow',
   'Forest',

@@ -5,6 +5,31 @@ import { burst } from './fx';
 import { game } from './state';
 import { solidAt } from '../world/chunks';
 /* ================= NPCs ================= */
+/**
+ * Walks a person toward their target (n.tx, n.ty) at `speed`, colliding with radius `r`;
+ * the target is dropped on arrival or when blocked. False when they have no target.
+ */
+export function walkToTarget(n, dt: number, speed: number, r: number) {
+  if (n.tx == null) {
+    n.moving = false;
+    return false;
+  }
+  const dx = n.tx - n.x,
+    dy = n.ty - n.y,
+    d = Math.hypot(dx, dy);
+  if (d < 4) {
+    n.tx = null;
+    n.moving = false;
+    return true;
+  }
+  const ok = moveEnt(n, (dx / d) * speed * dt, (dy / d) * speed * dt, r);
+  n.dx = dx;
+  n.dy = dy;
+  n.moving = true;
+  n.walk += dt * 7;
+  if (!ok) n.tx = null;
+  return true;
+}
 export function updateNpcs(dt) {
   for (const p of game.activePois) {
     if (p.kind !== 'village') continue;
@@ -30,23 +55,7 @@ export function updateNpcs(dt) {
             }
           }
         }
-        if (n.tx != null) {
-          const dx = n.tx - n.x,
-            dy = n.ty - n.y,
-            d = Math.hypot(dx, dy);
-          if (d < 4) {
-            n.tx = null;
-            n.moving = false;
-          } else {
-            const sp = 38;
-            const ok = moveEnt(n, (dx / d) * sp * dt, (dy / d) * sp * dt, 7);
-            n.dx = dx;
-            n.dy = dy;
-            n.moving = true;
-            n.walk += dt * 7;
-            if (!ok) n.tx = null;
-          }
-        } else n.moving = false;
+        walkToTarget(n, dt, 38, 7);
       } else if (n.role === 'smith') {
         n.dx = 1;
         n.dy = 0;

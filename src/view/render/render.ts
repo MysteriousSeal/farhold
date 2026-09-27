@@ -45,7 +45,7 @@ import {
 } from '../art/humanoid';
 import { drawDrop, drawProj } from '../art/items';
 import { DPR, H, W, g, mkCanvas, shadow } from '../dom';
-import { OUT, TAU, clamp, lerp, rand } from '../../core/math';
+import { OUT, TAU, clamp, hexA, lerp, rand } from '../../core/math';
 import { MATS } from '../../model/data/classes';
 import { addLight } from '../../model/game/fx';
 import { drawNpc } from './npcs';
@@ -57,8 +57,7 @@ import { drawRoads } from '../art/roads';
 import { roadsOf } from '../../model/world/roads';
 import { game, hero, lights, weather } from '../../model/game/state';
 import { joy } from '../../core/device';
-import { bgStep } from '../../model/world/chunks';
-import { getChunk } from './chunks';
+import { bgChunks, getChunk } from './chunks';
 import { drawCliffs } from '../../model/world/cliffs';
 import { drawPools, drawShores } from '../../model/world/shores';
 import { poisNear } from '../../model/world/poi';
@@ -434,21 +433,7 @@ export function render() {
     for (const m of moss)
       if (m.k) drawCaveBit(g, m, game.DG.b, game.time);
       else drawMoss(g, m, game.DG.b === 6, game.time);
-  if (game.genBudget > 0) {
-    if (game.mode === 'world') bgStep(cx, cy);
-    else if (game.mode === 'dungeon') {
-      const ci = Math.floor(cx / CH),
-        cj = Math.floor(cy / CH);
-      outer: for (let r = 1; r <= 2; r++)
-        for (let i = ci - r; i <= ci + r; i++)
-          for (let j = cj - r; j <= cj + r; j++) {
-            if (!game.DG.ch.has(i + ',' + j)) {
-              getChunk(i, j, true);
-              break outer;
-            }
-          }
-    }
-  }
+  if (game.genBudget > 0) bgChunks(cx, cy);
   const vis = (x, y, m = 150) => x > x0 - m && x < x1 + m && y > y0 - m * 0.5 && y < y1 + m * 1.3;
   if (game.mode === 'world') {
     for (const p of game.state === 'play' || game.state === 'modal' || game.state === 'inv'
@@ -725,10 +710,6 @@ export function render() {
     g.fillStyle = 'rgba(10,8,20,' + game.fade + ')';
     g.fillRect(0, 0, W, H);
   }
-}
-function hexA(h, a) {
-  const n = parseInt(h.slice(1), 16);
-  return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a.toFixed(3) + ')';
 }
 function drawWeather() {
   const k = weather.k;

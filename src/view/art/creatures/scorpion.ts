@@ -1,5 +1,5 @@
-import { shadow } from '../../dom';
 import { OUT, TAU, sh } from '../../../core/math';
+import { beginCreature, creatureView } from './shared';
 /* ================= ART: scorpions ================= */
 // An armoured scorpion in three facings (side, front, back): a carapace with eye clusters,
 // a segmented abdomen of overlapping plates, jointed legs that scuttle, big pincers that snap
@@ -283,17 +283,8 @@ export function drawScorpion(c: Ctx, e, t: number, col: string) {
     w = e.moving ? e.walk : 0,
     strike = e.wind > 0 ? 1 - e.wind / 0.35 : e.swing > 0 ? 1 : 0,
     open = Math.max(strike, Math.sin(t * 3 + e.x) * 0.5 + 0.5) * (e.aggro ? 1 : 0.4),
-    ax = Math.abs(e.dx || 0),
-    ay = Math.abs(e.dy || 0),
-    view = ax >= ay * 0.8 ? 'side' : e.dy > 0 ? 'front' : 'back';
-  c.save();
-  c.translate(e.x, e.y);
-  shadow(c, 0, 0, (view === 'side' ? 20 : 17) * s, 5.5 * s);
-  c.scale(s * (view === 'side' && e.dx < 0 ? -1 : 1), s);
-  c.lineWidth = 2.2 / Math.sqrt(s);
-  c.strokeStyle = OUT;
-  c.lineJoin = 'round';
-  c.lineCap = 'round';
+    view = creatureView(e);
+  beginCreature(c, e, s, view, 20, 17, 5.5);
   if (view === 'side') side(c, e, t, p, w, strike, open);
   else if (view === 'front') front(c, e, t, p, w, strike, open);
   else back(c, e, t, p, w, strike, open);

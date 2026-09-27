@@ -22,6 +22,7 @@ import {
   drawTorso,
   faceOf,
   handAt,
+  headY,
   makeRig,
   rightArm,
   paintOf,
@@ -107,6 +108,16 @@ export function drawHumanoid(c, x, y, o) {
   drawPauldrons(c, R, A, tint, lw);
   head(() => drawHead(c, L, V, E, tint, c.lineWidth));
   c.restore();
+}
+/** A portrait: the head of `look`, facing us, filling the middle of canvas `cv`. */
+export function drawFace(cv: HTMLCanvasElement, look) {
+  const x = cv.getContext('2d'),
+    k = 4.3 / HEAD_K;
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  x.clearRect(0, 0, cv.width, cv.height);
+  x.setTransform(k, 0, 0, k, cv.width / 2, cv.height / 2 - (headY(look) + 3 * HEAD_K) * k);
+  drawHumanoid(x, 0, 0, { look, dx: 0, dy: 1, moving: false, walk: 0, time: 0, noShadow: true });
+  x.setTransform(1, 0, 0, 1, 0, 0);
 }
 /** Long hair, a ponytail and the back of the styled hair, and a cowl: behind the body. */
 function hairBehind(c, L, V, tint) {

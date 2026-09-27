@@ -1,6 +1,6 @@
 import { resetCityGround } from '../art/city';
-import { HEAD_K, headY } from '../art/body';
-import { carryPos, drawHumanoid, drawWeapon, handOver } from '../art/humanoid';
+import { headY } from '../art/body';
+import { carryPos, drawFace, drawHumanoid, drawWeapon, handOver } from '../art/humanoid';
 import { backfillBossChests, refreshQuestTargets } from '../../model/game/bossChest';
 import { audioInit } from '../audio/sfx';
 import { $ } from '../dom';
@@ -22,6 +22,7 @@ import { refreshMenu } from './menus';
 import { getChunk, resetChunks } from '../render/chunks';
 import { poiCache, poisNear } from '../../model/world/poi';
 import { CH } from '../../model/world/terrain';
+import { ago, esc } from '../../core/format';
 /* ================= SCREENS ================= */
 export function showScreen(id) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.id === id));
@@ -328,26 +329,9 @@ function confirmDelete(id: string, p) {
   $('#delNo').onclick = openLoad;
   showScreen('delc');
 }
-const esc = (t: string) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 function playtime(sec: number) {
   const m = Math.floor(sec / 60);
   return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60) + ' min';
-}
-function ago(t: number) {
-  if (!t) return 'long ago';
-  const m = Math.floor((Date.now() - t) / 60000);
-  if (m < 1) return 'just now';
-  if (m < 60) return m + ' min ago';
-  const h = Math.floor(m / 60);
-  return h < 24 ? h + ' h ago' : Math.floor(h / 24) + ' d ago';
-}
-/** The hero's face for a save card (same framing as the HUD portrait). */
-function drawFace(cv: HTMLCanvasElement, look) {
-  const x = cv.getContext('2d'),
-    k = 4.3 / HEAD_K;
-  x.setTransform(k, 0, 0, k, cv.width / 2, cv.height / 2 - (headY(look) + 3 * HEAD_K) * k);
-  drawHumanoid(x, 0, 0, { look, dx: 0, dy: 1, moving: false, walk: 0, time: 0, noShadow: true });
-  x.setTransform(1, 0, 0, 1, 0, 0);
 }
 
 function startGame(p, fresh?) {

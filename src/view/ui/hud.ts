@@ -1,8 +1,8 @@
-import { HEAD_K, headY } from '../art/body';
-import { drawHumanoid } from '../art/humanoid';
+import { drawFace } from '../art/humanoid';
 import { heroStyle } from '../../model/game/style';
 import { zoom } from '../render/render';
-import { clearBonusXp, fmtClock, resetLeft } from '../../model/game/dungeons';
+import { clearBonusXp, resetLeft } from '../../model/game/dungeons';
+import { fmtClock } from '../../core/format';
 import { $, H, W } from '../dom';
 import { clamp } from '../../core/math';
 import { pointsNew, rank, SKILLCD, skillTree } from '../../model/data/skills';
@@ -20,6 +20,7 @@ import { dangerAt } from '../../model/world/terrain';
 import { DRINKS } from '../../model/data/tavern';
 import { curEvent, eventLine } from '../../model/game/events';
 import { DRINK_ICON } from './tavern';
+import { fmt } from '../../core/format';
 
 /** The world event under way as a HUD chip: what, where and the time left. */
 const EV_ICON = {
@@ -73,7 +74,6 @@ function buffChip() {
   bufEl.lastElementChild.textContent = Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
 }
 /* ================= HUD ================= */
-const fmt = (n: number) => n.toLocaleString('en-US');
 
 /** Hero face in the unit frame's medallion; redrawn only when the look changes. */
 let portKey = '';
@@ -83,22 +83,7 @@ function drawPortrait() {
   const key = JSON.stringify(look);
   if (key === portKey) return;
   portKey = key;
-  const cv = $('#portC') as HTMLCanvasElement,
-    x = cv.getContext('2d'),
-    k = 4.3 / HEAD_K; // the head fills the circle
-  x.setTransform(1, 0, 0, 1, 0, 0);
-  x.clearRect(0, 0, cv.width, cv.height);
-  x.setTransform(k, 0, 0, k, cv.width / 2, cv.height / 2 - (headY(look) + 3 * HEAD_K) * k);
-  drawHumanoid(x, 0, 0, {
-    look,
-    dx: 0,
-    dy: 1,
-    moving: false,
-    walk: 0,
-    time: 0,
-    noShadow: true,
-  });
-  x.setTransform(1, 0, 0, 1, 0, 0);
+  drawFace($('#portC') as HTMLCanvasElement, look);
 }
 
 /** Which consumable the HUD quick slot currently shows (to swap its icon only on change). */

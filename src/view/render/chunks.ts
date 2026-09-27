@@ -2,7 +2,14 @@ import { DPR, H, W, mkCanvas } from '../dom';
 import { OUT, TAU, clamp, hs, pick, rand, sh } from '../../core/math';
 import { game } from '../../model/game/state';
 import { CAVE_VOID, cavePal, dungeonPal } from '../../model/world/dungeon';
-import { CHUNK_FN, WCH, chunkAt, type ChunkModel } from '../../model/world/chunks';
+import {
+  CHUNK_FN,
+  WCH,
+  bgStep,
+  chunkAt,
+  nextMissing,
+  type ChunkModel,
+} from '../../model/world/chunks';
 import { CH } from '../../model/world/terrain';
 /* ================= RENDER: chunk pictures ================= */
 // Paints the ground of world chunks (from their model: colours, place grounds, marks, island
@@ -235,6 +242,14 @@ export function getChunk(i: number, j: number, gen: boolean): Chunk | null {
   let cvs = pictures.get(M);
   if (!cvs) pictures.set(M, (cvs = paintChunk(M)));
   return Object.assign(M, { cvs }) as Chunk;
+}
+/** With frame budget left, prepare the next chunk around (cx, cy) in the background. */
+export function bgChunks(cx: number, cy: number) {
+  if (game.mode === 'world') bgStep(cx, cy);
+  else if (game.mode === 'dungeon') {
+    const next = nextMissing(game.DG.ch, cx, cy);
+    if (next) getChunk(next[0], next[1], true);
+  }
 }
 /** Forget every world chunk (a new game or a new world). */
 export function resetChunks() {

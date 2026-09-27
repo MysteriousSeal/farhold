@@ -14,6 +14,7 @@ import { calcStats } from '../../model/game/stats';
 import { btn, goldPill, hdr, itemCard, iconCanvas, openModal, statLines, wireClose } from './modal';
 import { closeAll } from './screens';
 import { arrivalY } from '../../model/world/poi';
+import { fmt, fmtClock } from '../../core/format';
 import { poisNear } from '../../model/world/poi';
 /* shop */
 /** Each stall restocks its whole list every 10 real minutes, even while the game is closed. */
@@ -38,13 +39,30 @@ function stockFor(v, fine: boolean) {
   }
   return s;
 }
-const mmss = (ms: number) => {
-  const t = Math.max(0, Math.ceil(ms / 1000));
-  return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
-};
 /** Live restock countdown in the buy tab; rerolls and redraws the shop when it runs out. */
 let restockTick = 0;
 /** Open a village market; `fine` is Hearthfire's fine-goods shop (Rare+ stock, pricier). */
+/** A shop item's name, rarity, slot and level, how it would change your power, and its stats
+ * next to what you wear. */
+function itemInfo(it) {
+  return (
+    '<div class="nm" style="color:' +
+    RAR[it.r].c +
+    '">' +
+    itemName(it) +
+    '</div><div class="desc">' +
+    RAR[it.r].n +
+    ' ' +
+    (SLOT_NAME[it.slot] || it.slot).toLowerCase() +
+    ' · level ' +
+    it.lvl +
+    '</div>' +
+    powerLines(it, false) +
+    '<div class="stats">' +
+    statLines(it, game.P.eq[equipSlot(it, game.P.eq)]) +
+    '</div>'
+  );
+}
 export function openShop(v, fine = false) {
   shopFine = fine;
   shopTab = 'buy';
@@ -127,7 +145,6 @@ const ICO_CLOCK =
 const ICO_POT =
   '<svg viewBox="0 0 20 20"><path d="M7.6 2.6 H12.4 V6.6 L16 13.4 Q17 17.4 13 17.6 H7 Q3 17.4 4 13.4 L7.6 6.6 Z" fill="#e8f2ff" stroke="#241a2e" stroke-width="1.8" stroke-linejoin="round"/><path d="M5.6 12 H14.4 L15.3 13.8 Q16 16.2 13 16.3 H7 Q4 16.2 4.7 13.8 Z" fill="#e0443a"/><rect x="7" y="1.6" width="6" height="2.4" rx="1" fill="#9a6a3a" stroke="#241a2e" stroke-width="1.4"/><circle cx="8.6" cy="13.8" r="1" fill="#ffb0a0"/></svg>';
 let buySel = null;
-const fmt = (n: number) => n.toLocaleString('en-US');
 function renderBuy(v, body, s, pp) {
   const priceOf = (it) => it.val * (shopFine ? 6 : 4),
     full = game.P.inv.length >= BAGMAX;
@@ -150,7 +167,7 @@ function renderBuy(v, body, s, pp) {
     '</span></div><div class="restock" title="Every stall restocks every 10 minutes">' +
     ICO_CLOCK +
     'New stock in <b id="bTimer">' +
-    mmss(s.t + RESTOCK_MS - Date.now()) +
+    fmtClock(s.t + RESTOCK_MS - Date.now()) +
     '</b></div><div class="sellgrid" id="bGrid"></div></div><div class="selldet" id="bDet"></div></div>';
   restockTick = window.setInterval(() => {
     const el = document.getElementById('bTimer');
@@ -160,7 +177,7 @@ function renderBuy(v, body, s, pp) {
       buySel = null;
       renderShop(v); // stockFor rolls the new list
       toast('New stock has arrived');
-    } else el.textContent = mmss(left);
+    } else el.textContent = fmtClock(left);
   }, 1000);
   const pb = body.querySelector('.pbtns');
   for (const n of [1, 5]) {
@@ -204,21 +221,7 @@ function renderBuy(v, body, s, pp) {
     price = priceOf(it),
     short = price - game.P.gold;
   det.innerHTML =
-    '<div class="nm" style="color:' +
-    RAR[it.r].c +
-    '">' +
-    itemName(it) +
-    '</div><div class="desc">' +
-    RAR[it.r].n +
-    ' ' +
-    (SLOT_NAME[it.slot] || it.slot).toLowerCase() +
-    ' · level ' +
-    it.lvl +
-    '</div>' +
-    powerLines(it, false) +
-    '<div class="stats">' +
-    statLines(it, game.P.eq[equipSlot(it, game.P.eq)]) +
-    '</div>' +
+    itemInfo(it) +
     (short > 0
       ? '<div class="warnpoor">You need ' + fmt(short) + ' more gold</div>'
       : full
@@ -392,21 +395,7 @@ function renderSell(v, body) {
   } else if (shopSel) {
     const it = shopSel;
     det.innerHTML =
-      '<div class="nm" style="color:' +
-      RAR[it.r].c +
-      '">' +
-      itemName(it) +
-      '</div><div class="desc">' +
-      RAR[it.r].n +
-      ' ' +
-      (SLOT_NAME[it.slot] || it.slot).toLowerCase() +
-      ' · level ' +
-      it.lvl +
-      '</div>' +
-      powerLines(it, false) +
-      '<div class="stats">' +
-      statLines(it, game.P.eq[equipSlot(it, game.P.eq)]) +
-      '</div>' +
+      itemInfo(it) +
       (isUpgrade(it) ? '<div class="warnup">▲ Better than what you wear</div>' : '') +
       '<div class="acts"></div>';
     det.querySelector('.acts').appendChild(

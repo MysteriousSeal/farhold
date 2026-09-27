@@ -12,6 +12,7 @@ import { btn, consCanvas, goldPill, hdr, openModal, wireClose } from './modal';
 import { TORCH_COST, TORCH_MAX, TORCH_TIME, torches } from '../../model/game/consumables';
 import { QICON } from './questUi';
 import { closeAll } from './screens';
+import { fmtClock } from '../../core/format';
 /* ================= UI: the tavern (talking to the barmaid) ================= */
 // Drinks give one buff at a time for DRINK_TIME seconds of play (see game/stats.ts), resting
 // by the fire restores all health, and rumours pin the nearest unexplored lair or cave on the
@@ -51,10 +52,6 @@ const EAR_ICON =
   '/><circle cx="8" cy="9.5" r="1.4" fill="#6b4a32"/><circle cx="12" cy="9.5" r="1.4" fill="#6b4a32"/><circle cx="16" cy="9.5" r="1.4" fill="#6b4a32"/></svg>';
 
 export const RUMOUR_MS = 10 * 60 * 1000;
-const mmss = (s: number) => {
-  const t = Math.max(0, Math.ceil(s));
-  return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
-};
 const DIRS = [
   'east',
   'south-east',
@@ -155,7 +152,7 @@ function renderTavern(I: Interior) {
       '</b><span class="desc">' +
       d.desc +
       '</span>' +
-      (on ? '<span class="tvon">Active · ' + mmss(buff.t) + ' left</span>' : '');
+      (on ? '<span class="tvon">Active · ' + fmtClock(buff.t * 1000) + ' left</span>' : '');
     el.appendChild(
       btn(
         (on ? 'Refill · ' : 'Buy · ') + cost,
@@ -240,7 +237,7 @@ function renderTavern(I: Interior) {
     EAR_ICON,
     'Ask about rumours',
     wait > 0
-      ? 'No new gossip yet. Ask again in ' + mmss(wait) + '.'
+      ? 'No new gossip yet. Ask again in ' + fmtClock(wait * 1000) + '.'
       : 'Hear of a lair or cave nearby. It is marked on your minimap.',
     btn('Ask', () => askRumour(I), 'alt', wait > 0),
   );

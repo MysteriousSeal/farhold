@@ -1,5 +1,5 @@
-import { shadow } from '../../dom';
 import { OUT, TAU, sh } from '../../../core/math';
+import { beginCreature, creatureView } from './shared';
 /* ================= ART: wolves ================= */
 // A lean wolf in three facings (side, front, back): two-tone fur (darker back, pale belly and
 // muzzle), a fur ruff around the neck, a bushy light-tipped tail and a trotting leg cycle.
@@ -424,17 +424,8 @@ export function drawWolf(c: Ctx, e, t: number, v: string, col: string) {
     moving = e.moving,
     sw = Math.sin(e.walk) * (moving ? 1 : 0),
     bob = moving ? -Math.abs(Math.cos(e.walk)) * 1.3 : Math.sin(t * 2 + e.x) * 0.4,
-    ax = Math.abs(e.dx || 0),
-    ay = Math.abs(e.dy || 0),
-    view = ax >= ay * 0.8 ? 'side' : e.dy > 0 ? 'front' : 'back';
-  c.save();
-  c.translate(e.x, e.y);
-  shadow(c, 0, 0, (view === 'side' ? 18 : 12) * s, 5 * s);
-  c.scale(s * (view === 'side' && e.dx < 0 ? -1 : 1), s);
-  c.lineWidth = 2.2 / Math.sqrt(s);
-  c.strokeStyle = OUT;
-  c.lineJoin = 'round';
-  c.lineCap = 'round';
+    view = creatureView(e);
+  beginCreature(c, e, s, view, 18, 12, 5);
   if (e.wind > 0 && view === 'side') c.translate(-3, 0);
   if (view === 'side') side(c, e, t, p, sw, bob);
   else if (view === 'front') front(c, e, t, p, sw, bob);

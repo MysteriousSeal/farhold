@@ -1,4 +1,5 @@
-import { fmtClock, resetLeft } from '../../model/game/dungeons';
+import { resetLeft } from '../../model/game/dungeons';
+import { fmtClock } from '../../core/format';
 import { SPR } from './decor';
 import { circ, ell, rr, shadow } from '../dom';
 import { OUT, TAU, mulberry, rand, sh } from '../../core/math';

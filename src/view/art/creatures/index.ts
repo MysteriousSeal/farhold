@@ -10,7 +10,6 @@ import { fcol } from './shared';
 import { drawSlime } from './slime';
 import { drawSpider } from './spider';
 import { drawWolf } from './wolf';
-export { levelColor } from './plate';
 /* ================= ART: enemies =================
  * One file per creature in this folder; drawEnemy picks the drawer for the enemy's kind and
  * adds the shared effects (death squash, boss rage glow, stun stars, health bar). */

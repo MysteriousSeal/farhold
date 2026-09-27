@@ -7,7 +7,8 @@ import { ensureOffers, handInTask, patronJob } from './tavernQuests';
 import { IT, WALL_H, genInterior, type Interior } from '../world/interior';
 import { pathToBar } from '../world/tavernPath';
 import { DOOR_F } from '../world/poi';
-import { moveEnt, unstick } from './enemies';
+import { unstick } from './enemies';
+import { walkToTarget } from './npcs';
 import { banner, burst, doFade } from './fx';
 import { save } from './save';
 import { game, hero } from './state';
@@ -153,23 +154,7 @@ export function updateHouse(dt: number) {
         n.ty = Math.max(IT + 10, Math.min((I.GH - 1) * IT - 14, n.y + Math.sin(a) * r * 0.7));
       }
     }
-    if (n.tx != null) {
-      const dx = n.tx - n.x,
-        dy = n.ty - n.y,
-        d = Math.hypot(dx, dy);
-      if (d < 4) {
-        n.tx = null;
-        n.moving = false;
-      } else {
-        const ok = moveEnt(n, (dx / d) * 32 * dt, (dy / d) * 32 * dt, 8);
-        n.dx = dx;
-        n.dy = dy;
-        n.moving = true;
-        n.walk += dt * 7;
-        if (!ok) n.tx = null;
-      }
-    } else {
-      n.moving = false;
+    if (!walkToTarget(n, dt, 32, 8)) {
       // idle: glance at the hero when close
       const hx = game.P.x - n.x,
         hy = game.P.y - n.y;

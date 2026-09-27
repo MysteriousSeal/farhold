@@ -227,10 +227,6 @@ export function resetLeft(key: string) {
   const s = game.P && game.P.caves[key];
   return s && s.resetAt ? Math.max(0, s.resetAt - Date.now()) : 0;
 }
-export const fmtClock = (ms: number) => {
-  const t = Math.ceil(ms / 1000);
-  return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
-};
 function revealChest() {
   const c = game.DG.chest;
   if (!c.hidden) return;
