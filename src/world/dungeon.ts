@@ -297,7 +297,7 @@ function genCavern(key, lvl, b) {
         !D.torches.some((t) => Math.abs(t.tx - x) < 4 && Math.abs(t.ty - y) < 3)
       )
         D.torches.push({ tx: x, ty: y, x: x * T + T / 2, y: (y + 1) * T + 2, ph: rnd() * 9 });
-  const dress = ['bones', 'remains', 'web', 'rubble', 'stalagmite', 'stalagmite'];
+  const dress = ['bones', 'remains', 'web', 'stalagmite', 'stalagmite'];
   for (const r of order) {
     const n = 2 + ((rnd() * 3) | 0);
     for (let i = 0; i < n; i++) {
@@ -307,7 +307,7 @@ function genCavern(key, lvl, b) {
         if (!isF(gx, gy)) continue;
         if (Math.abs(gx - start.cx) + Math.abs(gy - start.cy) < 3) continue;
         if (Math.abs(gx - end.cx) + Math.abs(gy - end.cy) < 3) continue;
-        const k = r === start ? pick(['bones', 'rubble', 'web']) : pick(dress),
+        const k = r === start ? pick(['bones', 'remains', 'web']) : pick(dress),
           open = isF(gx - 1, gy) && isF(gx + 1, gy) && isF(gx, gy - 1) && isF(gx, gy + 1);
         if (k === 'stalagmite' && !open) continue;
         const prop: Record<string, any> = {
@@ -319,9 +319,6 @@ function genCavern(key, lvl, b) {
           prop.r = 10;
           prop.col = pal[3];
           prop.facet = sh(pal[3], 0.28);
-        } else if (k === 'rubble') {
-          prop.col = pal[1];
-          prop.facet = pal[2];
         }
         D.props.push(prop);
         break;
