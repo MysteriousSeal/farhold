@@ -4,6 +4,7 @@ import { BIOME_LINES, HALL_LINES, LINES } from '../data/dialogue';
 import { NAMES } from '../data/names';
 import { TAVERN_LINES } from '../data/tavern';
 import { villagerLook } from './poi';
+import { layTavern } from './tavernLayout';
 /* ================= HOUSE INTERIORS (generation) ================= */
 // Every village house (and Hearthfire's hall) has a seeded interior: a grid of floor cells
 // inside walls, split into 1–3 rooms joined by doorways, furnished by house model and room
@@ -24,6 +25,10 @@ export type Furn = {
   s: number; // seed 0..1 for per-piece variation
   col?: string;
   flip?: boolean;
+  /** side chairs and the bar flap: -1 or 1, which side of their table or bar they are on */
+  side?: number;
+  /** depth-sort key when it differs from y (a side chair sorts behind its sitter) */
+  z?: number;
 };
 export type WallDeco = { k: string; x: number; w: number; s: number; col?: string };
 export type Room = { x0: number; x1: number; purpose: string };
@@ -457,15 +462,24 @@ function buildSolids(I: Interior) {
   // tall pieces stand with their backs flush against the back wall
   for (const f of I.furn) if (WALL_TALL.has(f.k) && f.cy === 1) f.y = IT + WALL_DEPTH;
   // collision boxes for the furniture (flat pieces stay walkable)
-  const flat = new Set(['rug', 'rugS', 'chairF']);
+  const flat = new Set(['rug', 'rugS', 'chairF', 'chairSb', 'spill']);
   for (const f of I.furn) {
     if (flat.has(f.k)) continue;
     if (WALL_TALL.has(f.k) && f.cy === 1) {
       I.solids.push({ x0: f.cx * IT + 3, x1: (f.cx + f.cw) * IT - 3, y0: IT - 20, y1: f.y + 2 });
       continue;
     }
-    if (f.k === 'chair') {
+    if (f.k === 'chair' || f.k === 'chairB' || f.k === 'chairS' || f.k === 'barstool') {
       I.solids.push({ e: 1, x: f.x, y: f.y - 4, rx: 7, ry: 5 });
+      continue;
+    }
+    if (f.k === 'barflap') {
+      // closes the gap between the bar's end and the back wall
+      I.solids.push({ x0: f.x - 10, x1: f.x + 10, y0: IT - 20, y1: (f.cy + 1) * IT - 6 });
+      continue;
+    }
+    if (f.k === 'dog') {
+      I.solids.push({ e: 1, x: f.x, y: f.y - 4, rx: 11, ry: 6 });
       continue;
     }
     const x0 = f.cx * IT + 3,
@@ -575,6 +589,13 @@ function furnishTavern(I: Interior, rnd: () => number, big: boolean) {
     barW = big ? 6 : 5,
     bx0 = L ? 1 : w - barW + 1;
   put('bar', bx0, BAR_ROW, barW, 1);
+  // at its open end the bar turns the corner and runs back to the wall (an L), with a hinged
+  // flap in that counter that stays shut: the staff's way in
+  put('barflap', L ? bx0 + barW - 1 : bx0, BAR_ROW, 1, 1, {
+    x: L ? (bx0 + barW) * IT - 11 : bx0 * IT + 11,
+    y: (BAR_ROW + 1) * IT - 4.5,
+    side: L ? 1 : -1,
+  });
   put('kegs', L ? bx0 : bx0 + barW - 2, 1, 2, 1);
   put('bottles', L ? bx0 + barW - 2 : bx0, 1, 2, 1);
   const hx = L ? w - 2 : 2;
@@ -582,29 +603,8 @@ function furnishTavern(I: Interior, rnd: () => number, big: boolean) {
   I.furn.push({ k: 'rug', cx: hx - 1, cy: 2, cw: 4, ch: 2, x: (hx + 1) * IT, y: -1e4, s: rnd() });
   put('barrel', L ? w : 1, 3);
   put('candle', L ? w - 3 : 4, 1);
-  // tables: two rows, either side of the aisle up from the door
-  const seats: Furn[] = [];
-  for (const tr of [5, 8]) {
-    for (const [a, b] of [
-      [1, dc - 1],
-      [dc + 1, w],
-    ]) {
-      const len = b - a + 1,
-        n = Math.floor((len + 1) / 3),
-        off = Math.floor((len - (n * 3 - 1)) / 2);
-      for (let k = 0; k < n; k++) {
-        const t = put('ttable', a + off + k * 3, tr, 2, 1);
-        for (const [fx, fl] of [
-          [-IT * 0.45, false],
-          [IT * 0.45, true],
-        ] as [number, boolean][])
-          seats.push(
-            put('chair', t.cx, tr - 1, 1, 1, { x: t.x + fx, y: t.y - CHAIR_IN, flip: fl }),
-          );
-        if (tr * IT + 56 < (I.GH - 1) * IT) put('chairF', t.cx, tr, 1, 1, { x: t.x, y: t.y + 16 });
-      }
-    }
-  }
+  // tables with chairs all around, in loose clusters (world/tavernLayout.ts)
+  const seats = layTavern(rnd, put, w, I.GH - 2, BAR_ROW, dc, big, IT);
   // back wall between the pieces: windows and a painting
   const busy = new Uint8Array(I.GW);
   for (const f of I.furn)
@@ -620,7 +620,6 @@ function furnishTavern(I: Interior, rnd: () => number, big: boolean) {
     });
     i++;
   }
-  buildSolids(I);
   // the barmaid behind the bar, sunk behind the counter up to her waist
   const bm = bx0 + Math.floor(barW / 2),
     look = villagerLook(rnd);
@@ -653,9 +652,21 @@ function furnishTavern(I: Interior, rnd: () => number, big: boolean) {
     sayT: 0,
   });
   I.bar = { x: (bm + 0.5) * IT, y: (BAR_ROW + 1.5) * IT };
-  // patrons on the chairs behind the tables
+  // stools along the bar, clear of the spot where the hero orders
+  const sy = (BAR_ROW + 1) * IT + 14;
+  for (let i = bx0, k = 0; i < bx0 + barW && k < (big ? 3 : 2); i++) {
+    if (Math.abs(i - bm) < 2 || rnd() < 0.35) continue;
+    const x = (i + 0.5) * IT;
+    put('barstool', i, BAR_ROW + 1, 1, 1, { x, y: sy + 9 });
+    seats.push({ x, y: sy, face: 'up', cx: i, cy: BAR_ROW + 1, stool: true });
+    i++; // a gap between stools
+    k++;
+  }
+  buildSolids(I);
+  // patrons sit on the seats: behind a table facing us, in front of one or on a bar stool with
+  // their back to us, or at its side facing across
   const lines = [...TAVERN_LINES, ...(BIOME_LINES[I.b] || [])],
-    n = Math.min(seats.length, (big ? 5 : 3) + Math.floor(rnd() * 4));
+    n = Math.min(seats.length, (big ? 6 : 4) + Math.floor(rnd() * 4));
   seats.sort(() => rnd() - 0.5);
   for (let k = 0; k < n; k++) {
     const c = seats[k],
@@ -664,8 +675,8 @@ function furnishTavern(I: Interior, rnd: () => number, big: boolean) {
       role: 'patron',
       x: c.x,
       y: c.y + 1,
-      seat: { x: c.x, y: c.y + 1, row: c.cy },
-      sink: 17, // drawn lower so the table hides the legs
+      seat: { x: c.x, y: c.y + 1, face: c.face, stool: !!c.stool },
+      sits: true, // drawn in the sitting pose while seated
       dx: 0,
       dy: 1,
       walk: 0,

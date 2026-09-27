@@ -16,7 +16,9 @@ type Item = { y: number; f: (c: Ctx, t: number) => void };
 export const houseBack = (c: Ctx) => drawRoomBack(c, game.HS);
 export function houseItems(list: Item[]) {
   const I = game.HS;
-  for (const f of I.furn) list.push({ y: f.y, f: (c, t) => drawFurn(c, f, t) });
+  // floor stains lie under everything standing
+  for (const f of I.furn)
+    list.push({ y: f.k === 'spill' ? -1e4 : (f.z ?? f.y), f: (c, t) => drawFurn(c, f, t) });
   for (const p of partitionPieces(I)) list.push({ y: p.y, f: (c) => p.f(c) });
   for (const n of I.npcs) list.push({ y: n.y, f: (c, t) => drawNpc(c, n, t) });
 }
@@ -32,7 +34,13 @@ export function houseFront(c: Ctx, t: number) {
     const job = patronJob(I, i);
     if (!job) return;
     if (act && act.tx === n.x && (act.label === 'Job offer' || act.label === 'Hand in')) return;
-    jobMark(c, n.x, n.y + (n.seated ? n.sink || 0 : 0) + headY(n.look) - 12, job.mark, t);
+    jobMark(
+      c,
+      n.x,
+      n.y + (n.seated ? n.sink || 0 : 0) + headY(n.look, n.seated && n.sits) - 12,
+      job.mark,
+      t,
+    );
   });
   for (const n of I.npcs)
     // the tail ends just over the head, where the Talk prompt pointed

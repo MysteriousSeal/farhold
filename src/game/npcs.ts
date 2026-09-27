@@ -75,7 +75,8 @@ export function updateNpcs(dt) {
   }
 }
 export function drawNpc(c, n, t) {
-  // seated patrons and the barmaid are drawn lower, so the table or bar hides their legs
+  // seated patrons sit (the sitting pose); the barmaid is drawn lower, so the bar hides her legs
+  const sit = !!(n.seated && n.sits);
   drawHumanoid(c, n.x, n.y + (n.seated ? n.sink || 0 : 0), {
     look: n.look,
     dx: n.dx,
@@ -83,6 +84,7 @@ export function drawNpc(c, n, t) {
     moving: n.moving,
     walk: n.walk,
     time: t,
+    sit,
   });
   if (n.role === 'guard') {
     // spear held upright

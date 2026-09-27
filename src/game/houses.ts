@@ -7,7 +7,7 @@ import { TAU, rand } from '../core/math';
 import { zoom } from '../render/render';
 import { BARMAID_LINES, TASK_WAIT } from '../data/tavern';
 import { ensureOffers, handInTask, patronJob } from './tavernQuests';
-import { BAR_ROW, IT, genInterior, type Interior } from '../world/interior';
+import { BAR_ROW, IT, genInterior, inSolid, type Interior } from '../world/interior';
 import { DOOR_F } from '../world/poi';
 import { moveEnt, unstick } from './enemies';
 import { banner, burst, doFade } from './fx';
@@ -230,40 +230,37 @@ function walkPath(n, dt: number, speed = 38) {
 }
 /**
  * Patrons sit at their table (sunk behind it) and now and then get up, walk to the bar by the
- * clear rows and the aisle, wait for a refill and go back. One patron at the bar at a time.
+ * free floor (pathToBar), wait for a refill and go back. One patron at the bar at a time.
  */
 function patronWork(n, dt: number) {
-  const I = game.HS,
-    front = (BAR_ROW + 1.5) * IT;
+  const I = game.HS;
   if (!n.st || n.st === 'sit') {
     n.seated = true;
     n.moving = false;
     n.x = n.seat.x;
     n.y = n.seat.y;
-    const hx = game.P.x - n.x;
-    n.dx = Math.abs(hx) < 140 ? hx : 0;
-    n.dy = 30;
+    const f = n.seat.face || 'down';
+    if (f === 'down') {
+      // behind a table: looks our way (they only turn to the hero when talked to)
+      n.dx = 0;
+      n.dy = 1;
+    } else {
+      n.dx = f === 'left' ? -1 : f === 'right' ? 1 : 0;
+      n.dy = f === 'up' ? -1 : 0;
+    }
     n.wt -= dt;
     if (n.wt <= 0) {
-      if (I.npcs.some((o) => o.role === 'patron' && o.st && o.st !== 'sit')) {
+      // those on a bar stool are already at the bar
+      if (n.seat.stool || I.npcs.some((o) => o.role === 'patron' && o.st && o.st !== 'sit')) {
         n.wt = rand(4, 10);
         return;
       }
-      const barX = clamp(I.bar.x + rand(-60, 60), IT * 1.5, (I.GW - 1.5) * IT),
-        aisle = (I.door.cx + 0.5) * IT,
-        up = (n.seat.row - 0.5) * IT; // the clear row just above the patron's chair row
-      n.route =
-        n.seat.row <= BAR_ROW + 2
-          ? [
-              { x: n.seat.x, y: front },
-              { x: barX, y: front },
-            ]
-          : [
-              { x: n.seat.x, y: up },
-              { x: aisle, y: up },
-              { x: aisle, y: front },
-              { x: barX, y: front },
-            ];
+      const route = pathToBar(I, n.seat.x, n.seat.y);
+      if (!route) {
+        n.wt = rand(10, 20);
+        return;
+      }
+      n.route = route;
       n.path = n.route.slice();
       n.st = 'go';
       n.seated = false;
@@ -288,6 +285,55 @@ function patronWork(n, dt: number) {
     n.st = 'sit';
     n.wt = rand(15, 40);
   }
+}
+/**
+ * A walk from a seat to a free spot just in front of the bar: cell centres found by a
+ * breadth-first search over floor cells no furniture blocks (the seat itself may be).
+ */
+function pathToBar(I: Interior, sx: number, sy: number) {
+  const GW = I.GW,
+    ok = (i: number, j: number) =>
+      I.grid[j * GW + i] === 1 &&
+      !I.solids.some((s) => inSolid(s, (i + 0.5) * IT, (j + 0.5) * IT, 9)),
+    si = Math.floor(sx / IT),
+    sj = Math.floor(sy / IT),
+    prev = new Map<number, number>([[sj * GW + si, -1]]),
+    q = [si, sj],
+    goalRow = BAR_ROW + 1;
+  let goal = -1,
+    best = 1e9;
+  for (let k = 0; k < q.length; k += 2) {
+    const i = q[k],
+      j = q[k + 1];
+    if (j === goalRow && ok(i, j)) {
+      const d = Math.abs((i + 0.5) * IT - I.bar.x);
+      if (d < best && !(Math.abs((i + 0.5) * IT - I.bar.x) < IT * 0.6)) {
+        best = d;
+        goal = j * GW + i;
+      }
+    }
+    for (const [ox, oy] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ]) {
+      const ni = i + ox,
+        nj = j + oy,
+        c = nj * GW + ni;
+      if (prev.has(c) || !ok(ni, nj)) continue;
+      prev.set(c, j * GW + i);
+      q.push(ni, nj);
+    }
+  }
+  if (goal < 0) return null;
+  const pts: { x: number; y: number }[] = [];
+  for (let c = goal; c >= 0; c = prev.get(c) ?? -1)
+    pts.unshift({ x: ((c % GW) + 0.5) * IT, y: (Math.floor(c / GW) + 0.5) * IT });
+  pts.shift(); // the seat's own cell: the patron starts from the chair
+  // stand at the bar front, facing it
+  if (pts.length) pts[pts.length - 1].y = (BAR_ROW + 1.5) * IT;
+  return pts;
 }
 /** The barmaid works along the bar, and greets the hero and faces them when they come near. */
 function barmaidWork(n, dt: number) {
@@ -334,7 +380,8 @@ function barmaidWork(n, dt: number) {
 /** Interaction candidates inside a house: residents to talk to, and the way out. */
 /** Just over the top of an NPC's drawn head (seated ones and the barmaid sit lower): where
  * their interaction bubble points. */
-export const headTop = (n) => n.y + (n.seated ? n.sink || 0 : 0) + headY(n.look) - HEAD_R - 2;
+export const headTop = (n) =>
+  n.y + (n.seated ? n.sink || 0 : 0) + headY(n.look, n.seated && n.sits) - HEAD_R - 2;
 export function houseInteract(cand) {
   const I = game.HS;
   if (I.counter) {
