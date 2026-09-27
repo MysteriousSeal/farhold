@@ -389,7 +389,7 @@ export function genDungeonChunk(D, cx, cy) {
     oy = cy * CH;
   const cave = D.style === 'cave',
     pal = cave ? cavePal() : dungeonPal(D.b);
-  const moss: { x: number; y: number; s: number }[] = [];
+  const moss: { x: number; y: number; s: number; k?: string }[] = [];
   x.fillStyle = cave ? CAVE_VOID : '#120e1a';
   x.fillRect(0, 0, CH, CH);
   x.save();
@@ -428,8 +428,17 @@ export function genDungeonChunk(D, cx, cy) {
         x.lineTo(X + 12, Y + 34);
         x.stroke();
       }
-      if (v < 0.14 && X >= ox && X < ox + CH && Y >= oy && Y < oy + CH)
-        moss.push({ x: X + 20, y: Y + 22, s: (hs(i, j, 77) * 1e9) | 0 });
+      // earthy bits (art/decor.ts drawCaveBit): roots hang from the rock face above
+      if (v < 0.14 && X >= ox && X < ox + CH && Y >= oy && Y < oy + CH) {
+        const roots = !isF(i, j - 1) && hs(i, j, 78) < 0.6,
+          q = hs(i, j, 79);
+        moss.push({
+          x: X + 20,
+          y: roots ? Y + 4 : Y + 22,
+          s: (hs(i, j, 77) * 1e9) | 0,
+          k: roots ? 'roots' : q < 0.45 ? 'pebbles' : q < 0.75 ? 'crystal' : 'puddle',
+        });
+      }
       if (!isF(i, j - 1)) {
         const shade = x.createLinearGradient(0, Y, 0, Y + 14);
         shade.addColorStop(0, 'rgba(0,0,0,.35)');

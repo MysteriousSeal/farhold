@@ -940,3 +940,153 @@ export function drawMoss(c, m, blight: boolean, t: number) {
   }
   c.restore();
 }
+
+/** Glow per biome for cave crystals and puddle sheen (Meadow…Blightlands). */
+const CAVE_GLOW = [
+  '150,220,255',
+  '150,220,255',
+  '150,220,255',
+  '255,196,110',
+  '205,240,255',
+  '120,230,190',
+  '150,245,110',
+];
+/** Cavern floor detail instead of dungeon moss: pebbles, roots, crystals or a still puddle. */
+export function drawCaveBit(c, m, b: number, t: number) {
+  const rnd = mulberry(m.s),
+    glow = CAVE_GLOW[b] || CAVE_GLOW[0];
+  c.save();
+  c.translate(m.x, m.y);
+  c.strokeStyle = OUT;
+  c.lineJoin = 'round';
+  c.lineCap = 'round';
+  if (m.k === 'pebbles') {
+    const n = 3 + ((rnd() * 3) | 0),
+      pts: number[][] = [];
+    for (let k = 0; k < n; k++)
+      pts.push([(rnd() - 0.5) * 26, (rnd() - 0.5) * 12, 2.4 + rnd() * 3.2, rnd()]);
+    pts.sort((a, b) => a[1] - b[1]);
+    for (const [x, y, r, v] of pts) {
+      c.fillStyle = 'rgba(0,0,0,.25)';
+      c.beginPath();
+      c.ellipse(x + 1, y + r * 0.5, r * 1.1, r * 0.5, 0, 0, TAU);
+      c.fill();
+      c.lineWidth = 1.4;
+      c.fillStyle = v < 0.5 ? '#8a6448' : '#a07a58';
+      c.beginPath();
+      c.ellipse(x, y, r, r * 0.72, 0, 0, TAU);
+      c.fill();
+      c.stroke();
+      c.fillStyle = '#c4926a';
+      c.beginPath();
+      c.ellipse(x - r * 0.3, y - r * 0.28, r * 0.42, r * 0.26, 0, 0, TAU);
+      c.fill();
+    }
+  } else if (m.k === 'roots') {
+    // gnarled roots pushing out of the rock face and burrowing back into the dirt
+    const n = 2 + ((rnd() * 2) | 0);
+    for (let k = 0; k < n; k++) {
+      const x0 = (rnd() - 0.5) * 26,
+        len = 10 + rnd() * 12,
+        bend = (rnd() - 0.5) * 14,
+        w = 3.6 + rnd() * 1.8;
+      const path = () => {
+        c.beginPath();
+        c.moveTo(x0, -8);
+        c.quadraticCurveTo(x0 + bend, len * 0.5, x0 + bend * 0.6, len);
+      };
+      path();
+      c.lineWidth = w + 2.6;
+      c.stroke();
+      path();
+      c.lineWidth = w;
+      c.strokeStyle = '#9a6c46';
+      c.stroke();
+      c.strokeStyle = OUT;
+      if (rnd() < 0.7) {
+        const sx = x0 + bend * 0.45,
+          sy = len * 0.45,
+          d = rnd() < 0.5 ? -1 : 1;
+        c.beginPath();
+        c.moveTo(sx, sy);
+        c.quadraticCurveTo(sx + d * 6, sy + 2, sx + d * 8, sy + 7);
+        c.lineWidth = 4;
+        c.stroke();
+        c.strokeStyle = '#9a6c46';
+        c.lineWidth = 2;
+        c.stroke();
+        c.strokeStyle = OUT;
+      }
+    }
+  } else if (m.k === 'crystal') {
+    const pulse = 0.2 + Math.sin(t * 1.8 + m.s) * 0.07;
+    c.fillStyle = 'rgba(' + glow + ',' + pulse.toFixed(3) + ')';
+    c.beginPath();
+    c.ellipse(0, -4, 17, 11, 0, 0, TAU);
+    c.fill();
+    c.fillStyle = 'rgba(0,0,0,.28)';
+    c.beginPath();
+    c.ellipse(0, 2, 12, 4, 0, 0, TAU);
+    c.fill();
+    const n = 3 + ((rnd() * 2) | 0),
+      shards: number[][] = [];
+    for (let k = 0; k < n; k++)
+      shards.push([
+        (k / (n - 1) - 0.5) * 16 + (rnd() - 0.5) * 3,
+        7 + rnd() * 9,
+        (rnd() - 0.5) * 0.7,
+      ]);
+    shards.sort((a, b) => a[1] - b[1]);
+    for (const [x, h, lean] of shards) {
+      c.save();
+      c.translate(x, 2);
+      c.rotate(lean);
+      c.beginPath();
+      c.moveTo(-3, 0);
+      c.lineTo(-3, -h * 0.7);
+      c.lineTo(0, -h);
+      c.lineTo(3, -h * 0.7);
+      c.lineTo(3, 0);
+      c.closePath();
+      c.fillStyle = 'rgb(' + glow + ')';
+      c.lineWidth = 1.5;
+      c.fill();
+      c.stroke();
+      c.fillStyle = 'rgba(255,255,255,.6)';
+      c.beginPath();
+      c.moveTo(-1.6, -1);
+      c.lineTo(-1.6, -h * 0.66);
+      c.lineTo(0, -h * 0.9);
+      c.lineTo(0, -1);
+      c.closePath();
+      c.fill();
+      c.restore();
+    }
+  } else {
+    // a still puddle; now and then a drip from the ceiling rings it
+    const rx = 12 + rnd() * 6,
+      ry = rx * 0.5;
+    c.fillStyle = '#4a3020';
+    c.beginPath();
+    c.ellipse(0, 0, rx + 2.5, ry + 2, 0, 0, TAU);
+    c.fill();
+    c.fillStyle = '#23303a';
+    c.beginPath();
+    c.ellipse(0, 0.6, rx, ry, 0, 0, TAU);
+    c.fill();
+    c.fillStyle = 'rgba(' + glow + ',.22)';
+    c.beginPath();
+    c.ellipse(-rx * 0.3, -ry * 0.3, rx * 0.45, ry * 0.3, 0, 0, TAU);
+    c.fill();
+    const ph = (t * 0.45 + rnd()) % 1;
+    if (ph < 0.5) {
+      const k = ph / 0.5;
+      c.strokeStyle = 'rgba(' + glow + ',' + (0.55 * (1 - k)).toFixed(3) + ')';
+      c.lineWidth = 1.3;
+      c.beginPath();
+      c.ellipse(rx * 0.15, 0.5, 2 + k * rx * 0.6, (2 + k * rx * 0.6) * 0.5, 0, 0, TAU);
+      c.stroke();
+    }
+  }
+  c.restore();
+}

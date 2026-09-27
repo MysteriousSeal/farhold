@@ -1,6 +1,6 @@
 import { WARP_TIME } from '../game/warp';
 import { heroStyle } from '../game/style';
-import { drawMoss } from '../art/decor';
+import { drawCaveBit, drawMoss } from '../art/decor';
 import {
   drawCityGround,
   drawFountain,
@@ -386,7 +386,10 @@ export function render() {
   }
   drawFlora(g, flora, x0, y0, x1, y1, game.time, windK);
   if (game.mode === 'house') houseBack(g);
-  if (game.mode === 'dungeon') for (const m of moss) drawMoss(g, m, game.DG.b === 6, game.time);
+  if (game.mode === 'dungeon')
+    for (const m of moss)
+      if (m.k) drawCaveBit(g, m, game.DG.b, game.time);
+      else drawMoss(g, m, game.DG.b === 6, game.time);
   if (game.genBudget > 0) {
     if (game.mode === 'world') bgStep(cx, cy);
     else if (game.mode === 'dungeon') {
