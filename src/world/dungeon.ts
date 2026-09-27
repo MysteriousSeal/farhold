@@ -291,16 +291,31 @@ function genCavern(key, lvl, b) {
   // the way out is a daylit mouth in a north rock face of the first chamber
   const [ei, ej] = caveMouth(isF, start);
   D.exit = { x: ei * T + T / 2, y: ej * T + 6 };
+  // wall torches hang on rock faces above floor, spaced out and clear of the mouth
+  const torchOk = (x, y) =>
+      !isF(x, y) &&
+      isF(x, y + 1) &&
+      !(y === ej - 1 && Math.abs(x - ei) < 3) &&
+      !D.torches.some((t) => Math.abs(t.tx - x) < 4 && Math.abs(t.ty - y) < 3),
+    torch = (x, y) =>
+      D.torches.push({ tx: x, ty: y, x: x * T + T / 2, y: (y + 1) * T + 2, ph: rnd() * 9 });
+  // one in every chamber (the face nearest its middle), so no room is left black
+  for (const r of order) {
+    let best = null,
+      bd = 1e9;
+    for (let y = r.y - 1; y < r.y + r.h; y++)
+      for (let x = r.x; x < r.x + r.w; x++) {
+        if (!torchOk(x, y)) continue;
+        const d = Math.hypot(x - r.cx, y - r.cy);
+        if (d < bd) {
+          bd = d;
+          best = [x, y];
+        }
+      }
+    if (best) torch(best[0], best[1]);
+  }
   for (let y = 1; y < GH - 1; y++)
-    for (let x = 1; x < GW - 1; x++)
-      if (
-        !isF(x, y) &&
-        isF(x, y + 1) &&
-        rnd() < 0.07 &&
-        !(y === ej - 1 && Math.abs(x - ei) < 3) &&
-        !D.torches.some((t) => Math.abs(t.tx - x) < 4 && Math.abs(t.ty - y) < 3)
-      )
-        D.torches.push({ tx: x, ty: y, x: x * T + T / 2, y: (y + 1) * T + 2, ph: rnd() * 9 });
+    for (let x = 1; x < GW - 1; x++) if (rnd() < 0.05 && torchOk(x, y)) torch(x, y);
   const dress = ['bones', 'remains', 'web', 'stalagmite', 'stalagmite'];
   for (const r of order) {
     const n = 2 + ((rnd() * 3) | 0);
