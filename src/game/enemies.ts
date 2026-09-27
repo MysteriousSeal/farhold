@@ -3,7 +3,7 @@ import { inPlaceNow } from '../world/poi';
 import { WADE, isPool } from '../world/terrain';
 import type { Enemy, Rec } from './types';
 import { CHEST_GOLD_SHARE, spawnBossChest } from './bossChest';
-import { SFX } from '../audio/sfx';
+import { SFX } from '../core/ports';
 import { TAU, clamp, lerp, pick, rand } from '../core/math';
 import { settings } from '../core/settings';
 import { BOSS } from '../data/bosses';

@@ -1,19 +1,15 @@
 import { HEAD_R, headY } from '../art/body';
-import { WALL_H } from '../art/interior/room';
-import { SFX } from '../audio/sfx';
+import { SFX, ports } from '../core/ports';
 import { H, W } from '../core/dom';
 import { clamp } from '../core/math';
 import { TAU, rand } from '../core/math';
-import { zoom } from '../render/render';
 import { BARMAID_LINES, TASK_WAIT } from '../data/tavern';
 import { ensureOffers, handInTask, patronJob } from './tavernQuests';
-import { IT, genInterior, type Interior } from '../world/interior';
+import { IT, WALL_H, genInterior, type Interior } from '../world/interior';
 import { pathToBar } from '../world/tavernPath';
 import { DOOR_F } from '../world/poi';
 import { moveEnt, unstick } from './enemies';
 import { banner, burst, doFade } from './fx';
-import { openJob, openTavern } from '../ui/tavern';
-import { openSmith } from '../ui/village';
 import { save } from './save';
 import { game, hero } from './state';
 /* ================= HOUSES: entering, residents, talking ================= */
@@ -82,7 +78,7 @@ export function leaveHouse(instant?: boolean) {
  */
 export function houseCam(x: number, y: number) {
   const I = game.HS,
-    z = zoom(),
+    z = ports.zoom(),
     vw = W / z / 2,
     vh = H / z / 2,
     x0 = IT - 24,
@@ -343,7 +339,7 @@ export function houseInteract(cand) {
       I.counter.y,
       64,
       'Blacksmith',
-      () => openSmith(I.village),
+      () => ports.open.smith(I.village),
       sm ? headTop(sm) : I.counter.y - 118,
       sm ? sm.x : undefined,
     );
@@ -356,7 +352,7 @@ export function houseInteract(cand) {
       I.bar.y,
       64,
       'Barmaid',
-      () => openTavern(I),
+      () => ports.open.tavern(I),
       bm ? headTop(bm) : I.bar.y - 150,
       bm ? bm.x : undefined, // she walks along the bar: the bubble follows her
     );
@@ -365,7 +361,8 @@ export function houseInteract(cand) {
     if (n.role === 'smith' || n.role === 'barmaid') return;
     const job = n.role === 'patron' ? patronJob(I, i) : null;
     const ly = headTop(n);
-    if (job && job.mark === '!') cand(n.x, n.y + 6, TALK_R, 'Job offer', () => openJob(I, i), ly);
+    if (job && job.mark === '!')
+      cand(n.x, n.y + 6, TALK_R, 'Job offer', () => ports.open.job(I, i), ly);
     else if (job && job.mark === '?')
       cand(n.x, n.y + 6, TALK_R, 'Hand in', () => handInTask(job.q), ly);
     // while they speak, their white bubble takes the prompt's place (E moves to the next line)

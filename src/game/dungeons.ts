@@ -1,7 +1,7 @@
 import { spawnWarpPortal } from './warp';
 import { gainXp } from './combat';
 import { xpNeed } from './stats';
-import { SFX } from '../audio/sfx';
+import { SFX } from '../core/ports';
 import { mulberry, strSeed } from '../core/math';
 import { settings } from '../core/settings';
 import { DTABLE, ET, typesFor } from '../data/enemies';

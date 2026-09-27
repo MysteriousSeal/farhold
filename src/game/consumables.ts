@@ -1,4 +1,4 @@
-import { SFX } from '../audio/sfx';
+import { SFX } from '../core/ports';
 import { drinkPot } from './combat';
 import { toast } from './fx';
 import { game } from './state';

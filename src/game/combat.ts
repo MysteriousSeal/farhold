@@ -1,7 +1,7 @@
 import { cancelWarp } from './warp';
 import { STYLE_CD, heroStyle } from './style';
 import type { Rec } from './types';
-import { SFX } from '../audio/sfx';
+import { SFX, ports } from '../core/ports';
 import { $ } from '../core/dom';
 import { crownY } from '../art/body';
 import { angDiff, rand } from '../core/math';
@@ -13,9 +13,6 @@ import { save } from './save';
 import { leaveHouse } from './houses';
 import { game, hero } from './state';
 import { calcStats, xpNeed } from './stats';
-import { setHud } from '../ui/hud';
-import { showScreen } from '../ui/screens';
-import { moveInput } from '../input/input';
 import { arrivalY } from './interactions';
 import { regionName, solidAt } from '../world/chunks';
 /* ================= COMBAT: hero ================= */
@@ -174,7 +171,7 @@ export function heroRoll() {
   cancelWarp();
   // the direction held right now (a key pressed in the same frame as the roll counts), else
   // the way the hero faces
-  let [dx, dy] = moveInput();
+  let [dx, dy] = ports.moveInput();
   if (!dx && !dy) {
     dx = hero.dx;
     dy = hero.dy;
@@ -366,8 +363,8 @@ function heroDie() {
   SFX.die();
   $('#deadt').textContent =
     'Slain in ' + regionName(game.P.x, game.P.y) + '. You lost ' + lost + ' gold.';
-  showScreen('dead');
-  setHud(false);
+  ports.screen('dead');
+  ports.hud(false);
 }
 export function respawn() {
   const w = game.P.wpInfo[game.P.home] || { x: 0, y: 0 };
@@ -386,8 +383,8 @@ export function respawn() {
   game.camX = game.P.x;
   game.camY = game.P.y;
   game.state = 'play';
-  showScreen('');
-  setHud(true);
+  ports.screen('');
+  ports.hud(true);
   save();
 }
 export function gainXp(n) {

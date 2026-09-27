@@ -1,5 +1,5 @@
 import { drawHumanoid, handPos } from '../art/humanoid';
-import { SFX } from '../audio/sfx';
+import { SFX } from '../core/ports';
 import { rr } from '../core/dom';
 import { OUT, TAU, rand } from '../core/math';
 import { moveEnt } from './enemies';

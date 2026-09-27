@@ -1,4 +1,4 @@
-import { SFX } from '../audio/sfx';
+import { SFX } from '../core/ports';
 import { dropAt } from './enemies';
 import { burst, ring, toast } from './fx';
 import { genItem } from './items';

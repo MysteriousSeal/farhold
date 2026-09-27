@@ -1,6 +1,6 @@
 import { crownY } from '../art/body';
 import { solidAt } from '../world/chunks';
-import { SFX } from '../audio/sfx';
+import { SFX } from '../core/ports';
 import { $ } from '../core/dom';
 import { RAR } from '../data/classes';
 import { ftext, toast } from './fx';

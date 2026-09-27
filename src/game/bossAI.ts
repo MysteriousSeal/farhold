@@ -1,4 +1,4 @@
-import { SFX } from '../audio/sfx';
+import { SFX } from '../core/ports';
 import { TAU, clamp, lerp, pick, rand } from '../core/math';
 import { hurtHero } from './combat';
 import { PROJCOL, eProj, makeEnemy, moveEnt } from './enemies';

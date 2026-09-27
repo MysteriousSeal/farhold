@@ -1,13 +1,12 @@
 import { rr } from '../../core/dom';
 import { OUT, TAU, sh } from '../../core/math';
 import { game } from '../../game/state';
-import { IT, type Interior } from '../../world/interior';
+import { IT, WALL_H, type Interior } from '../../world/interior';
 /* ================= ART: house interiors — room shell ================= */
 // Floor (planks, flagstones, packed earth or the hall's checker with a carpet runner), the
 // back wall face with its decorations, side and partition walls, the low front wall with the
 // doorway, and warm light from hearths and candles. Everything is vector-drawn each frame.
 type Ctx = CanvasRenderingContext2D;
-export const WALL_H = 64; // height of the back wall face above the first floor row
 const CAP = '#3a2a20',
   VOID = '#140e1a';
 const hash = (a: number, b: number) => {

@@ -1,4 +1,4 @@
-import { SFX } from '../audio/sfx';
+import { SFX } from '../core/ports';
 import { pick, rand } from '../core/math';
 import { ET } from '../data/enemies';
 import { damageEnemy, hurtHero } from './combat';

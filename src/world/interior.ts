@@ -12,6 +12,7 @@ import { layTavern } from './tavernLayout';
 // cell (i, j) covers [i*T, (i+1)*T] × [j*T, (j+1)*T]. Walls are the grid's border cells.
 
 export const IT = 40; // cell size (world units)
+export const WALL_H = 64; // height of the back wall face above the first floor row
 export type Furn = {
   k: string;
   /** cell rectangle */

@@ -1,4 +1,4 @@
-import { SFX } from '../audio/sfx';
+import { SFX, ports } from '../core/ports';
 import { solidAt } from '../world/chunks';
 import { TAU, pick, rand } from '../core/math';
 import { TABLE, typesFor } from '../data/enemies';
@@ -8,7 +8,6 @@ import { dropAt, makeEnemy } from './enemies';
 import { banner, burst, ring, toast } from './fx';
 import { genItem } from './items';
 import { game } from './state';
-import { openShop } from '../ui/village';
 import { poisNear } from '../world/poi';
 import { dangerAt, terr, walkT } from '../world/terrain';
 /* ================= WORLD EVENTS ================= */
@@ -268,7 +267,7 @@ export function eventInteract(cand) {
   const ev: WorldEvent = game.ev;
   if (!ev || game.mode !== 'world') return;
   if (ev.kind === 'merchant')
-    cand(ev.x, ev.y + 18, 70, 'Trade', () => openShop(ev.shop, true), ev.y - 80);
+    cand(ev.x, ev.y + 18, 70, 'Trade', () => ports.open.shop(ev.shop, true), ev.y - 80);
   else if (ev.kind === 'meteor' && ev.stage === 'crater' && !guarded(ev))
     cand(ev.x, ev.y + 10, 70, 'Mine the meteorite', () => mine(ev), ev.y - 50);
 }

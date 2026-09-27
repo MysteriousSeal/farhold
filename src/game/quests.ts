@@ -1,4 +1,4 @@
-import { SFX } from '../audio/sfx';
+import { SFX } from '../core/ports';
 import { pick } from '../core/math';
 import { BOSS } from '../data/bosses';
 import { ET, TABLE, typesFor } from '../data/enemies';

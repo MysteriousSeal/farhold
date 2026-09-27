@@ -1,4 +1,4 @@
-import { SFX } from '../audio/sfx';
+import { SFX } from '../core/ports';
 import { rand } from '../core/math';
 import { leaveDungeon } from './dungeons';
 import { ring, toast } from './fx';

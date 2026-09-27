@@ -3,6 +3,7 @@ import './shop.css';
 import './skilltree.css';
 import './pause.css';
 import './core/dom';
+import './controller/wiring';
 import './core/settings';
 import './input/input';
 import './ui/screens';

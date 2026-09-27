@@ -2,7 +2,7 @@ import { cancelWarp, updateWarp } from './warp';
 import { heroStyle } from './style';
 import { inPlaceNow } from '../world/poi';
 import { WADE, isPool } from '../world/terrain';
-import { SFX } from '../audio/sfx';
+import { SFX } from '../core/ports';
 import { H, W } from '../core/dom';
 import { angDiff, clamp, lerp, rand } from '../core/math';
 import { settings } from '../core/settings';

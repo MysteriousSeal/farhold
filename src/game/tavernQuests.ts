@@ -1,4 +1,4 @@
-import { SFX } from '../audio/sfx';
+import { SFX } from '../core/ports';
 import { TAU } from '../core/math';
 import { ET, TABLE, typesFor } from '../data/enemies';
 import { COLLECT_ITEMS, LOST_ITEMS, TASK_SAYS } from '../data/tavern';

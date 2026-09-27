@@ -1,6 +1,7 @@
-import { $ } from '../core/dom';
 import { TAU, rand } from '../core/math';
 import { game, lights } from './state';
+// on-screen messages go through the ports (their view is ui/messages.ts)
+export { banner, toast } from '../core/ports';
 export function addLight(x, y, r, i, col) {
   if ((game.dark > 0.03 || game.mode === 'dungeon') && lights.length < 64)
     lights.push({ x, y, r, i, col });
@@ -61,22 +62,6 @@ export function ftext(x, y, s, col, big?) {
     big,
     vx: rand(-20, 20),
   });
-}
-let toastT;
-export function toast(m) {
-  const t = $('#toast');
-  if (!t) return; // no page (tests)
-  t.textContent = m;
-  t.style.opacity = 1;
-  clearTimeout(toastT);
-  toastT = setTimeout(() => (t.style.opacity = 0), 2200);
-}
-export function banner(big, small) {
-  const z = $('#zone');
-  z.innerHTML = big + (small ? '<small>' + small + '</small>' : '');
-  z.style.opacity = 1;
-  clearTimeout(z.t);
-  z.t = setTimeout(() => (z.style.opacity = 0), 2800);
 }
 export function doFade(cb) {
   game.fadeDir = 1;
