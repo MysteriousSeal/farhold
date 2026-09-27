@@ -375,35 +375,47 @@ export function buildSprites() {
       x.fill();
     }
   });
-  SPR.crystal = makeSpr(44, 56, 22, 52, (x) => {
-    shadow(x, 0, 0, 13, 4, 0.3);
-    const cr = (ox, h, w, a) => {
-      x.save();
-      x.translate(ox, 0);
-      x.rotate(a);
-      x.beginPath();
-      x.moveTo(-w, 0);
-      x.lineTo(-w, -h * 0.7);
-      x.lineTo(0, -h);
-      x.lineTo(w, -h * 0.7);
-      x.lineTo(w, 0);
-      x.closePath();
-      x.fillStyle = '#9a5ad0';
-      x.fill();
-      x.stroke();
-      x.fillStyle = '#d8a8ff';
-      x.beginPath();
-      x.moveTo(-w + 2, -2);
-      x.lineTo(-w + 2, -h * 0.68);
-      x.lineTo(0, -h + 3);
-      x.lineTo(0, -2);
-      x.fill();
-      x.restore();
-    };
-    cr(-9, 26, 5, -0.3);
-    cr(9, 22, 5, 0.35);
-    cr(0, 40, 7, 0);
-  });
+  // Blightlands minerals: one cluster shape. `edge` draws a thin facet instead of a broad face.
+  const crystalSpr = (body: string, facet: string, edge = false) =>
+    makeSpr(44, 56, 22, 52, (x) => {
+      shadow(x, 0, 0, 13, 4, 0.3);
+      const cr = (ox, h, w, a) => {
+        x.save();
+        x.translate(ox, 0);
+        x.rotate(a);
+        x.beginPath();
+        x.moveTo(-w, 0);
+        x.lineTo(-w, -h * 0.7);
+        x.lineTo(0, -h);
+        x.lineTo(w, -h * 0.7);
+        x.lineTo(w, 0);
+        x.closePath();
+        x.fillStyle = body;
+        x.fill();
+        x.stroke();
+        x.fillStyle = facet;
+        x.beginPath();
+        if (edge) {
+          x.moveTo(-w + 1.3, -2);
+          x.lineTo(-w + 1.3, -h * 0.66);
+          x.lineTo(-w + 3.1, -h * 0.6);
+          x.lineTo(-w + 3.1, -2);
+        } else {
+          x.moveTo(-w + 2, -2);
+          x.lineTo(-w + 2, -h * 0.68);
+          x.lineTo(0, -h + 3);
+          x.lineTo(0, -2);
+        }
+        x.fill();
+        x.restore();
+      };
+      cr(-9, 26, 5, -0.3);
+      cr(9, 22, 5, 0.35);
+      cr(0, 40, 7, 0);
+    });
+  SPR.crystal = crystalSpr('#9a5ad0', '#d8a8ff');
+  SPR.shard = crystalSpr('#7a9a28', '#e4f59a');
+  SPR.glass = crystalSpr('#1a1820', '#a8b0bc', true);
   // bones & skull: each part is one silhouette with a single outline (outline pass, then fill)
   const BONE = '#ece4d0',
     BSH = '#cfc4aa',

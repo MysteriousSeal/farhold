@@ -58,6 +58,12 @@ import { drawPools, drawShores } from '../world/shores';
 import { poisNear } from '../world/poi';
 import { CH, corr } from '../world/terrain';
 /* ================= RENDER ================= */
+/** Blightlands minerals, each glowing in its own colour. */
+const MINERAL_GLOW: Record<string, string> = {
+  crystal: '#c060ff',
+  shard: '#c6ee55',
+  glass: '#b7c0ce',
+};
 export const zoom = () => clamp(Math.min(W, H) / 370, 1, 2.1);
 let vign = null;
 const WX = { rain: [], snow: [] };
@@ -538,7 +544,8 @@ export function render() {
         g.drawImage(s.c, -s.ax, -s.ay, s.w, s.h);
         g.restore();
       } else g.drawImage(s.c, d.x - s.ax, d.y - s.ay, s.w, s.h);
-      if (d.k === 'crystal') addLight(d.x, d.y - 20, 90, 0.7, '#c060ff');
+      const mineral = MINERAL_GLOW[d.k];
+      if (mineral) addLight(d.x, d.y - 20, 90, 0.7, mineral);
       if (d.k === 'mushroom' && game.dark > 0.3) addLight(d.x, d.y - 8, 40, 0.4, '#9aff9a');
       g.globalAlpha = 1;
     } else it.f(g, game.time);
