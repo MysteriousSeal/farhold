@@ -165,39 +165,92 @@ export function buildSprites() {
       x.stroke();
     }
   });
-  const rock = (c1, c2) =>
-    makeSpr(52, 42, 26, 36, (x) => {
-      shadow(x, 0, 0, 20, 6, 0.25);
+  // 0 the low stone, 1 a taller peak, 2 a round double hump. Same colours in every biome.
+  const rock = (c1, c2, shape) =>
+    makeSpr(58, 52, 29, 46, (x) => {
+      shadow(x, 0, 0, shape === 2 ? 22 : shape === 1 ? 18 : 20, 6, 0.25);
       x.beginPath();
-      x.moveTo(-18, 0);
-      x.lineTo(-17, -14);
-      x.lineTo(-6, -25);
-      x.lineTo(8, -23);
-      x.lineTo(18, -10);
-      x.lineTo(18, 0);
+      if (shape === 1) {
+        x.moveTo(-16, 0);
+        x.lineTo(-15, -10);
+        x.lineTo(-6, -18);
+        x.lineTo(1, -32);
+        x.lineTo(10, -16);
+        x.lineTo(17, -7);
+        x.lineTo(16, 0);
+      } else if (shape === 2) {
+        x.moveTo(-22, 0);
+        x.lineTo(-20, -5);
+        x.lineTo(-14, -14);
+        x.lineTo(-6, -11);
+        x.lineTo(-1, -5);
+        x.lineTo(5, -9);
+        x.lineTo(11, -16);
+        x.lineTo(18, -11);
+        x.lineTo(22, -4);
+        x.lineTo(20, 0);
+      } else {
+        x.moveTo(-18, 0);
+        x.lineTo(-17, -14);
+        x.lineTo(-6, -25);
+        x.lineTo(8, -23);
+        x.lineTo(18, -10);
+        x.lineTo(18, 0);
+      }
       x.closePath();
       x.fillStyle = c1;
       x.fill();
       x.stroke();
-      x.beginPath();
-      x.moveTo(-12, -13);
-      x.lineTo(-5, -22);
-      x.lineTo(6, -20);
-      x.lineTo(1, -12);
-      x.closePath();
       x.fillStyle = c2;
+      x.beginPath();
+      if (shape === 1) {
+        x.moveTo(2, -14);
+        x.lineTo(6, -24);
+        x.lineTo(11, -15);
+        x.lineTo(6, -11);
+      } else if (shape === 2) {
+        x.moveTo(-16, -5);
+        x.lineTo(-13, -12);
+        x.lineTo(-8, -10);
+        x.lineTo(-10, -5);
+        x.closePath();
+        x.moveTo(7, -7);
+        x.lineTo(12, -14);
+        x.lineTo(16, -10);
+        x.lineTo(13, -6);
+      } else {
+        x.moveTo(-12, -13);
+        x.lineTo(-5, -22);
+        x.lineTo(6, -20);
+        x.lineTo(1, -12);
+      }
+      x.closePath();
       x.fill();
       x.strokeStyle = 'rgba(0,0,0,.2)';
       x.lineWidth = 1.5;
       x.beginPath();
-      x.moveTo(4, -4);
-      x.lineTo(9, -12);
+      if (shape === 1) {
+        x.moveTo(-8, -3);
+        x.lineTo(-11, -12);
+      } else if (shape === 2) {
+        x.moveTo(-2, -2);
+        x.lineTo(1, -8);
+      } else {
+        x.moveTo(4, -4);
+        x.lineTo(9, -12);
+      }
       x.stroke();
     });
-  SPR.rock = rock('#9a9c96', '#c4c6bf');
-  SPR.sandrock = rock('#c49060', '#e6b88a');
-  SPR.icerock = rock('#a8c8e0', '#e6f4ff');
-  SPR.blightrock = rock('#6d6080', '#9a8cb0');
+  for (const [name, body, facet] of [
+    ['rock', '#9a9c96', '#c4c6bf'],
+    ['sandrock', '#c49060', '#e6b88a'],
+    ['icerock', '#a8c8e0', '#e6f4ff'],
+    ['blightrock', '#6d6080', '#9a8cb0'],
+  ]) {
+    SPR[name] = rock(body, facet, 0);
+    SPR[name + 'B'] = rock(body, facet, 1);
+    SPR[name + 'C'] = rock(body, facet, 2);
+  }
   SPR.cactus = makeSpr(44, 60, 22, 56, (x) => {
     shadow(x, 0, 0, 12, 4, 0.25);
     const cc = '#5aa04a';
@@ -321,7 +374,7 @@ export function buildSprites() {
     x.strokeStyle = '#4a3656';
     br();
     const puff = (px, py) => {
-      const dots = [
+      const dots: [number, number, number, string][] = [
         [0, 0.6, 3.6, '#62781e'],
         [-3.8, 1.6, 2.8, '#7a9a28'],
         [3.4, 1.8, 2.6, '#8aaa34'],

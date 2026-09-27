@@ -373,7 +373,7 @@ function finishGen(G) {
           if (q < 0.07) d = 'oak';
           else if (q < 0.1) d = 'pine';
           else if (q < 0.2) d = 'bush';
-          else if (q < 0.23) d = 'rock';
+          else if (q < 0.23) d = rockKind('rock', q, 0.2, 0.23);
           else if (q < 0.26) d = 'tallgrass';
           break;
         case 1:
@@ -392,7 +392,7 @@ function finishGen(G) {
           break;
         case 3:
           if (q < 0.09) d = 'cactus';
-          else if (q < 0.13) d = 'sandrock';
+          else if (q < 0.13) d = rockKind('sandrock', q, 0.09, 0.13);
           else if (q < 0.17) d = 'drybush';
           else if (q < 0.19) d = 'skull';
           else if (q < 0.2) d = 'palm';
@@ -400,7 +400,7 @@ function finishGen(G) {
           break;
         case 4:
           if (q < 0.25) d = 'snowpine';
-          else if (q < 0.3) d = 'icerock';
+          else if (q < 0.3) d = rockKind('icerock', q, 0.25, 0.3);
           else if (q < 0.34) d = 'deadtree';
           else if (q < 0.37) d = 'snowbush';
           break;
@@ -416,18 +416,29 @@ function finishGen(G) {
           // the old crystal band, split evenly across the three Blightlands minerals
           else if (q < 0.24) d = q < 0.1734 ? 'crystal' : q < 0.2067 ? 'shard' : 'glass';
           else if (q < 0.3) d = q < 0.27 ? 'bones' : 'remains';
-          else if (q < 0.35) d = 'blightrock';
+          else if (q < 0.35) d = rockKind('blightrock', q, 0.3, 0.35);
           break;
       }
     } else if (t === 4) {
-      if (q < 0.3) d = b === 4 ? 'icerock' : b === 3 ? 'sandrock' : b === 6 ? 'blightrock' : 'rock';
+      if (q < 0.3)
+        d = rockKind(
+          b === 4 ? 'icerock' : b === 3 ? 'sandrock' : b === 6 ? 'blightrock' : 'rock',
+          q,
+          0,
+          0.3,
+        );
       else if (q < 0.4) d = b === 4 ? 'snowpine' : 'pine';
     } else if (t === 5) {
       // boulders and a few hardy pines on the (impassable) mountain tops
       if (q < 0.22)
-        d = b === 4 ? 'icerock' : b === 3 ? 'sandrock' : b === 6 ? 'blightrock' : 'rock';
+        d = rockKind(
+          b === 4 ? 'icerock' : b === 3 ? 'sandrock' : b === 6 ? 'blightrock' : 'rock',
+          q,
+          0,
+          0.22,
+        );
       else if (q < 0.3 && b !== 3 && b !== 6) d = b === 4 ? 'snowpine' : 'pine';
-    } else if (t === 2 && q < 0.05) d = b === 3 ? 'palm' : 'rock';
+    } else if (t === 2 && q < 0.05) d = b === 3 ? 'palm' : rockKind('rock', q, 0, 0.05);
     if (d) {
       const ph = rnd() * TAU,
         m = (DECOR_R[d] || 8) + 10,
@@ -485,6 +496,11 @@ function finishGen(G) {
   );
   return { cvs, decor, waves, cliffs, shores, pools, flora, last: 0 };
 }
+/** One of the three rock shapes. `q` is inside [lo, hi). B is the peak, C the double hump. */
+function rockKind(base, q, lo, hi) {
+  const w = (hi - lo) / 3;
+  return q < lo + w ? base : q < lo + 2 * w ? base + 'B' : base + 'C';
+}
 const DECOR_R = {
   oak: 11,
   oakA: 11,
@@ -492,9 +508,17 @@ const DECOR_R = {
   pine: 9,
   snowpine: 9,
   rock: 13,
+  rockB: 13,
+  rockC: 13,
   sandrock: 13,
+  sandrockB: 13,
+  sandrockC: 13,
   icerock: 13,
+  icerockB: 13,
+  icerockC: 13,
   blightrock: 13,
+  blightrockB: 13,
+  blightrockC: 13,
   cactus: 8,
   deadtree: 6,
   swamptree: 9,
