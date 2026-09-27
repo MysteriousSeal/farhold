@@ -1,6 +1,6 @@
 import { SFX as SOUND, applyVolumes } from '../view/audio/sfx';
 import { ports } from '../core/ports';
-import { moveInput } from './input';
+import { input } from './input';
 import { $, H, W } from '../view/dom';
 import { warmChunks } from '../view/render/chunks';
 import { zoom } from '../view/render/render';
@@ -17,7 +17,7 @@ ports.toast = showToast;
 ports.banner = showBanner;
 ports.screen = showScreen;
 ports.hud = setHud;
-ports.moveInput = moveInput;
+ports.moveInput = () => input.moveInput();
 ports.zoom = zoom;
 ports.warmChunks = warmChunks;
 ports.viewSize = () => [W, H];

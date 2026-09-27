@@ -29,7 +29,7 @@ import { updateProjs, updateTeles, updateZones } from '../model/game/projectiles
 import { save } from '../model/game/save';
 import { game, hero } from '../model/game/state';
 import { updateDay, updateWeather } from '../model/game/worldTick';
-import { mouseAim, mouseAtk, moveInput } from './input';
+import { input } from './input';
 import { updateWeatherFx, zoom } from '../view/render/render';
 import { regionName, solidAt } from '../model/world/chunks';
 import { poisNear } from '../model/world/poi';
@@ -38,7 +38,7 @@ import { BIOMES, dangerAt, terr } from '../model/world/terrain';
 /** Seconds a new facing must be held before the hero turns (diagonal release grace). */
 const FACE_HOLD = 0.1;
 function updateHero(dt) {
-  let [mx, my] = moveInput();
+  let [mx, my] = input.moveInput();
   const l = Math.hypot(mx, my);
   if (l > 1) {
     mx /= l;
@@ -67,10 +67,10 @@ function updateHero(dt) {
     }
   }
   if (hero.moving) hero.walk += dt * 10 * (game.ST.spd / 150) * Math.min(1, l + 0.3);
-  if (mouseAim && mouseAtk && game.atkHeld) {
+  if (input.mouseAim && input.mouseAtk && game.atkHeld) {
     const z = zoom(),
-      wx = (mouseAim.x - W / 2) / z + game.camX + game.camKX,
-      wy = (mouseAim.y - H / 2) / z + game.camY + game.camKY;
+      wx = (input.mouseAim.x - W / 2) / z + game.camX + game.camKX,
+      wy = (input.mouseAim.y - H / 2) / z + game.camY + game.camKY;
     hero.aim = Math.atan2(wy - (game.P.y - 18), wx - game.P.x);
     hero.dx = Math.cos(hero.aim);
     hero.dy = Math.sin(hero.aim);
