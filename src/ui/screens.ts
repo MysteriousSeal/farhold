@@ -165,7 +165,7 @@ export function drawPreview(t) {
   // the rusty sword held on guard, blade up, exactly as the hero carries it in game
   const g = carryPos(di[0], di[1], true, walk, t, C.race, 1, L),
     wd = () => drawWeapon(pc, g.x, g.y, g.ang, 'sword', 0, MATS[0][1], null, 0);
-  if (g.behind) wd();
+  if (g.behind && !g.far) wd();
   drawHumanoid(pc, 0, 0, {
     look: L,
     dx: di[0],
@@ -174,6 +174,7 @@ export function drawPreview(t) {
     walk,
     time: t,
     carry: g.arm,
+    overFar: g.far ? wd : undefined,
   });
   if (!g.behind) {
     wd();

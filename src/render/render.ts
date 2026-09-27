@@ -199,8 +199,10 @@ function drawHero(c, t) {
   if (z) {
     shadow(c, game.P.x, game.P.y, 12, 4.5, 0.3);
   }
-  const behind = carry ? carry.behind : weaponBehind(hp, heroStyle(), hero.atk > 0);
-  if (behind && hero.whirl <= 0) wd();
+  const behind = carry ? carry.behind : weaponBehind(hp, heroStyle(), hero.atk > 0),
+    // in the far hand (facing left): drawn over that hand, under the body
+    farW = behind && hero.whirl <= 0 && (carry ? carry.far : hp.far);
+  if (behind && hero.whirl <= 0 && !farW) wd();
   const alpha = hero.inv > 0 && !leap && Math.sin(t * 50) > 0 ? 0.5 : null;
   if (rolling && Math.random() < 0.7)
     game.ghosts.push({
@@ -235,6 +237,7 @@ function drawHero(c, t) {
     alpha,
     noShadow: !!z,
     carry: carry ? carry.arm : punch,
+    overFar: farW ? wd : undefined,
   });
   c.restore();
   if (torch && !torchBehind) drawHeldTorch(c, torch.x, torch.y, t);

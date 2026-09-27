@@ -37,6 +37,9 @@ export function drawHumanoid(c, x, y, o) {
     fd = diag && !up, // front 3/4 view (turned toward +x)
     E = fd ? 3 : 0, // how far facial features shift toward the facing side
     V = { up, side, diag, fd };
+  // o.overFar: drawn (in the caller's coordinates) over the far arm but under the body, for
+  // a weapon held in the far hand: its hilt shows in front of that hand
+  const T0 = c.getTransform();
   c.save();
   c.translate(x, y);
   if (!o.noShadow) {
@@ -76,16 +79,25 @@ export function drawHumanoid(c, x, y, o) {
   // under the torso, so the chest and hips keep their outline and the hands stay visible.
   const armsBack = !side && !diag;
   for (const a of R.arms) if (a.far) drawArm(c, R, a, K, lw, L);
+  if (o.overFar) {
+    c.save();
+    c.setTransform(T0);
+    o.overFar();
+    c.restore();
+  }
   if (L.robe) drawRobe(c, R, K, L, lw, tint, sw * 2);
   else if (L.noLegs) drawTatters(c, R, K, lw);
   else {
     for (const g of R.legs) if (g.far) drawLeg(c, R, g, K, lw, L);
     for (const g of R.legs) if (!g.far) drawLeg(c, R, g, K, lw, L);
   }
-  if (armsBack) for (const a of R.arms) drawArm(c, R, a, K, lw, L);
+  // from behind, an arm raised on guard stays over the cape so its hand holds the hilt
+  const lifted = up && o.carry ? R.arms[o.carry.i ?? 1] : null;
+  if (armsBack) for (const a of R.arms) if (a !== lifted) drawArm(c, R, a, K, lw, L);
   drawNeck(c, R, K, lw);
   drawTorso(c, R, K, L, lw, tint);
   if (L.cape && up) drawCape(c, R, tint(L.cape), lw, sw, true);
+  if (lifted) drawArm(c, R, lifted, K, lw, L);
   for (const a of R.arms) if (!a.far && !armsBack) drawArm(c, R, a, K, lw, L);
   drawPauldrons(c, R, A, tint, lw);
   head(() => drawHead(c, L, V, E, tint, c.lineWidth));
@@ -879,19 +891,18 @@ export function carryPos(dx, dy, moving, walk, t, race, scale = 1, look?) {
     i = rightArm(f, flip),
     px = i ? 1 : -1,
     far = R.arms[i].far,
-    // a blade held behind the body leans further out so it shows past the big head
+    // the same tilt in every facing; a hand behind the body (or seen from behind) sits a
+    // little further out so the blade clears the big head
     arm =
       f === 'side'
-        ? { x: far ? 8.5 : 6.5, y: R.shY + 7, i }
-        : { x: px * (R.W.sh + 3.4), y: R.shY + 8, i };
+        ? { x: far ? 12 : 6.5, y: R.shY + 7, i }
+        : { x: px * (R.W.sh + (far || f === 'up' ? 6 : 3.4)), y: R.shY + 8, i };
   return {
     x: m * arm.x * scale,
     y: arm.y * scale,
-    ang:
-      f === 'side'
-        ? -Math.PI / 2 + m * (far ? 0.6 : 0.3)
-        : mir(-Math.PI / 2 + px * (far ? 0.5 : 0.12)),
+    ang: f === 'side' ? -Math.PI / 2 + m * 0.3 : mir(-Math.PI / 2 + px * 0.12),
     behind: f === 'up' || far,
+    far,
     arm,
   };
 }

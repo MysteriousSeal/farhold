@@ -62,8 +62,10 @@ export function drawHumanoidEnemy(c, e, t, D) {
           s,
         );
     };
-  const behind = guard ? guard.behind : weaponBehind(hp, D.wep, e.wind > 0);
-  if (behind) wd();
+  const behind = guard ? guard.behind : weaponBehind(hp, D.wep, e.wind > 0),
+    // in the far hand (facing left): drawn over that hand, under the body
+    farW = behind && (guard ? guard.far : hp.far);
+  if (behind && !farW) wd();
   drawHumanoid(c, e.x, e.y, {
     look: L,
     dx: e.dx,
@@ -79,6 +81,7 @@ export function drawHumanoidEnemy(c, e, t, D) {
     noShadow: !!z,
     squash: e.hitSq || 0,
     carry: guard ? guard.arm : null,
+    overFar: farW ? wd : undefined,
   });
   if (!behind) {
     wd();
