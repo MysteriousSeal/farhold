@@ -157,6 +157,7 @@ const SLOT_ICON = {
   ring2: '💍',
   boots: '👢',
   weapon: '⚔',
+  offhand: '🛡',
 };
 function slotCell(k: string) {
   const it = game.P.eq[k],
@@ -203,7 +204,9 @@ function renderChar() {
     '</b></div><div class="stats sheetstats" id="sStats"></div><div id="cdetail"></div>';
   for (const k of ['helm', 'armor', 'gloves', 'pants']) $('#sLeft').appendChild(slotCell(k));
   for (const k of ['amulet', 'ring', 'ring2', 'boots']) $('#sRight').appendChild(slotCell(k));
+  // right hand then left hand, as on the front-facing portrait
   $('#sWeapon').appendChild(slotCell('weapon'));
+  $('#sWeapon').appendChild(slotCell('offhand'));
   drawPortrait($('#sHero'));
   $('#sStats').innerHTML = [
     ['Health', Math.ceil(P.hp) + ' / ' + game.ST.hp],

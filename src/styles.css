@@ -1379,6 +1379,7 @@ input.txt {
 .wslot {
   display: flex;
   justify-content: center;
+  gap: 18px;
   margin: 10px 0 12px;
 }
 .gs {

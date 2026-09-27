@@ -22,9 +22,11 @@ export const RAR = [
   { n: 'Epic', c: '#c872ff', m: 1.75 },
   { n: 'Legendary', c: '#ffa63a', m: 2.2 },
 ];
-/** Equipment slots (keys of P.eq); both ring slots take items of type 'ring'. */
+/** Equipment slots (keys of P.eq); both ring slots take items of type 'ring'. The off hand
+ * (left hand) has no items yet: it stays empty. */
 export const SLOTS = [
   'weapon',
+  'offhand',
   'helm',
   'armor',
   'gloves',
@@ -37,6 +39,7 @@ export const SLOTS = [
 /** Display names for equipment slots. */
 export const SLOT_NAME = {
   weapon: 'Weapon',
+  offhand: 'Off hand',
   helm: 'Helm',
   armor: 'Armor',
   gloves: 'Gloves',
