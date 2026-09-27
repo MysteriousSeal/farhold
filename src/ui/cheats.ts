@@ -3,6 +3,7 @@ import { TAU } from '../core/math';
 import { ET } from '../data/enemies';
 import { makeEnemy, unstick } from '../game/enemies';
 import { leaveDungeon } from '../game/dungeons';
+import { arrivalY } from '../game/interactions';
 import { game } from '../game/state';
 import { startEvent } from '../game/events';
 import { banner, doFade, toast } from '../game/fx';
@@ -16,7 +17,7 @@ import { solidAt } from '../world/chunks';
 /* ================= CHEATS (dev builds only, loaded from main.ts) ================= */
 // A button in the bottom-left corner opens a panel to spawn any regular enemy, at the
 // hero's level, right next to the hero; start a world event; gain a level; jump to the
-// nearest uncleared cave or stone-gate dungeon; reset every cave and dungeon; or drop every
+// nearest uncleared cave or stone-gate dungeon, or the nearest village; reset every cave and dungeon; or drop every
 // helmet look into the bag.
 
 /** A free spot 70–110 units from the hero, or the hero's own position as a fallback. */
@@ -98,43 +99,59 @@ function levelUp() {
   $('#cheatLv').textContent = 'Level ' + game.P.lvl;
 }
 /**
- * Jump to the nearest uncleared entrance of one kind (from the open world only).
- * A dungeon is a stone gate; a cave mound is separate.
+ * Jump to the nearest uncleared entrance of one kind, or to the nearest other village's
+ * waystone. A dungeon is a stone gate; a cave mound is separate. From inside a cave or
+ * dungeon, the hero steps out first.
  */
-function toNearestPlace(kind: 'cave' | 'gate') {
+function toNearestPlace(kind: 'cave' | 'gate' | 'village') {
   if (game.state !== 'play' || !game.P) return;
-  if (game.mode !== 'world') {
+  if (game.mode === 'house') {
     toast('Step outside first');
     return;
   }
-  const ci = Math.floor(game.P.x / PC),
-    cj = Math.floor(game.P.y / PC);
-  const R = 8;
-  let best = null,
-    bd = 1e9;
-  for (let i = ci - R; i <= ci + R; i++)
-    for (let j = cj - R; j <= cj + R; j++) {
-      const q = poiAt(i, j);
-      if (!q || q.kind !== kind || game.P.cleared[q.key]) continue;
-      const d = Math.hypot(q.x - game.P.x, q.y - game.P.y);
-      if (d < bd) {
-        bd = d;
-        best = q;
+  const inside = game.mode === 'dungeon';
+  const jump = () => {
+    const ci = Math.floor(game.P.x / PC),
+      cj = Math.floor(game.P.y / PC),
+      R = 8,
+      town = kind === 'village';
+    let best = null,
+      bd = 1e9;
+    for (let i = ci - R; i <= ci + R; i++)
+      for (let j = cj - R; j <= cj + R; j++) {
+        const q = poiAt(i, j);
+        if (!q || q.kind !== kind || (!town && game.P.cleared[q.key])) continue;
+        const d = Math.hypot(q.x - game.P.x, q.y - game.P.y);
+        // the village the hero is standing in doesn't count
+        if (town && d < 250) continue;
+        if (d < bd) {
+          bd = d;
+          best = q;
+        }
       }
+    if (!best) {
+      toast(
+        town
+          ? 'No other village nearby'
+          : kind === 'cave'
+            ? 'No uncleared cave nearby'
+            : 'No uncleared dungeon nearby',
+      );
+      return;
     }
-  if (!best) {
-    toast(kind === 'cave' ? 'No uncleared cave nearby' : 'No uncleared dungeon nearby');
-    return;
-  }
-  doFade(() => {
     game.P.x = best.x;
-    game.P.y = best.y + 60; // just in front of the entrance
+    // at a village's waystone, or just in front of an entrance
+    game.P.y = town ? arrivalY(best) : best.y + 60;
     unstick(game.P);
     game.enemies = [];
     game.camX = game.P.x;
     game.camY = game.P.y;
     game.poiT = 0;
-    banner(best.name, 'Danger level ' + best.lvl);
+    banner(best.name, town ? '' : 'Danger level ' + best.lvl);
+  };
+  doFade(() => {
+    if (inside) leaveDungeon(true);
+    jump();
   });
 }
 /** Every cave and stone-gate dungeon back to new: enemies, guardians, chests and first-clear
@@ -182,10 +199,15 @@ function giveHelms() {
   );
 }
 panel.innerHTML = '<div class="chead"><b>Cheats</b><small id="cheatLv"></small></div>';
-const hero = section('cHero', 'Hero', 'Level up, jump to a cave or dungeon, or reset them all.');
+const hero = section(
+  'cHero',
+  'Hero',
+  'Level up, jump to a cave, dungeon or village, or reset caves and dungeons.',
+);
 add(hero, '+1 level', levelUp, 'wide');
 add(hero, 'Nearest dungeon', () => toNearestPlace('gate'), 'wide');
 add(hero, 'Nearest cave', () => toNearestPlace('cave'), 'wide');
+add(hero, 'Nearest village', () => toNearestPlace('village'), 'wide');
 add(hero, 'Reset caves & dungeons', resetDungeons, 'wide');
 const gear = section('cGear', 'Gear', 'One of every metal, as a Cap and a Helm.');
 add(gear, 'All helmets', giveHelms, 'wide');
