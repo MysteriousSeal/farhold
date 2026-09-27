@@ -411,7 +411,8 @@ function finishGen(G) {
           else if (q < 0.46) d = 'deadtree';
           break;
         case 6:
-          if (q < 0.14) d = 'blighttree';
+          // the old blight-tree band, split evenly across the three trees
+          if (q < 0.14) d = q < 0.0467 ? 'blighttree' : q < 0.0934 ? 'sporetree' : 'glasstree';
           // the old crystal band, split evenly across the three Blightlands minerals
           else if (q < 0.24) d = q < 0.1734 ? 'crystal' : q < 0.2067 ? 'shard' : 'glass';
           else if (q < 0.3) d = q < 0.27 ? 'bones' : 'remains';
@@ -498,6 +499,8 @@ const DECOR_R = {
   deadtree: 6,
   swamptree: 9,
   blighttree: 8,
+  sporetree: 8,
+  glasstree: 8,
   crystal: 9,
   shard: 9,
   glass: 9,

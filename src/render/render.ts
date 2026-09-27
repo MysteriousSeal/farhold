@@ -64,6 +64,12 @@ const MINERAL_GLOW: Record<string, string> = {
   shard: '#c6ee55',
   glass: '#b7c0ce',
 };
+/** Blightlands trees: the light sits in the crown, one colour per fruit. */
+const TREE_GLOW: Record<string, string> = {
+  blighttree: '#c060ff',
+  sporetree: '#c6ee55',
+  glasstree: '#b7c0ce',
+};
 export const zoom = () => clamp(Math.min(W, H) / 370, 1, 2.1);
 let vign = null;
 const WX = { rain: [], snow: [] };
@@ -546,6 +552,8 @@ export function render() {
       } else g.drawImage(s.c, d.x - s.ax, d.y - s.ay, s.w, s.h);
       const mineral = MINERAL_GLOW[d.k];
       if (mineral) addLight(d.x, d.y - 20, 90, 0.7, mineral);
+      const treeGlow = TREE_GLOW[d.k];
+      if (treeGlow) addLight(d.x, d.y - 64, 90, 0.7, treeGlow);
       if (d.k === 'mushroom' && game.dark > 0.3) addLight(d.x, d.y - 8, 40, 0.4, '#9aff9a');
       g.globalAlpha = 1;
     } else it.f(g, game.time);

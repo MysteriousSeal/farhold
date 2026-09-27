@@ -300,6 +300,103 @@ export function buildSprites() {
       x.fill();
     }
   });
+  // Same fork as the blight tree, with soft sickly-green spore puffs instead of orbs.
+  SPR.sporetree = makeSpr(80, 104, 40, 98, (x) => {
+    shadow(x, 0, 0, 16, 5, 0.3);
+    x.lineWidth = 6;
+    x.strokeStyle = OUT;
+    const br = () => {
+      x.beginPath();
+      x.moveTo(0, 0);
+      x.quadraticCurveTo(-6, -28, 4, -46);
+      x.quadraticCurveTo(10, -60, -2, -70);
+      x.moveTo(1, -32);
+      x.quadraticCurveTo(-16, -38, -24, -54);
+      x.moveTo(3, -44);
+      x.quadraticCurveTo(18, -48, 24, -64);
+      x.stroke();
+    };
+    br();
+    x.lineWidth = 3;
+    x.strokeStyle = '#4a3656';
+    br();
+    const puff = (px, py) => {
+      const dots = [
+        [0, 0.6, 3.6, '#62781e'],
+        [-3.8, 1.6, 2.8, '#7a9a28'],
+        [3.4, 1.8, 2.6, '#8aaa34'],
+        [-1.1, -3.2, 2.9, '#c6d85a'],
+      ];
+      x.fillStyle = OUT;
+      for (const [dx, dy, r] of dots) {
+        x.beginPath();
+        x.arc(px + dx, py + dy, r + 1.45, 0, TAU);
+        x.fill();
+      }
+      for (const [dx, dy, r, col] of dots) {
+        x.fillStyle = col;
+        x.beginPath();
+        x.arc(px + dx, py + dy, r, 0, TAU);
+        x.fill();
+      }
+    };
+    puff(-24, -54);
+    puff(24, -64);
+    puff(-2, -70);
+  });
+  // Jagged blight trunk ending in black glass spikes.
+  SPR.glasstree = makeSpr(80, 108, 40, 102, (x) => {
+    shadow(x, 0, 0, 14, 5, 0.3);
+    x.lineJoin = 'miter';
+    x.miterLimit = 2;
+    x.lineWidth = 5;
+    x.strokeStyle = OUT;
+    const br = () => {
+      x.beginPath();
+      x.moveTo(0, 0);
+      x.lineTo(-2, -22);
+      x.lineTo(-8, -40);
+      x.lineTo(-18, -56);
+      x.moveTo(-8, -40);
+      x.lineTo(2, -54);
+      x.lineTo(3, -74);
+      x.moveTo(-2, -22);
+      x.lineTo(12, -42);
+      x.lineTo(22, -62);
+      x.stroke();
+    };
+    br();
+    x.lineWidth = 2.6;
+    x.strokeStyle = '#4a3656';
+    br();
+    const spike = (tx, ty, ang) => {
+      x.save();
+      x.translate(tx, ty);
+      x.rotate(ang);
+      x.lineJoin = 'miter';
+      x.beginPath();
+      x.moveTo(0, 4);
+      x.lineTo(2.3, -7);
+      x.lineTo(0, -20);
+      x.lineTo(-2.3, -7);
+      x.closePath();
+      x.fillStyle = '#1a1820';
+      x.fill();
+      x.stroke();
+      x.fillStyle = '#a8b0bc';
+      x.beginPath();
+      x.moveTo(-1.15, 1.5);
+      x.lineTo(-1.35, -8);
+      x.lineTo(-0.35, -13);
+      x.lineTo(-0.15, 1.5);
+      x.closePath();
+      x.fill();
+      x.restore();
+    };
+    spike(-18, -56, -0.55);
+    spike(3, -74, 0.06);
+    spike(22, -62, 0.62);
+  });
   SPR.swamptree = makeSpr(90, 100, 45, 94, (x) => {
     shadow(x, 0, 0, 22, 7, 0.28);
     x.fillStyle = '#5a4a36';
@@ -711,6 +808,8 @@ export const TREESET = new Set([
   'palm',
   'swamptree',
   'blighttree',
+  'sporetree',
+  'glasstree',
   'deadtree',
 ]);
 
