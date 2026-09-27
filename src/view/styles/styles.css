@@ -1107,33 +1107,6 @@ input.txt {
   align-items: flex-start;
   gap: 10px;
 }
-.invgrid {
-  display: grid;
-  grid-template-columns: 270px 1fr;
-  gap: 16px;
-}
-@media (max-width: 640px) {
-  .invgrid {
-    grid-template-columns: 1fr;
-  }
-}
-.doll {
-  background: radial-gradient(circle at 50% 75%, #3b4a7a 0, #1b2140 70%);
-  border: 2px solid #3b4478;
-  border-radius: 14px;
-  display: flex;
-  justify-content: center;
-  margin-bottom: 4px;
-}
-.doll canvas {
-  width: 200px;
-  height: 200px;
-}
-.slots {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 5px;
-}
 .bag {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
@@ -1242,13 +1215,6 @@ input.txt {
   border-radius: 6px;
   padding: 1px 6px;
   vertical-align: middle;
-}
-#skd {
-  margin-top: 12px;
-  background: #141934;
-  border-radius: 12px;
-  padding: 12px;
-  min-height: 80px;
 }
 .help {
   max-width: 540px;
