@@ -10,7 +10,7 @@ import { banner, burst, doFade, ring, toast } from './fx';
 import { genItem } from './items';
 import { questEvent } from './quests';
 import { save } from './save';
-import { game, hero } from './state';
+import { game } from './state';
 import { getChunk, solidAt } from '../world/chunks';
 import { genDungeon } from '../world/dungeon';
 import { CH } from '../world/terrain';
@@ -115,7 +115,6 @@ export function leaveDungeon(instant?) {
     const st = game.DG && game.DG.cave;
     if (st && st.done && !st.resetAt) st.resetAt = Date.now() + RESET_MS;
     game.mode = 'world';
-    hero.torch = 0; // a carried torch is left at the entrance
     const r = game.P.ret || { x: 0, y: 60 };
     game.DG = null;
     game.P.x = r.x;

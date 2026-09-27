@@ -8,7 +8,8 @@ import { calcStats } from '../game/stats';
 import { acceptTask, declineTask, patronJob, taskDeliver } from '../game/tavernQuests';
 import type { Interior } from '../world/interior';
 import { poisNear } from '../world/poi';
-import { btn, goldPill, hdr, openModal, wireClose } from './modal';
+import { btn, consCanvas, goldPill, hdr, openModal, wireClose } from './modal';
+import { TORCH_COST, TORCH_MAX, TORCH_TIME, torches } from '../game/consumables';
 import { QICON } from './questUi';
 import { closeAll } from './screens';
 /* ================= UI: the tavern (talking to the barmaid) ================= */
@@ -136,7 +137,9 @@ function renderTavern(I: Interior) {
       (rumourSay || greet) +
       '”</div><div class="tvsec">Drinks <span class="desc">one at a time, ' +
       DRINK_TIME / 60 +
-      ' minutes</span></div><div class="tvdrinks" id="tvDrinks"></div><div class="tvsec">Services</div><div class="tvrows" id="tvRows"></div>',
+      ' minutes</span></div><div class="tvdrinks" id="tvDrinks"></div><div class="tvsec">Services</div><div class="tvrows" id="tvRows"></div>' +
+      '<div class="tvsec">Supplies <span class="desc">kept with your consumables</span></div>' +
+      '<div class="tvrows" id="tvSup"></div>',
   );
   wireClose();
   const dr = $('#tvDrinks');
@@ -200,6 +203,37 @@ function renderTavern(I: Interior) {
       full || P.gold < restCost,
     ),
   );
+  // torches: carried in the Consumables row, lit in the off hand
+  const have = torches(),
+    tr = document.createElement('div');
+  tr.className = 'tvrow';
+  tr.appendChild(consCanvas('torch'));
+  tr.insertAdjacentHTML(
+    'beforeend',
+    '<div class="tvinf"><b>Torch</b><span class="desc">Lights your way for ' +
+      TORCH_TIME / 60 +
+      ' minutes once held in the off hand. You carry ' +
+      have +
+      ' / ' +
+      TORCH_MAX +
+      '.</span></div>',
+  );
+  tr.appendChild(
+    btn(
+      have >= TORCH_MAX ? 'Full' : 'Buy · ' + TORCH_COST,
+      () => {
+        P.gold -= TORCH_COST;
+        P.cons.torch = have + 1;
+        SFX.buy();
+        toast('Bought a torch (' + (have + 1) + ' / ' + TORCH_MAX + ')');
+        save();
+        renderTavern(I);
+      },
+      'alt',
+      have >= TORCH_MAX || P.gold < TORCH_COST,
+    ),
+  );
+  $('#tvSup').appendChild(tr);
   P.rumourT = P.rumourT || {};
   const wait = (RUMOUR_MS - (Date.now() - (P.rumourT[I.key] || 0))) / 1000;
   row(

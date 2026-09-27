@@ -9,6 +9,8 @@ import { pointsNew, rank, SKILLCD, skillTree } from '../data/skills';
 import { game, hero } from '../game/state';
 import { xpNeed } from '../game/stats';
 import { POT_CD } from '../game/combat';
+import { quickCount, quickKind } from '../game/consumables';
+import { consCanvas } from './modal';
 import { isTouch } from '../input/input';
 import { mini } from '../render/minimap';
 import { QMAX, activeQuests, trackedQuests } from '../game/quests';
@@ -98,6 +100,8 @@ function drawPortrait() {
   x.setTransform(1, 0, 0, 1, 0, 0);
 }
 
+/** Which consumable the HUD quick slot currently shows (to swap its icon only on change). */
+let quickShown = '';
 export function setHud(on) {
   $('#hud').classList.toggle('on', on);
   mini.style.display = on ? 'block' : 'none';
@@ -127,13 +131,34 @@ export function updHud() {
   $('#nmt').textContent = game.P.name;
   $('#gdt').textContent = fmt(game.P.gold);
   $('#ptt').textContent = game.P.pot;
-  $('#ptt2').textContent = game.P.pot;
-  $('#ptt3').textContent = game.P.pot;
-  // potion slot: cooldown sweep, dimmed when none are left
+  // the Q quick slot: whichever consumable it holds, its count, the potion cooldown sweep,
+  // dimmed when none are left
+  const qk = quickKind(),
+    qn = quickCount(qk);
+  if (quickShown !== qk) {
+    if (!quickShown) {
+      // the top bar's potion counter: the same flask as in the bags
+      const chip = $('#hud .chip[title="Potions"] svg');
+      if (chip) chip.replaceWith(consCanvas('pot', 44));
+      const tb = $('#bPot');
+      if (tb.firstChild && tb.firstChild.nodeType === 3) tb.firstChild.remove();
+    }
+    quickShown = qk;
+    $('#ksPot .ic').replaceChildren(consCanvas(qk, 64));
+    $('#ksPot').title = qk === 'torch' ? 'Torch: light one in your off hand' : 'Health potion';
+    const tb = $('#bPot');
+    if (tb.firstChild && tb.firstChild.nodeName === 'CANVAS') tb.firstChild.remove();
+    tb.prepend(consCanvas(qk, 64));
+  }
+  $('#ptt2').textContent = qn;
+  $('#ptt3').textContent = qn;
   for (const id of ['#ksPot', '#bPot']) {
     const b = $(id);
-    b.style.setProperty('--cd', (Math.max(0, hero.potCd) / POT_CD) * 360 + 'deg');
-    b.classList.toggle('locked', game.P.pot <= 0);
+    b.style.setProperty(
+      '--cd',
+      (qk === 'pot' ? (Math.max(0, hero.potCd) / POT_CD) * 360 : 0) + 'deg',
+    );
+    b.classList.toggle('locked', qn <= 0);
   }
   const wp = heroWorldPos();
   $('#dgt').textContent = String(game.mode === 'dungeon' ? game.DG.lvl : dangerAt(wp.x, wp.y));

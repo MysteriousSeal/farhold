@@ -2,6 +2,7 @@ import { WARP_TIME } from '../game/warp';
 import { heroStyle } from '../game/style';
 import { drawCaveBit, drawMoss } from '../art/decor';
 import { drawDarkness, markDark, underDark } from './darkness';
+import { torchLeft } from '../game/consumables';
 import {
   drawCityGround,
   drawFountain,
@@ -213,13 +214,14 @@ function drawHero(c, t) {
       walk: hero.walk,
       life: 0.18,
     });
-  // a torch carried underground, in the left hand
+  // a lit torch in the off hand (left hand)
   const lh =
-      hero.torch > 0 && game.mode === 'dungeon' && !rolling && !leap
+      torchLeft() > 0 && !rolling && !leap
         ? handPos(hero.dx, hero.dy, hero.moving, hero.walk, t, game.P.race, 1, L, true)
         : null,
     torch = lh ? { x: game.P.x + lh.x, y: game.P.y + lh.y - z } : null,
     torchBehind = !!lh && lh.behind;
+  if (torch) addLight(torch.x, torch.y - 20, 190, 0.9, '#ffa04a'); // also at night outside
   if (torch && torchBehind) drawHeldTorch(c, torch.x, torch.y, t);
   c.save();
   if (rolling) {

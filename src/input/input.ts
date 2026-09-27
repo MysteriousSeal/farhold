@@ -1,6 +1,7 @@
 import { audioInit } from '../audio/sfx';
 import { $, W, cv } from '../core/dom';
-import { drinkPot, heroRoll, useSkill } from '../game/combat';
+import { heroRoll, useSkill } from '../game/combat';
+import { useQuick } from '../game/consumables';
 import { game } from '../game/state';
 import { toggleBags, toggleChar } from '../ui/inventory';
 import { openJournal } from '../ui/journal';
@@ -35,7 +36,7 @@ addEventListener('keydown', (e) => {
       e.preventDefault();
     }
     if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') heroRoll();
-    if (e.code === 'KeyQ') drinkPot();
+    if (e.code === 'KeyQ') useQuick();
     if (e.code === 'Digit1' || e.code === 'KeyU') useSkill(1);
     if (e.code === 'Digit2' || e.code === 'KeyO') useSkill(2);
     if (e.code === 'KeyE' || e.code === 'KeyF') {
@@ -147,7 +148,7 @@ tbtn(
   () => (game.atkHeld = false),
 );
 tbtn('#bRoll', heroRoll);
-tbtn('#bPot', drinkPot);
+tbtn('#bPot', useQuick);
 tbtn('#bS1', () => useSkill(1));
 tbtn('#bS2', () => useSkill(2));
 tbtn('#bAct', () => {
@@ -157,5 +158,5 @@ $('#bagBtn').onclick = () => toggleBags();
 $('#charBtn').onclick = () => toggleChar();
 $('#skillsBtn').onclick = () => openSkills();
 $('#questBtn').onclick = () => openJournal();
-$('#ksPot').onclick = () => drinkPot();
+$('#ksPot').onclick = () => useQuick();
 $('#menuBtn').onclick = () => openPause();

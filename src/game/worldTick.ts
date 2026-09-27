@@ -1,16 +1,13 @@
 import { lerp, rand } from '../core/math';
-import { game, hero, weather } from './state';
-import { toast } from './fx';
+import { game, weather } from './state';
+import { burnTorch } from './consumables';
 import { terr } from '../world/terrain';
 /* ================= WORLD TICK ================= */
 export function updateDay(dt) {
+  burnTorch(dt);
   if (game.mode !== 'world') {
     // caves and houses are fully lit (no fog of war); the day/night cycle only applies outside
     game.P.tod = (game.P.tod + dt / 480) % 1; // time still passes (house windows show it)
-    if (hero.torch > 0) {
-      hero.torch -= dt;
-      if (hero.torch <= 0 && game.mode === 'dungeon') toast('Your torch burns out');
-    }
     game.dark = 0;
     game.dusk = 0;
     return;

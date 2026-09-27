@@ -7,7 +7,18 @@ import { $ } from '../core/dom';
 import { MATS, RAR, SLOT_NAME } from '../data/classes';
 import { BAGMAX } from '../game/drops';
 import { POT_CD, drinkPot } from '../game/combat';
+import {
+  QUICK,
+  TORCH_MAX,
+  TORCH_TIME,
+  lightTorch,
+  quickKind,
+  torchLeft,
+  torches,
+  type QuickKind,
+} from '../game/consumables';
 import { toast } from '../game/fx';
+import { fmtClock } from '../game/dungeons';
 import {
   equipSlot,
   gearScore,
@@ -18,7 +29,7 @@ import {
 } from '../game/items';
 import { game } from '../game/state';
 import { calcStats, xpNeed } from '../game/stats';
-import { POT_SVG, btn, goldPill, itemCard, iconCanvas, openModal, statLines } from './modal';
+import { btn, consCanvas, goldPill, itemCard, iconCanvas, openModal, statLines } from './modal';
 import { closeAll } from './screens';
 /* ================= CHARACTER SHEET & BAGS ================= */
 // Two independent windows shown side by side (stacked on phones): the character sheet (C) with
@@ -164,7 +175,12 @@ function slotCell(k: string) {
   const it = game.P.eq[k],
     d = document.createElement('div');
   d.className = 'cell slot' + (selItem && selItem.eq && selItem.it === it && it ? ' sel' : '');
-  if (it) {
+  if (it && it.kind === 'torch') {
+    d.style.borderColor = '#ffb45a';
+    d.appendChild(consCanvas('torch'));
+    d.insertAdjacentHTML('beforeend', '<span class="cnt">' + fmtClock(it.left * 1000) + '</span>');
+    d.classList.add('potcell');
+  } else if (it) {
     d.style.borderColor = RAR[it.r].c;
     d.appendChild(iconCanvas(it));
   } else {
@@ -177,7 +193,20 @@ function slotCell(k: string) {
   lb.className = 'lab';
   lb.textContent = SLOT_NAME[k];
   d.appendChild(lb);
-  d.title = it ? itemName(it) : 'Empty ' + SLOT_NAME[k].toLowerCase() + ' slot';
+  d.title = it
+    ? it.kind === 'torch'
+      ? 'Lit torch'
+      : itemName(it)
+    : 'Empty ' + SLOT_NAME[k].toLowerCase() + ' slot';
+  // a torch dragged from the Consumables row is lit in the off hand
+  if (k === 'offhand')
+    dropZone(
+      d,
+      (c) => c === 'torch',
+      () => {
+        if (lightTorch()) render();
+      },
+    );
   d.onclick = () => {
     if (!it) return;
     selItem = { it, eq: true, key: k };
@@ -223,7 +252,9 @@ function renderChar() {
   ]
     .map((r) => '<div>' + r[0] + ' <b>' + r[1] + '</b></div>')
     .join('');
-  if (selItem && selItem.eq) renderDetail($('#cdetail'));
+  if (selItem && selItem.eq)
+    if (selItem.it.kind === 'torch') renderLitTorch($('#cdetail'));
+    else renderDetail($('#cdetail'));
 }
 
 /* ---------- bags ---------- */
@@ -286,49 +317,140 @@ function renderBags() {
       ),
     );
   } else salvageArmed = false;
-  // consumables have their own row and never take bag space: health potions for now
-  const pc = document.createElement('div');
-  pc.className = 'cell potcell' + (selItem && selItem.pot ? ' sel' : '');
-  pc.style.opacity = game.P.pot > 0 ? '' : '.45';
-  pc.innerHTML = POT_SVG + '<span class="cnt">' + game.P.pot + '</span>';
-  pc.title = 'Health potion ×' + game.P.pot;
-  pc.onclick = () => {
-    selItem = { pot: true };
-    salvageArmed = false;
-    render();
-  };
-  $('#iCons').appendChild(pc);
+  // consumables have their own row and never take bag space: the Q quick slot, then the stacks
+  const row = $('#iCons'),
+    qk = quickKind(),
+    q = document.createElement('div');
+  q.className = 'cell potcell quick';
+  q.appendChild(consCanvas(qk));
+  q.insertAdjacentHTML('beforeend', '<span class="qk">Q</span>');
+  q.title = 'Quick slot (Q): ' + CONS[qk].n + '. Drag a consumable here to change it.';
+  dropZone(
+    q,
+    () => true,
+    (k) => {
+      game.P.quick = k;
+      toast(CONS[k].n + ' on Q');
+      render();
+    },
+  );
+  row.appendChild(q);
+  for (const k of QUICK) {
+    const n = k === 'torch' ? torches() : game.P.pot,
+      c = document.createElement('div');
+    c.className = 'cell potcell' + (selItem && selItem.cons === k ? ' sel' : '');
+    c.style.opacity = n > 0 ? '' : '.45';
+    c.appendChild(consCanvas(k));
+    c.insertAdjacentHTML('beforeend', '<span class="cnt">' + n + '</span>');
+    c.title = CONS[k].n + ' ×' + n;
+    c.draggable = true;
+    c.ondragstart = (e) => e.dataTransfer.setData('text/plain', 'cons:' + k);
+    c.onclick = () => {
+      selItem = { cons: k };
+      salvageArmed = false;
+      render();
+    };
+    row.appendChild(c);
+  }
   const dt = $('#detail');
-  if (selItem && selItem.pot) renderPotion(dt);
+  if (selItem && selItem.cons) renderCons(dt, selItem.cons);
   else if (selItem && !selItem.eq) renderDetail(dt);
   else
     dt.innerHTML =
       '<div class="dempty"><b>No item selected</b><span>Tap an item to see its stats. Badges show how much stronger (or weaker) it would make you.</span></div>';
 }
 
-/** The health potion stack: what it does, how many are left, and a Drink button. */
-function renderPotion(dt: HTMLElement) {
-  const heal = Math.round(game.ST.hp * 0.45 * (game.ST.potMul || 1));
+/* ---------- consumables ---------- */
+const CONS: Record<QuickKind, { n: string; col: string }> = {
+  pot: { n: 'Health potion', col: '#ff8a7a' },
+  torch: { n: 'Torch', col: '#ffb45a' },
+};
+/** Accept a consumable dragged from the Consumables row (`cons:<kind>`). */
+function dropZone(el: HTMLElement, ok: (k: QuickKind) => boolean, fn: (k: QuickKind) => void) {
+  const kindOf = (e: DragEvent) => {
+    const v = e.dataTransfer.getData('text/plain');
+    return v.startsWith('cons:') ? (v.slice(5) as QuickKind) : null;
+  };
+  el.ondragover = (e) => {
+    e.preventDefault();
+    el.classList.add('drop');
+  };
+  el.ondragleave = () => el.classList.remove('drop');
+  el.ondrop = (e) => {
+    e.preventDefault();
+    el.classList.remove('drop');
+    const k = kindOf(e);
+    if (k && QUICK.includes(k) && ok(k)) fn(k);
+  };
+}
+/** A consumable stack: what it does, how many are left, using it and putting it on Q. */
+function renderCons(dt: HTMLElement, k: QuickKind) {
+  const pot = k === 'pot',
+    n = pot ? game.P.pot : torches(),
+    lines = pot
+      ? [
+          ['Restores', Math.round(game.ST.hp * 0.45 * (game.ST.potMul || 1)) + ' health'],
+          ['You have', n],
+          ['Cooldown', POT_CD + 's'],
+        ]
+      : [
+          ['Burns', TORCH_TIME / 60 + ' minutes, once lit'],
+          ['You have', n + ' / ' + TORCH_MAX],
+          ['Held in', 'the off hand'],
+        ];
+  if (quickKind() === k) lines.push(['Shortcut', 'Q']);
   dt.innerHTML =
-    '<div class="nm" style="color:#ff8a7a">Health potion</div>' +
-    '<div style="opacity:.75">Consumable</div>' +
-    '<div class="stats"><div>Restores <b>' +
-    heal +
-    ' health</b></div><div>You have <b>' +
-    game.P.pot +
-    '</b></div><div>Cooldown <b>' +
-    POT_CD +
-    's</b></div><div>Shortcut <b>Q</b></div></div>' +
-    '<div class="acts"></div>';
-  dt.querySelector('.acts').appendChild(
+    '<div class="nm" style="color:' +
+    CONS[k].col +
+    '">' +
+    CONS[k].n +
+    '</div><div style="opacity:.75">Consumable' +
+    (pot ? '' : ' · lights caves, and the night around you') +
+    '</div><div class="stats">' +
+    lines.map((l) => '<div>' + l[0] + ' <b>' + l[1] + '</b></div>').join('') +
+    '</div><div class="acts"></div>';
+  const bx = dt.querySelector('.acts');
+  bx.appendChild(
     btn(
-      'Drink',
+      pot ? 'Drink' : torchLeft() > 0 ? 'Light a fresh one' : 'Hold in off hand',
       () => {
-        drinkPot();
+        if (pot) drinkPot();
+        else lightTorch();
         render();
       },
       '',
-      game.P.pot <= 0,
+      n <= 0,
+    ),
+  );
+  if (quickKind() !== k)
+    bx.appendChild(
+      btn(
+        'Put on Q',
+        () => {
+          game.P.quick = k;
+          render();
+        },
+        'alt',
+      ),
+    );
+}
+/** The lit torch in the off hand: time left, or put it out (it is lost). */
+function renderLitTorch(dt: HTMLElement) {
+  dt.innerHTML =
+    '<div class="nm" style="color:#ffb45a">Lit torch</div><div style="opacity:.75">Off hand</div>' +
+    '<div class="stats"><div>Burns for <b>' +
+    fmtClock(torchLeft() * 1000) +
+    '</b></div></div><div class="acts"></div>';
+  dt.querySelector('.acts').appendChild(
+    btn(
+      'Put out',
+      () => {
+        game.P.eq.offhand = null;
+        selItem = null;
+        toast('You put out the torch');
+        render();
+      },
+      'alt',
     ),
   );
 }

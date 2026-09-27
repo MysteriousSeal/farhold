@@ -1,13 +1,12 @@
 import { DPR, H, W, mkCanvas } from '../core/dom';
 import { clamp } from '../core/math';
-import { game, hero, lights } from '../game/state';
+import { game, lights } from '../game/state';
+import { torchLeft } from '../game/consumables';
 /* ================= Underground darkness ================= */
 // Caves are very dark and crypts dim. Light comes from the hero (a small glow, or a carried
 // torch), wall torches, the cave mouth, chests, portals and glowing effects. Enemies left in
 // the dark are only faint shapes, without their name and health bar.
 
-/** A carried torch burns this long (seconds). */
-export const TORCH_TIME = 150;
 type Light = { x: number; y: number; r: number; col?: string };
 
 /** How dark the unlit ground is here: 0 outside, 0.85 in caves, 0.55 in crypts. */
@@ -22,7 +21,7 @@ function baseLights(t: number): Light[] {
   const D = game.DG,
     L: Light[] = [];
   if (game.P) {
-    const torch = hero.torch > 0;
+    const torch = torchLeft() > 0;
     L.push({
       x: game.P.x,
       y: game.P.y - 16,

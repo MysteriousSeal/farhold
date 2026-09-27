@@ -55,6 +55,9 @@ export function migrate(p) {
       if (it.slot === 'helm' && it.name) it.name = it.name.replace(/Coif/g, 'Helm');
     }
   p.kills = p.kills || 0;
+  // consumables beside the health potions (torches), and what the Q quick slot uses
+  p.cons = p.cons || {};
+  p.quick = p.quick || 'pot';
   // heroes are human now: former elves, dwarves and orcs convert (orc green skin to a tone)
   if (p.race && p.race !== 'human') {
     const ORC = ['#93c46c', '#74a85a', '#a3ac6c', '#5d8c70'],

@@ -5,6 +5,65 @@ import { addLight } from '../game/fx';
 import { drawAxeHead } from './humanoid';
 import { game } from '../game/state';
 /* ================= ART: items & fx ================= */
+/** Consumables in the icon space (40 wide, origin at the centre): a health potion flask or a
+ * torch, outlined like the gear. */
+function consIcon(c, kind: string) {
+  if (kind === 'pot') {
+    // round flask: glass, red draught with a highlight, cork
+    c.beginPath();
+    c.moveTo(-4, -13);
+    c.lineTo(4, -13);
+    c.lineTo(4, -6);
+    c.quadraticCurveTo(13, -1, 13, 7);
+    c.quadraticCurveTo(13, 16, 0, 16);
+    c.quadraticCurveTo(-13, 16, -13, 7);
+    c.quadraticCurveTo(-13, -1, -4, -6);
+    c.closePath();
+    c.fillStyle = '#e8f2ff';
+    c.fill();
+    c.save();
+    c.clip();
+    c.fillStyle = '#e0443a';
+    c.fillRect(-14, 2, 28, 16);
+    c.fillStyle = '#ff7a6a';
+    c.fillRect(-14, 2, 28, 2.5);
+    c.restore();
+    c.stroke();
+    c.fillStyle = 'rgba(255,255,255,.8)';
+    c.beginPath();
+    c.ellipse(-6.5, 5, 1.8, 3.6, 0.3, 0, TAU);
+    c.fill();
+    rr(c, -5.5, -17, 11, 5, 1.5, '#9a6a3a');
+    return;
+  }
+  // torch: a warm glow, the haft, the wrapped head and a two-tone flame
+  const gr = c.createRadialGradient(0, -9, 1, 0, -9, 16);
+  gr.addColorStop(0, 'rgba(255,170,70,.55)');
+  gr.addColorStop(1, 'rgba(255,170,70,0)');
+  c.fillStyle = gr;
+  c.fillRect(-20, -20, 40, 40);
+  c.save();
+  c.rotate(0.35);
+  rr(c, -2.4, -3, 4.8, 21, 2, '#8a5c36');
+  rr(c, -4.2, -6, 8.4, 5.5, 1.5, '#4a3426');
+  c.fillStyle = '#ff7a2e';
+  c.beginPath();
+  c.moveTo(-5.5, -6);
+  c.quadraticCurveTo(-7.5, -13, -1, -19);
+  c.quadraticCurveTo(0.5, -14, 2.5, -16);
+  c.quadraticCurveTo(7.5, -11, 5.5, -6);
+  c.closePath();
+  c.fill();
+  c.stroke();
+  c.fillStyle = '#ffd24a';
+  c.beginPath();
+  c.moveTo(-2.6, -6.5);
+  c.quadraticCurveTo(-3.5, -11, 0, -13.5);
+  c.quadraticCurveTo(3.5, -10, 2.6, -6.5);
+  c.closePath();
+  c.fill();
+  c.restore();
+}
 export function drawIcon(c, it, S) {
   c.save();
   c.scale(S / 40, S / 40);
@@ -13,6 +72,11 @@ export function drawIcon(c, it, S) {
   c.strokeStyle = OUT;
   c.lineJoin = 'round';
   c.lineCap = 'round';
+  if (it.kind === 'pot' || it.kind === 'torch') {
+    consIcon(c, it.kind);
+    c.restore();
+    return;
+  }
   const m = MATS[it.mat][1],
     rc = RAR[it.r].c;
   if (it.r > 0) {

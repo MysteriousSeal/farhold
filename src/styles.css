@@ -378,7 +378,8 @@ input.txt {
   color: #fff3d0;
   text-shadow: 0 1px 2px #000;
 }
-#hud .chip svg {
+#hud .chip svg,
+#hud .chip canvas {
   width: 22px;
   height: 22px;
 }
@@ -947,6 +948,10 @@ input.txt {
   right: 44px;
   bottom: calc(env(safe-area-inset-bottom) + 124px);
 }
+#bPot canvas {
+  width: 26px;
+  height: 26px;
+}
 #bPot {
   width: 50px;
   height: 50px;
@@ -1334,9 +1339,29 @@ input.txt {
   justify-content: center;
   cursor: pointer;
 }
-.potcell svg {
+.potcell svg,
+.potcell canvas {
   width: 62%;
   height: 62%;
+}
+.potcell.quick {
+  border-color: #c9912c;
+  border-style: dashed;
+}
+.potcell .qk {
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  font: 700 13px var(--f);
+  color: #f5c451;
+}
+.cell.drop {
+  outline: 3px solid #f5c451;
+  outline-offset: 2px;
+}
+.slot.potcell .cnt {
+  font-size: 12px;
+  bottom: 14px;
 }
 .potcell .cnt {
   position: absolute;
@@ -1774,7 +1799,8 @@ input.txt {
 }
 
 /* health potion slot on the skill bar: its count in the corner */
-.kpot .ic svg {
+.kpot .ic svg,
+.kpot .ic canvas {
   width: 30px;
   height: 30px;
 }

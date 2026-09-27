@@ -323,7 +323,8 @@
   border: 2px solid #3b4478;
   border-radius: 12px;
 }
-.tvrow > svg {
+.tvrow > svg,
+.tvrow > canvas {
   width: 34px;
   height: 34px;
   flex: none;

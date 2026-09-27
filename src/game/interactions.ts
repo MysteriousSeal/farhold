@@ -8,7 +8,7 @@ import { save } from './save';
 import { houseDoors, houseInteract } from './houses';
 import { eventInteract } from './events';
 import { game, hero } from './state';
-import { TORCH_TIME } from '../render/darkness';
+import { lightTorch, torchLeft } from './consumables';
 import { openBoard, openPotions, openShop, openTravel } from '../ui/village';
 /* ================= INTERACTIONS ================= */
 /**
@@ -44,11 +44,10 @@ export function findInteract() {
           tr.x,
           tr.y,
           56,
-          hero.torch > 0 ? 'Swap for a fresh torch' : 'Take torch',
+          torchLeft() > 0 ? 'Swap for a fresh torch' : 'Take torch',
           () => {
             tr.taken = true;
-            hero.torch = TORCH_TIME;
-            SFX.pick();
+            lightTorch(true);
             burst(tr.x, tr.y - 28, '#ffb13a', 8, 60, 2.5, 30, 1);
           },
           tr.y - 60,

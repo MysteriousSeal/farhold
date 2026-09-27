@@ -481,7 +481,7 @@ function renderSmith(v) {
   let any = false;
   for (const k of SLOTS) {
     const it = game.P.eq[k];
-    if (!it) continue;
+    if (!it || it.kind) continue; // a lit torch is not gear
     any = true;
     const cost = upCost(it),
       max = it.plus >= 10,
