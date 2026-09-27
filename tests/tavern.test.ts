@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { strSeed } from '../src/core/math';
 import { game } from '../src/model/game/state';
-import { BAR_ROW, IT, genInterior, inSolid } from '../src/model/world/interior';
+import { BAR_ROW, IT, Interior, genInterior, inSolid } from '../src/model/world/interior';
 import { pathToBar } from '../src/model/world/tavernPath';
 
 // Tavern interiors: loose table clusters, seats on every side, the bar sealed at its open
@@ -189,6 +189,16 @@ describe('tavern interiors', () => {
       expect(s.cy).toBe(BAR_ROW + 1);
       expect(Math.abs(s.x - I.bar.x)).toBeGreaterThanOrEqual(IT * 1.5);
     }
+  });
+
+  it('an interior knows its walls and furniture', () => {
+    const I = inn(VILLAGES[1]);
+    expect(I).toBeInstanceOf(Interior);
+    expect(I.solidAt(-10, -10, 8)).toBe(true);
+    const door = I.door;
+    expect(I.solidAt(door.x, door.y - IT * 1.5, 8)).toBe(false);
+    const bar = I.furn.find((f) => f.k === 'bar');
+    expect(I.solidAt(bar.x, bar.y - 12, 8)).toBe(true);
   });
 
   it('side chairs sort behind their sitter', () => {

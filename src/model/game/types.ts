@@ -8,6 +8,7 @@ export type Rec = Record<string, any>;
 export type { Item } from './items';
 export type { Hero } from './hero';
 export type { Enemy } from './enemies';
+export type { Dungeon } from '../world/dungeon';
 import type { Item } from './items';
 
 /** Item stats by name (atk, hp, def, crit, critd, aspd, spd, leech...). */
@@ -34,29 +35,6 @@ export interface Poi {
   r: number;
   lvl: number;
   name?: string;
-  [extra: string]: any;
-}
-
-/** A cave (style 'cave') or stone-gate crypt, as generated for one visit. */
-export interface Dungeon {
-  key: string;
-  lvl: number;
-  b: number;
-  GW: number;
-  GH: number;
-  T: number;
-  g: Uint8Array;
-  style?: string;
-  isF?: (x: number, y: number) => boolean;
-  rooms: Rec[];
-  start: Rec;
-  end: Rec;
-  exit?: { x: number; y: number };
-  chest?: { x: number; y: number; open: boolean; hidden?: boolean };
-  props: Rec[];
-  torches: Rec[];
-  pillars: Rec[];
-  ch: Map<string, any>;
   [extra: string]: any;
 }
 

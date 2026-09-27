@@ -5,7 +5,6 @@ import { sampleHeights } from './contour';
 import { tracePools, traceShores } from './shores';
 import { genFlora } from './flora';
 import { roadHit, roadsOf } from './roads';
-import { IT } from './interior';
 import { poiSolid, poisNear } from './poi';
 import {
   CH,
@@ -491,44 +490,9 @@ export function chunkAt(i: number, j: number, gen: boolean): ChunkModel | null {
   return c || null;
 }
 export function solidAt(x, y, r) {
-  if (game.mode === 'house') {
-    const I = game.HS;
-    for (const [ax, ay] of [
-      [0, 0],
-      [r, 0],
-      [-r, 0],
-      [0, r * 0.6],
-      [0, -r * 0.6],
-    ]) {
-      const i = Math.floor((x + ax) / IT),
-        j = Math.floor((y + ay) / IT);
-      if (i < 0 || j < 0 || i >= I.GW || j >= I.GH || !I.grid[j * I.GW + i]) return true;
-    }
-    return poiSolid(I, x, y, r);
-  }
-  if (game.mode === 'dungeon') {
-    const T = game.DG.T;
-    for (const [ax, ay] of [
-      [0, 0],
-      [r, 0],
-      [-r, 0],
-      [0, r * 0.6],
-      [0, -r * 0.6],
-    ])
-      if (!game.DG.isF(Math.floor((x + ax) / T), Math.floor((y + ay) / T))) return true;
-    for (const p of game.DG.pillars) {
-      const dx = x - p.x,
-        dy = (y - p.y + 8) * 1.4;
-      if (dx * dx + dy * dy < (14 + r) * (14 + r)) return true;
-    }
-    for (const p of game.DG.props) {
-      if (!p.r) continue;
-      const dx = x - p.x,
-        dy = (y - p.y) * 1.4;
-      if (dx * dx + dy * dy < (p.r + r) * (p.r + r)) return true;
-    }
-    return false;
-  }
+  // indoors and underground the place itself knows what blocks the way
+  if (game.mode === 'house') return game.HS.solidAt(x, y, r);
+  if (game.mode === 'dungeon') return game.DG.solidAt(x, y, r);
   if (!walkT(terr(x, y))) return true;
   const i = Math.floor(x / CH),
     j = Math.floor(y / CH);

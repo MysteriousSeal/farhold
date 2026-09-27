@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { strSeed } from '../src/core/math';
 import { game } from '../src/model/game/state';
-import { genDungeon } from '../src/model/world/dungeon';
+import { Dungeon, genDungeon } from '../src/model/world/dungeon';
 
 // Caves (natural caverns) and stone-gate crypts: layout rules that once broke, checked over
 // many generated levels.
@@ -186,6 +186,25 @@ describe('caverns: floor dressing', () => {
       const [pi, pj] = cell(D, p.x, p.y);
       expect(Math.abs(pi - i) + Math.abs(pj - j)).toBeGreaterThanOrEqual(3);
     }
+  });
+});
+
+describe('Dungeon objects', () => {
+  it.each(CAVES.slice(0, 6))('%s: rock blocks the way, open floor does not', (k) => {
+    const D = cave(k);
+    expect(D).toBeInstanceOf(Dungeon);
+    const s = D.start;
+    expect(D.solidAt((s.cx + 0.5) * D.T, (s.cy + 0.5) * D.T, 6)).toBe(false);
+    expect(D.solidAt(-50, -50, 6)).toBe(true);
+    // a body far wider than the chamber can't stand in it
+    expect(D.solidAt((s.cx + 0.5) * D.T, (s.cy + 0.5) * D.T, D.T * 30)).toBe(true);
+  });
+
+  it('isF can be handed around on its own', () => {
+    const D = cave('c-detached'),
+      f = D.isF;
+    expect(f(D.start.cx, D.start.cy)).toBe(true);
+    expect(f(-1, -1)).toBe(false);
   });
 });
 

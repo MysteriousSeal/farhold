@@ -1,4 +1,3 @@
-import type { Dungeon } from '../game/types';
 import { hs, mulberry, pick, sh, strSeed } from '../../core/math';
 import { game } from '../game/state';
 /* ---------- Dungeons ---------- */
@@ -21,6 +20,61 @@ export const CAVE_FLOOR = '#7a4e32';
 export const CAVE_VOID = '#1a120c';
 export function cavePal() {
   return [CAVE_FLOOR, '#5c3a28', '#c4926a', '#e2c4a0'];
+}
+/** A cave (style 'cave') or stone-gate crypt, generated for one visit. */
+export class Dungeon {
+  declare key: string;
+  declare lvl: number;
+  /** biome the entrance is in */
+  declare b: number;
+  declare GW: number;
+  declare GH: number;
+  /** cell size in world units */
+  declare T: number;
+  /** 1 = floor */
+  declare g: Uint8Array;
+  declare style?: string;
+  declare rooms: any[];
+  declare start: any;
+  declare end: any;
+  declare exit?: { x: number; y: number };
+  declare chest?: { x: number; y: number; open: boolean; hidden?: boolean };
+  declare props: any[];
+  declare torches: any[];
+  declare pillars: any[];
+  /** painted chunks of this visit (view cache) */
+  declare ch: Map<string, any>;
+  [extra: string]: any;
+  constructor(data: Partial<Dungeon>) {
+    Object.assign(this, data);
+  }
+  /** Is grid cell (x, y) floor? (Outside the grid is rock.) Safe to pass around. */
+  isF = (x: number, y: number) =>
+    x >= 0 && y >= 0 && x < this.GW && y < this.GH && this.g[y * this.GW + x] === 1;
+  /** Is a body of radius `r` at (x, y) blocked by rock, a pillar or a big prop? */
+  solidAt(x: number, y: number, r: number) {
+    const T = this.T;
+    for (const [ax, ay] of [
+      [0, 0],
+      [r, 0],
+      [-r, 0],
+      [0, r * 0.6],
+      [0, -r * 0.6],
+    ])
+      if (!this.isF(Math.floor((x + ax) / T), Math.floor((y + ay) / T))) return true;
+    for (const p of this.pillars) {
+      const dx = x - p.x,
+        dy = (y - p.y + 8) * 1.4;
+      if (dx * dx + dy * dy < (14 + r) * (14 + r)) return true;
+    }
+    for (const p of this.props) {
+      if (!p.r) continue;
+      const dx = x - p.x,
+        dy = (y - p.y) * 1.4;
+      if (dx * dx + dy * dy < (p.r + r) * (p.r + r)) return true;
+    }
+    return false;
+  }
 }
 /** Marks grid cell (x, y) as floor; the outer border always stays rock. */
 const carver = (gr: Uint8Array, GW: number, GH: number) => (x: number, y: number) => {
@@ -105,7 +159,7 @@ function genCrypt(key, lvl, b) {
   if (order.length > 4) tunnel(order[1], order[order.length - 2]);
   const start = order[0],
     end = order[order.length - 1];
-  const D: Dungeon = {
+  const D = new Dungeon({
     key,
     lvl,
     b,
@@ -122,9 +176,8 @@ function genCrypt(key, lvl, b) {
     pillars: [],
     enemiesPlaced: false,
     style: 'crypt',
-  };
+  });
   const isF = floorOf(gr, GW, GH);
-  D.isF = isF;
   for (let y = 1; y < GH - 1; y++)
     for (let x = 1; x < GW - 1; x++)
       if (
@@ -261,7 +314,7 @@ function genCavern(key, lvl, b) {
   }
   smoothCave(gr, GW, GH);
   const pal = cavePal(),
-    D: Dungeon = {
+    D = new Dungeon({
       key,
       lvl,
       b,
@@ -279,8 +332,7 @@ function genCavern(key, lvl, b) {
       enemiesPlaced: false,
       style: 'cave',
       stair: pal[2],
-    };
-  D.isF = isF;
+    });
   // the way out is a daylit mouth in a north rock face of the first chamber
   const [ei, ej] = caveMouth(isF, start);
   D.exit = { x: ei * T + T / 2, y: ej * T + 6 };

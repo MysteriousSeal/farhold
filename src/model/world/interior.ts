@@ -3,7 +3,7 @@ import { game } from '../game/state';
 import { BIOME_LINES, HALL_LINES, LINES } from '../data/dialogue';
 import { NAMES } from '../data/names';
 import { TAVERN_LINES } from '../data/tavern';
-import { villagerLook } from './poi';
+import { poiSolid, villagerLook } from './poi';
 import { layTavern } from './tavernLayout';
 /* ================= HOUSE INTERIORS (generation) ================= */
 // Every village house (and Hearthfire's hall) has a seeded interior: a grid of floor cells
@@ -33,32 +33,52 @@ export type Furn = {
 };
 export type WallDeco = { k: string; x: number; w: number; s: number; col?: string };
 export type Room = { x0: number; x1: number; purpose: string };
-export type Interior = {
-  key: string;
-  name: string;
-  sub: string;
-  kind: string;
-  floor: 'wood' | 'stone' | 'earth' | 'hall';
-  pal: { wall: string; trim: string; floor: string; floor2: string; roof: string };
-  GW: number;
-  GH: number;
-  grid: Uint8Array; // 1 = floor
-  rooms: Room[];
-  parts: number[]; // x cells of partition walls
-  gaps: Record<number, number>; // partition x → first row of its doorway (2 rows)
-  door: { cx: number; x: number; y: number };
-  furn: Furn[];
-  deco: WallDeco[];
-  solids: any[]; // same shapes as place solids (see poiSolid)
-  npcs: any[];
-  b: number;
-  miniImg?: HTMLCanvasElement;
+/** A house, hall, smithy or tavern inside: its cells, walls, furniture and people. */
+export class Interior {
+  declare key: string;
+  declare name: string;
+  declare sub: string;
+  declare kind: string;
+  declare floor: 'wood' | 'stone' | 'earth' | 'hall';
+  declare pal: { wall: string; trim: string; floor: string; floor2: string; roof: string };
+  declare GW: number;
+  declare GH: number;
+  declare grid: Uint8Array; // 1 = floor
+  declare rooms: Room[];
+  declare parts: number[]; // x cells of partition walls
+  declare gaps: Record<number, number>; // partition x → first row of its doorway (2 rows)
+  declare door: { cx: number; x: number; y: number };
+  declare furn: Furn[];
+  declare deco: WallDeco[];
+  declare solids: any[]; // same shapes as place solids (see poiSolid)
+  declare npcs: any[];
+  declare b: number;
+  declare miniImg?: HTMLCanvasElement;
   /** the smithy's village (its upgrade screen) and where you stand at its counter */
-  village?: any;
-  counter?: { x: number; y: number };
+  declare village?: any;
+  declare counter?: { x: number; y: number };
   /** the tavern: where you stand at the bar to order from the barmaid */
-  bar?: { x: number; y: number };
-};
+  declare bar?: { x: number; y: number };
+  constructor(data: Partial<Interior>) {
+    Object.assign(this, data);
+  }
+  /** Is a body of radius `r` at (x, y) blocked (outside the floor, or by furniture)? */
+  solidAt(x: number, y: number, r: number) {
+    for (const [ax, ay] of [
+      [0, 0],
+      [r, 0],
+      [-r, 0],
+      [0, r * 0.6],
+      [0, -r * 0.6],
+    ]) {
+      const i = Math.floor((x + ax) / IT),
+        j = Math.floor((y + ay) / IT);
+      if (i < 0 || j < 0 || i >= this.GW || j >= this.GH || !this.grid[j * this.GW + i])
+        return true;
+    }
+    return poiSolid(this, x, y, r);
+  }
+}
 
 // interior size (cells) and room count by house model
 const SIZE = {
@@ -173,7 +193,7 @@ export function genInterior(v, h, idx: number): Interior {
       roof: (h.roof && h.roof[1]) || '#8e3326',
     };
   pal.floor2 = pal.floor;
-  const I: Interior = {
+  const I = new Interior({
     key,
     name: '',
     sub: v.name,
@@ -192,7 +212,7 @@ export function genInterior(v, h, idx: number): Interior {
     solids: [],
     npcs: [],
     b: v.b || 0,
-  };
+  });
   const sur = SURNAMES[ri(0, SURNAMES.length - 1)];
   I.name =
     kind === 'hall'
