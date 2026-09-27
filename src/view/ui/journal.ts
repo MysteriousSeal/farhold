@@ -207,7 +207,11 @@ function detailPane(q) {
 export function openJournal() {
   const act = activeQuests(),
     order = GROUPS.flatMap(([k]) => act.filter((q) => q.type === k)),
-    log = game.P.questLog.map((q, i) => ({ ...q, id: 'log' + i, done: true }));
+    log: Record<string, any>[] = game.P.questLog.map((q, i) => ({
+      ...q,
+      id: 'log' + i,
+      done: true,
+    }));
   // keep the selection valid: default to the first bounty
   let sel = order.find((q) => q.id === selId) || log.find((q) => q.id === selId) || null;
   if (!sel) {

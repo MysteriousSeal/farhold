@@ -15,6 +15,7 @@ import { btn, goldPill, hdr, itemCard, iconCanvas, openModal, statLines, wireClo
 import { closeAll } from './screens';
 import { arrivalY } from '../../model/world/poi';
 import { fmt, fmtClock } from '../../core/format';
+import type { Item } from '../../model/game/types';
 import { poisNear } from '../../model/world/poi';
 /* shop */
 /** Each stall restocks its whole list every 10 real minutes, even while the game is closed. */
@@ -253,13 +254,13 @@ const ICO_BAG =
 const ICO_SEARCH =
   '<svg viewBox="0 0 32 32"><path d="M19.5 19.5 L27 27" stroke="#241a2e" stroke-width="6" stroke-linecap="round"/><path d="M19.5 19.5 L27 27" stroke="#9a6a3a" stroke-width="3" stroke-linecap="round"/><circle cx="13.5" cy="13.5" r="9" fill="#bfe0f5" stroke="#241a2e" stroke-width="2.4"/><circle cx="13.5" cy="13.5" r="9" fill="none" stroke="#f5c451" stroke-width="1.6" transform="scale(.82) translate(2.96 2.96)"/><path d="M9 11 Q10 8.6 12.6 8" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>';
 /* ---------- sell tab: a sortable, filterable grid; select an item, then sell it ---------- */
-const SELL_FILTERS: [string, string, (it) => boolean][] = [
+const SELL_FILTERS: [string, string, (it: Item) => boolean][] = [
   ['all', 'All', () => true],
   ['weapon', 'Weapons', (it) => it.slot === 'weapon'],
   ['armor', 'Armor', (it) => ['helm', 'armor', 'gloves', 'pants', 'boots'].includes(it.slot)],
   ['jewel', 'Jewellery', (it) => it.slot === 'ring' || it.slot === 'amulet'],
 ];
-const SELL_SORTS: [string, string, (a, b) => number][] = [
+const SELL_SORTS: [string, string, (a: Item, b: Item) => number][] = [
   ['rarity', 'Rarity', (a, b) => b.r - a.r || b.val - a.val],
   ['price', 'Price', (a, b) => b.val - a.val],
   ['slot', 'Slot', (a, b) => SLOTS.indexOf(a.slot) - SLOTS.indexOf(b.slot) || b.r - a.r],
@@ -268,7 +269,7 @@ let sellFilter = 'all',
   sellSort = 'rarity';
 /** Multi-select: pick several items (toggle chip, or Ctrl/Cmd/Shift-click) and sell them together. */
 let sellMulti = false;
-const sellPick = new Set<object>();
+const sellPick = new Set<Item>();
 const junkR = [true, true, false]; // bulk sale: common, uncommon, rare
 /** Would equipping `it` make the hero stronger? (never sold in bulk; marked with ▲) */
 const isUpgrade = (it) => compareItem(it).overall > 0.005;

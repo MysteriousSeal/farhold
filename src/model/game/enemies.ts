@@ -53,6 +53,9 @@ export function makeEnemy(type, lvl, x, y, o: Rec = {}) {
     hbY: D.hbY || 40,
     col: D.col,
     spd: D.spd * rand(0.92, 1.08),
+    hp: 0, // health and damage come from the level below
+    max: 0,
+    dmg: 0,
   };
   let hpM = 1,
     dmM = 1;

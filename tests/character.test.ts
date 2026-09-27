@@ -15,7 +15,7 @@ import { OUTFIT } from '../src/model/data/classes';
 import { heroStyle, weaponStyle } from '../src/model/game/style';
 import { UNDERWEAR, calcStats, lookOfPlayer, xpNeed } from '../src/model/game/stats';
 
-const hero = (o: Record<string, unknown> = {}) => ({
+const hero = (o: Record<string, unknown> = {}): any => ({
   race: 'human',
   lvl: 1,
   hp: 1,
@@ -123,7 +123,15 @@ describe('game/stats', () => {
     expect(pointsFree()).toBe(5 - 3 - 1);
 
     game.P = hero();
-    game.P.eq.ring = { slot: 'ring', r: 0, mat: 0, plus: 0, st: { crit: 500 }, name: 'Test Ring' };
+    game.P.eq.ring = {
+      slot: 'ring',
+      r: 0,
+      lvl: 1,
+      mat: 0,
+      plus: 0,
+      st: { crit: 500 },
+      name: 'Test Ring',
+    };
     calcStats();
     expect(game.ST.crit).toBe(75);
   });

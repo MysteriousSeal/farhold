@@ -1,7 +1,74 @@
 import { world } from '../../core/math';
+import type { Interior } from '../world/interior';
+import type {
+  Dungeon,
+  Enemy,
+  GameMode,
+  GameStateName,
+  Hero,
+  Interact,
+  Poi,
+  Rec,
+  Stats,
+} from './types';
+import type { WorldEvent } from './events';
 /* ================= GAME STATE ================= */
-/** Mutable globals shared across modules (the original file used top-level `let`s). */
-export const game: any = {
+/** Everything the running game shares across modules. */
+export interface GameState {
+  /** the world seed (kept in core/math as world.seed) */
+  SEED: number;
+  /** chunks the frame may still generate */
+  genBudget: number;
+  /** the world chunk being sampled in the background */
+  bgGen: Rec | null;
+  uidN: number;
+  state: GameStateName;
+  mode: GameMode;
+  /** the cave or crypt while mode is 'dungeon' */
+  DG: Dungeon | null;
+  /** save slot of the hero being played */
+  slot: string | null;
+  /** the house interior while mode is 'house' */
+  HS: Interior | null;
+  P: Hero | null;
+  ST: Stats | null;
+  time: number;
+  hitstop: number;
+  enemies: Enemy[];
+  projs: Rec[];
+  drops: Rec[];
+  parts: Rec[];
+  texts: Rec[];
+  teles: Rec[];
+  zones: Rec[];
+  shake: number;
+  camX: number;
+  camY: number;
+  camKX: number;
+  camKY: number;
+  kickX: number;
+  kickY: number;
+  spawnT: number;
+  zoneName: string;
+  saveT: number;
+  curBoss: Enemy | null;
+  interact: Interact | null;
+  fade: number;
+  fadeDir: number;
+  fadeCb: (() => void) | null;
+  /** night darkness 0..0.6, and the dusk tint */
+  dark: number;
+  dusk: number;
+  activePois: Poi[];
+  poiT: number;
+  ghosts: Rec[];
+  atkHeld: boolean;
+  hudT: number;
+  /** the world event in progress, and when the next may start */
+  ev?: WorldEvent | null;
+  evNext?: number;
+}
+export const game: GameState = {
   /** the world seed: kept in core/math (world.seed), which every hash and noise reads */
   get SEED() {
     return world.seed;
@@ -15,8 +82,8 @@ export const game: any = {
   state: 'menu',
   mode: 'world',
   DG: null,
-  slot: null as string | null, // save slot of the hero being played
-  HS: null as any, // house interior while game.mode === 'house'
+  slot: null,
+  HS: null,
   P: null,
   ST: null,
   time: 0,
