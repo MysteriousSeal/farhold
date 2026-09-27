@@ -494,7 +494,8 @@ export function render() {
   } else if (game.mode === 'house') houseItems(list);
   else {
     for (const t of game.DG.torches)
-      if (vis(t.x, t.y)) list.push({ y: t.y - 40, f: (c) => drawTorch(c, t, game.time) });
+      if (vis(t.x, t.y))
+        list.push({ y: t.y - 40, f: (c) => drawTorch(c, t, game.time, game.DG.style === 'cave') });
     for (const p of game.DG.props)
       if (vis(p.x, p.y)) list.push({ y: p.y, f: (c) => drawProp(c, p, game.time) });
     for (const p of game.DG.pillars)

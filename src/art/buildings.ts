@@ -542,37 +542,129 @@ export function drawStoneGate(c, p, t) {
   }
   c.restore();
 }
-export function drawTorch(c, tr, t) {
+/** Which way a wall torch cants so it faces into the room: toward the side with more open
+ * floor in front of it (-1 left … 1 right, as an angle), straight out when both are even. */
+function roomSide(tr) {
+  const D = game.DG;
+  if (!D || tr.tx === undefined) return 0;
+  let l = 0,
+    r = 0;
+  for (let j = tr.ty + 1; j <= tr.ty + 4; j++)
+    for (let k = 1; k <= 4; k++) {
+      if (D.isF(tr.tx - k, j)) l++;
+      if (D.isF(tr.tx + k, j)) r++;
+    }
+  const d = (r - l) / 16;
+  return Math.abs(d) < 0.2 ? 0 : Math.sign(d) * 0.28;
+}
+/** A wall torch on the rock face above the floor at (tr.x, tr.y), leaning out into the room:
+ * lashed to a wooden peg in caves (`rustic`), in an iron sconce in crypts. */
+export function drawTorch(c, tr, t, rustic = false) {
   const x = tr.x,
     y = tr.y - 20;
   c.save();
-  c.lineWidth = 2;
+  c.lineJoin = 'round';
+  c.lineCap = 'round';
   c.strokeStyle = OUT;
-  rr(c, x - 3, y - 4, 6, 12, 1, '#5a4030');
+  if (rustic) {
+    // two wedge stones jammed into a crack hold the foot of the torch
+    c.lineWidth = 1.6;
+    for (const [sx, r] of [
+      [-4.2, 3.4],
+      [4, 3],
+    ]) {
+      c.beginPath();
+      c.ellipse(x + sx, y + 9, r, r * 0.8, 0, 0, TAU);
+      c.fillStyle = '#9a7454';
+      c.fill();
+      c.stroke();
+    }
+  } else {
+    // an iron plate bolted to the wall, with an arm out to a ring
+    c.lineWidth = 1.8;
+    rr(c, x - 6.5, y - 1, 13, 14, 2, '#3e3848');
+    c.fillStyle = '#9a92a8';
+    for (const [rx, ry] of [
+      [-4.6, 1],
+      [3.2, 1],
+      [-4.6, 9.6],
+      [3.2, 9.6],
+    ])
+      c.fillRect(x + rx, y + ry, 1.5, 1.5);
+  }
   if (tr.taken) {
-    // the hero carries this one: an empty, sooty bracket
-    c.fillStyle = '#2a2020';
-    c.fillRect(x - 2, y - 5, 4, 2);
     c.restore();
     return;
   }
-  const f = 1 + Math.sin(t * 12 + tr.ph) * 0.15;
+  // the torch leans out toward the room: foreshortened, its foot in the holder, its head
+  // forward (lower on the wall than an upright one) with a small sideways cant
+  if (tr.lean === undefined) tr.lean = roomSide(tr);
+  const lean = tr.lean,
+    fx = x,
+    fy = y + 11,
+    hx = x + Math.sin(lean) * 18,
+    hy = fy - Math.cos(lean) * 18;
+  // soot on the rock above the flame
+  c.fillStyle = 'rgba(0,0,0,.22)';
+  c.beginPath();
+  c.ellipse(hx + 2, hy - 12, 5, 9, 0, 0, TAU);
+  c.fill();
+  c.lineWidth = 5.2;
+  c.beginPath();
+  c.moveTo(fx, fy);
+  c.lineTo(hx, hy);
+  c.stroke();
+  c.strokeStyle = '#7a5434';
+  c.lineWidth = 2.8;
+  c.stroke();
+  c.strokeStyle = OUT;
+  if (rustic) {
+    // rope lashing it to the peg
+    c.strokeStyle = '#d8c090';
+    c.lineWidth = 1.2;
+    for (const k of [4, 6.4]) {
+      const rx = fx + Math.sin(lean) * k,
+        ry = fy - Math.cos(lean) * k;
+      c.beginPath();
+      c.moveTo(rx - 3.2, ry - 0.8);
+      c.lineTo(rx + 3.2, ry + 0.8);
+      c.stroke();
+    }
+    c.strokeStyle = OUT;
+  } else {
+    // the ring round the haft
+    c.lineWidth = 1.4;
+    c.beginPath();
+    c.ellipse(fx + Math.sin(lean) * 5, fy - Math.cos(lean) * 5, 4, 1.8, 0, 0, TAU);
+    c.strokeStyle = '#8a8298';
+    c.stroke();
+    c.strokeStyle = OUT;
+  }
+  // wrapped head and flame
+  c.save();
+  c.translate(hx, hy);
+  c.rotate(lean);
+  c.lineWidth = 1.6;
+  rr(c, -3, -3, 6, 5, 1.2, '#4a3426');
+  c.restore();
+  const f = 1 + Math.sin(t * 12 + tr.ph) * 0.15,
+    top = hy - 2;
   c.fillStyle = '#ff7a2e';
   c.beginPath();
-  c.moveTo(x - 5, y - 3);
-  c.quadraticCurveTo(x - 6, y - 12 * f, x + Math.sin(t * 9 + tr.ph) * 2, y - 18 * f);
-  c.quadraticCurveTo(x + 6, y - 12 * f, x + 5, y - 3);
+  c.moveTo(hx - 4.5, top);
+  c.quadraticCurveTo(hx - 5.5, top - 9 * f, hx + Math.sin(t * 9 + tr.ph) * 2, top - 15 * f);
+  c.quadraticCurveTo(hx + 5.5, top - 9 * f, hx + 4.5, top);
   c.fill();
   c.fillStyle = '#ffe27a';
   c.beginPath();
-  c.arc(x, y - 6, 2.6, 0, TAU);
+  c.arc(hx, top - 3.5, 2.3, 0, TAU);
   c.fill();
   c.restore();
-  addLight(x, y - 8, 150 + Math.sin(t * 14 + tr.ph) * 8, 1, '#ff9a3a');
+  addLight(x, y - 16, 150 + Math.sin(t * 14 + tr.ph) * 8, 1, '#ff9a3a');
   if (Math.random() < 0.04)
     game.parts.push({
       x: x + rand(-3, 3),
-      y: y - 14,
+      y: y - 26,
       vx: rand(-6, 6),
       vy: rand(-40, -20),
       life: 0.8,
