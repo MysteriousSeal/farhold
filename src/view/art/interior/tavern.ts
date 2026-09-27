@@ -1,16 +1,12 @@
 import { ell, rr, shadow } from '../../dom';
 import { OUT, TAU, sh } from '../../../core/math';
 import { IT, type Furn } from '../../../model/world/interior';
+import { BRASS, IRON, WOOD, WOOD_D, WOOD_L, flame } from './common';
 /* ================= ART: tavern furniture ================= */
 // The bar with its beer taps, the keg rack and bottle shelf behind it, and tables set with
 // tankards. Same conventions as furniture.ts: (f.x, f.y) is the piece's centre at its front
 // edge on the floor; wall pieces rise over the wall face.
 type Ctx = CanvasRenderingContext2D;
-const WOOD = '#8a5a36',
-  WOOD_L = '#a8744a',
-  WOOD_D = '#5e3c22',
-  BRASS = '#e3b24a',
-  IRON = '#4a4652';
 
 /** A small foaming tankard standing on (x, y). */
 function tankard(c: Ctx, x: number, y: number, k = 1) {
@@ -134,25 +130,19 @@ export function bottles(c: Ctx, f: Furn) {
 }
 
 /** A tavern table set with two tankards and a candle between them. */
-export function ttable(
-  c: Ctx,
-  f: Furn,
-  flame: (c: Ctx, x: number, y: number, s: number, t: number, ph?: number) => void,
-  t: number,
-) {
+export function ttable(c: Ctx, f: Furn, t: number) {
   const { x, y } = f,
     w = f.cw * IT - 14;
   shadow(c, x, y, w / 2, 5, 0.25);
   for (const lx of [-w / 2 + 5, w / 2 - 5]) rr(c, x + lx - 2.5, y - 16, 5, 16, 1.5, WOOD_D);
   rr(c, x - w / 2, y - 30, w, 18, 3, WOOD_L);
   rr(c, x - w / 2, y - 14, w, 5, 2, WOOD);
-  clutter(c, x, y - 20, w - 6, f.s, flame, t);
+  clutter(c, x, y - 20, w - 6, f.s, t);
 }
 
-type Flame = (c: Ctx, x: number, y: number, s: number, t: number, ph?: number) => void;
 /** Things on a table top centred at (x, y), across width `w`: a seeded mix of tankards, a
  * plate of bread, a bottle, a candle stub and a spilled ring. */
-function clutter(c: Ctx, x: number, y: number, w: number, s: number, flame: Flame, t: number) {
+function clutter(c: Ctx, x: number, y: number, w: number, s: number, t: number) {
   let n = Math.floor(s * 9973);
   const next = () => (n = (n * 16807) % 2147483647) / 2147483647,
     slots = Math.max(2, Math.round(w / 22)),
@@ -190,7 +180,7 @@ function clutter(c: Ctx, x: number, y: number, w: number, s: number, flame: Flam
   });
 }
 /** A round table on a single pedestal, set with a few things. */
-export function rtable(c: Ctx, f: Furn, flame: Flame, t: number) {
+export function rtable(c: Ctx, f: Furn, t: number) {
   const { x, y } = f,
     rx = f.cw * IT * 0.42;
   shadow(c, x, y, rx * 0.8, 5, 0.25);
@@ -202,10 +192,10 @@ export function rtable(c: Ctx, f: Furn, flame: Flame, t: number) {
   c.beginPath();
   c.ellipse(x - rx * 0.3, y - 23, rx * 0.4, 2.5, 0, 0, TAU);
   c.fill();
-  clutter(c, x, y - 20, rx * 1.5, f.s, flame, t);
+  clutter(c, x, y - 20, rx * 1.5, f.s, t);
 }
 /** A long plank feast table on trestles. */
-export function ltable(c: Ctx, f: Furn, flame: Flame, t: number) {
+export function ltable(c: Ctx, f: Furn, t: number) {
   const { x, y } = f,
     w = f.cw * IT - 12;
   shadow(c, x, y, w / 2, 5, 0.25);
@@ -226,7 +216,7 @@ export function ltable(c: Ctx, f: Furn, flame: Flame, t: number) {
   c.strokeStyle = OUT;
   c.lineWidth = 2;
   rr(c, x - w / 2, y - 14, w, 5, 2, WOOD);
-  clutter(c, x, y - 20, w - 10, f.s, flame, t);
+  clutter(c, x, y - 20, w - 10, f.s, t);
 }
 /** A plain bench: behind a table (only its top edge shows) or in front of it. */
 export function bench(c: Ctx, f: Furn, front: boolean) {

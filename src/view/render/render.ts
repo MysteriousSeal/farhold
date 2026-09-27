@@ -1,6 +1,6 @@
 import { WARP_TIME } from '../../model/game/warp';
 import { heroStyle } from '../../model/game/style';
-import { drawCaveBit, drawMoss } from '../art/decor';
+import { drawCaveBit, drawMoss } from '../art/caveFloor';
 import { drawDarkness, heroDark, markDark, underDark } from './darkness';
 import { torchLeft } from '../../model/game/consumables';
 import {
@@ -14,23 +14,25 @@ import {
 } from '../art/city';
 import { wallPt } from '../../model/world/city';
 import { drawHouse } from '../art/houses';
-import { drawPortal } from '../art/buildings';
+import { drawPortal } from '../art/dungeonProps';
 import {
   drawBoard,
   drawCave,
-  drawChest,
   drawStoneGate,
-  drawDPillar,
   drawLamp,
   drawPillar,
-  drawProp,
-  drawCaveMouth,
-  drawHeldTorch,
-  drawStairs,
   drawStall,
-  drawTorch,
   drawWaystone,
 } from '../art/buildings';
+import {
+  drawCaveMouth,
+  drawChest,
+  drawDPillar,
+  drawHeldTorch,
+  drawProp,
+  drawStairs,
+  drawTorch,
+} from '../art/dungeonProps';
 import { crownY } from '../art/body';
 import { drawEnemy } from '../art/creatures';
 import { SPR, TREESET } from '../art/decor';
