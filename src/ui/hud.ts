@@ -9,6 +9,7 @@ import { pointsNew, rank, SKILLCD, skillTree } from '../data/skills';
 import { game, hero } from '../game/state';
 import { xpNeed } from '../game/stats';
 import { POT_CD } from '../game/combat';
+import { gameHour } from '../game/worldTick';
 import { quickCount, quickKind } from '../game/consumables';
 import { consCanvas } from './modal';
 import { isTouch } from '../input/input';
@@ -109,8 +110,6 @@ const SUN_SVG =
     '<svg viewBox="0 0 20 20"><path d="M13.5 3.2A7 7 0 1 0 16.8 13 5.6 5.6 0 0 1 13.5 3.2Z" fill="#dfe6ff" stroke="#241a2e" stroke-width="1.6" stroke-linejoin="round"/><circle cx="8.6" cy="12" r="1.1" fill="#b8c2e6"/></svg>';
 let clockEl: HTMLElement | null = null,
   clockTxt = '';
-/** The in-game hour of the day: 6:00 at dawn's end, dusk at 18:00, night from about 20:00. */
-export const gameHour = (tod: number) => (6 + tod * 24) % 24;
 function clock() {
   if (!clockEl) {
     clockEl = document.createElement('div');

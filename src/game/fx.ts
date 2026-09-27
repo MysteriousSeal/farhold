@@ -65,6 +65,7 @@ export function ftext(x, y, s, col, big?) {
 let toastT;
 export function toast(m) {
   const t = $('#toast');
+  if (!t) return; // no page (tests)
   t.textContent = m;
   t.style.opacity = 1;
   clearTimeout(toastT);

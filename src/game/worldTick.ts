@@ -3,6 +3,8 @@ import { game, weather } from './state';
 import { burnTorch } from './consumables';
 import { terr } from '../world/terrain';
 /* ================= WORLD TICK ================= */
+/** The in-game hour of the day: 6:00 at dawn's end, dusk at 18:00, night from about 20:00. */
+export const gameHour = (tod: number) => (6 + tod * 24) % 24;
 export function updateDay(dt) {
   burnTorch(dt);
   if (game.mode !== 'world') {

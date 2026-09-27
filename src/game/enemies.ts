@@ -642,27 +642,23 @@ export function updateEnemies(dt) {
   }
   game.enemies = game.enemies.filter((e) => !e.dead);
 }
+/** Is the straight line from (ax, ay) to (bx, by) over dungeon floor all the way? */
+export function clearLine(DG, ax: number, ay: number, bx: number, by: number) {
+  const T = DG.T,
+    n = Math.ceil(Math.hypot(bx - ax, by - ay) / 10);
+  for (let k = 1; k < n; k++) {
+    const x = ax + ((bx - ax) * k) / n,
+      y = ay + ((by - ay) * k) / n;
+    if (!DG.isF(Math.floor(x / T), Math.floor(y / T))) return false;
+  }
+  return true;
+}
 /** Clear line from the enemy to the hero through dungeon floor, rechecked a few times a second. */
 function sees(e, dt) {
   e.losT = (e.losT || 0) - dt;
   if (e.losT > 0) return e.los;
   e.losT = 0.15 + Math.random() * 0.1;
-  const DG = game.DG,
-    T = DG.T,
-    ax = e.x,
-    ay = e.y - 8,
-    bx = game.P.x,
-    by = game.P.y - 8,
-    n = Math.ceil(Math.hypot(bx - ax, by - ay) / 10);
-  e.los = true;
-  for (let k = 1; k < n; k++) {
-    const x = ax + ((bx - ax) * k) / n,
-      y = ay + ((by - ay) * k) / n;
-    if (!DG.isF(Math.floor(x / T), Math.floor(y / T))) {
-      e.los = false;
-      break;
-    }
-  }
+  e.los = clearLine(game.DG, e.x, e.y - 8, game.P.x, game.P.y - 8);
   return e.los;
 }
 function applyKB(e, dt) {
