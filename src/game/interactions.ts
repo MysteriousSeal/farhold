@@ -8,6 +8,7 @@ import { save } from './save';
 import { houseDoors, houseInteract } from './houses';
 import { eventInteract } from './events';
 import { game, hero } from './state';
+import { TORCH_TIME } from '../render/darkness';
 import { openBoard, openPotions, openShop, openTravel } from '../ui/village';
 /* ================= INTERACTIONS ================= */
 /**
@@ -36,6 +37,22 @@ export function findInteract() {
       ex.y - 30,
     );
     if (!ch.open && !ch.hidden) cand(ch.x, ch.y + 14, 64, 'Open chest', openChest, ch.y - 34);
+    // wall torches come off their brackets to light the way through the dark
+    for (const tr of game.DG.torches)
+      if (!tr.taken)
+        cand(
+          tr.x,
+          tr.y,
+          56,
+          hero.torch > 0 ? 'Swap for a fresh torch' : 'Take torch',
+          () => {
+            tr.taken = true;
+            hero.torch = TORCH_TIME;
+            SFX.pick();
+            burst(tr.x, tr.y - 28, '#ffb13a', 8, 60, 2.5, 30, 1);
+          },
+          tr.y - 60,
+        );
     const pt = game.DG.portal;
     if (pt && !hero.warp)
       cand(pt.x, pt.y + 8, 80, 'Warp portal: back to the entrance', startWarp, pt.y - 78);

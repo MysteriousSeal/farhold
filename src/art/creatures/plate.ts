@@ -16,6 +16,7 @@ export function levelColor(diff: number) {
 }
 /** Overhead health bar with "level name" label, always shown for living enemies. */
 export function enemyPlate(c, e) {
+  if (e.inDark) return; // underground, out of the light: no name or health bar
   const boss = !!e.boss,
     w = boss ? 70 : Math.round(38 * Math.min(e.sc, 1.4)),
     h = boss ? 8 : 6,

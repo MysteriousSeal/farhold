@@ -1,6 +1,7 @@
 import { WARP_TIME } from '../game/warp';
 import { heroStyle } from '../game/style';
 import { drawCaveBit, drawMoss } from '../art/decor';
+import { drawDarkness, markDark, underDark } from './darkness';
 import {
   drawCityGround,
   drawFountain,
@@ -23,6 +24,7 @@ import {
   drawPillar,
   drawProp,
   drawCaveMouth,
+  drawHeldTorch,
   drawStairs,
   drawStall,
   drawTorch,
@@ -209,6 +211,13 @@ function drawHero(c, t) {
       walk: hero.walk,
       life: 0.18,
     });
+  // a torch carried underground, in the other hand (behind the body unless facing us)
+  const torch =
+      hero.torch > 0 && game.mode === 'dungeon' && !rolling && !leap
+        ? { x: game.P.x - hp.x, y: game.P.y + hp.y - z }
+        : null,
+    torchBehind = hp.f !== 'down';
+  if (torch && torchBehind) drawHeldTorch(c, torch.x, torch.y, t);
   c.save();
   if (rolling) {
     c.translate(game.P.x, game.P.y - 12);
@@ -227,6 +236,7 @@ function drawHero(c, t) {
     carry: carry ? carry.arm : punch,
   });
   c.restore();
+  if (torch && !torchBehind) drawHeldTorch(c, torch.x, torch.y, t);
   if (armed && (!behind || hero.whirl > 0)) {
     wd();
     if (!rolling && hero.whirl <= 0) handOver(c, wx, wy, L); // grip inside the fist
@@ -514,6 +524,7 @@ export function render() {
     for (const q of game.P.quests)
       if (q.type === 'task' && q.task === 'find' && !q.ready && vis(q.x, q.y))
         list.push({ y: q.y, f: (c) => drawGlint(c, q.x, q.y, game.time) });
+  markDark(game.time);
   for (const e of game.enemies)
     if (vis(e.x, e.y, 200)) list.push({ y: e.y, f: (c) => drawEnemy(c, e, game.time) });
   for (const gh of game.ghosts)
@@ -582,10 +593,11 @@ export function render() {
     g.globalCompositeOperation = 'source-over';
   }
   g.globalAlpha = 1;
-  if (game.dark > 0.25)
+  if (game.dark > 0.25 || underDark())
     for (const p of game.parts)
       if (p.glow && p.life > p.max * 0.3 && lights.length < 60)
         lights.push({ x: p.x, y: p.y, r: 20, i: 0.5 });
+  drawDarkness(g, game.time);
   g.textAlign = 'center';
   g.lineJoin = 'round';
   for (const t of game.texts) {

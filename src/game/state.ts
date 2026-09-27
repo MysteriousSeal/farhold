@@ -74,6 +74,7 @@ export const hero = {
   slow: 0,
   stepT: 0,
   warp: null as any,
+  torch: 0, // seconds left on a torch carried underground
   faceT: 0,
   face: undefined as number | undefined,
 };

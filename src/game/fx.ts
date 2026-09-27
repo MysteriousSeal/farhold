@@ -2,7 +2,8 @@ import { $ } from '../core/dom';
 import { TAU, rand } from '../core/math';
 import { game, lights } from './state';
 export function addLight(x, y, r, i, col) {
-  if (game.dark > 0.03 && lights.length < 64) lights.push({ x, y, r, i, col });
+  if ((game.dark > 0.03 || game.mode === 'dungeon') && lights.length < 64)
+    lights.push({ x, y, r, i, col });
 }
 
 /* ================= FX ================= */

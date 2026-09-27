@@ -549,6 +549,13 @@ export function drawTorch(c, tr, t) {
   c.lineWidth = 2;
   c.strokeStyle = OUT;
   rr(c, x - 3, y - 4, 6, 12, 1, '#5a4030');
+  if (tr.taken) {
+    // the hero carries this one: an empty, sooty bracket
+    c.fillStyle = '#2a2020';
+    c.fillRect(x - 2, y - 5, 4, 2);
+    c.restore();
+    return;
+  }
   const f = 1 + Math.sin(t * 12 + tr.ph) * 0.15;
   c.fillStyle = '#ff7a2e';
   c.beginPath();
@@ -572,6 +579,48 @@ export function drawTorch(c, tr, t) {
       max: 0.8,
       col: '#ffb13a',
       sz: 1.8,
+      g: -5,
+      glow: 1,
+    });
+}
+/** A torch held in the hand at (x, y): wooden haft, wrapped head and a live flame. */
+export function drawHeldTorch(c, x, y, t) {
+  c.save();
+  c.lineWidth = 1.8;
+  c.strokeStyle = OUT;
+  c.lineJoin = 'round';
+  c.beginPath();
+  c.moveTo(x - 1.6, y + 6);
+  c.lineTo(x - 1.6, y - 8);
+  c.lineTo(x + 1.6, y - 8);
+  c.lineTo(x + 1.6, y + 6);
+  c.closePath();
+  c.fillStyle = '#7a5434';
+  c.fill();
+  c.stroke();
+  rr(c, x - 2.8, y - 12, 5.6, 5, 1.2, '#4a3426');
+  const f = 1 + Math.sin(t * 13) * 0.12;
+  c.fillStyle = '#ff7a2e';
+  c.beginPath();
+  c.moveTo(x - 4, y - 11);
+  c.quadraticCurveTo(x - 5, y - 18 * f, x + Math.sin(t * 9) * 1.6, y - 24 * f);
+  c.quadraticCurveTo(x + 5, y - 18 * f, x + 4, y - 11);
+  c.fill();
+  c.fillStyle = '#ffe27a';
+  c.beginPath();
+  c.arc(x, y - 14, 2, 0, TAU);
+  c.fill();
+  c.restore();
+  if (Math.random() < 0.05)
+    game.parts.push({
+      x: x + rand(-2, 2),
+      y: y - 22,
+      vx: rand(-6, 6),
+      vy: rand(-40, -20),
+      life: 0.7,
+      max: 0.7,
+      col: '#ffb13a',
+      sz: 1.6,
       g: -5,
       glow: 1,
     });
