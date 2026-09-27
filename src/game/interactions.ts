@@ -18,11 +18,12 @@ import { openBoard, openPotions, openShop, openTravel } from '../ui/village';
 export function findInteract() {
   let best = null,
     bd = 1e9;
-  const cand = (x, y, r, label, act, ty) => {
+  // (x, y) is where the hero stands to act, within r; the bubble points at (tx ?? x, ty)
+  const cand = (x, y, r, label, act, ty, tx?) => {
     const d = Math.hypot(game.P.x - x, game.P.y - y);
     if (d < r && d < bd) {
       bd = d;
-      best = { label, act, tx: x, ty };
+      best = { label, act, tx: tx ?? x, ty };
     }
   };
   if (game.mode === 'dungeon') {
@@ -47,6 +48,9 @@ export function findInteract() {
           torchLeft() > 0 ? 'Swap for a fresh torch' : 'Take torch',
           () => {
             tr.taken = true;
+            // the bracket stays empty until the cave's next cycle (saved with its progress)
+            const st = game.DG.cave;
+            if (st) (st.torchesTaken = st.torchesTaken || []).push(game.DG.torches.indexOf(tr));
             lightTorch(true);
             burst(tr.x, tr.y - 28, '#ffb13a', 8, 60, 2.5, 30, 1);
           },

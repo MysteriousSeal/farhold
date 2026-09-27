@@ -1,4 +1,4 @@
-import { crownY } from '../art/body';
+import { HEAD_R, headY } from '../art/body';
 import { WALL_H } from '../art/interior/room';
 import { SFX } from '../audio/sfx';
 import { H, W } from '../core/dom';
@@ -332,15 +332,40 @@ function barmaidWork(n, dt: number) {
   }
 }
 /** Interaction candidates inside a house: residents to talk to, and the way out. */
+/** Just over the top of an NPC's drawn head (seated ones and the barmaid sit lower): where
+ * their interaction bubble points. */
+const headTop = (n) => n.y + (n.seated ? n.sink || 0 : 0) + headY(n.look) - HEAD_R - 2;
 export function houseInteract(cand) {
   const I = game.HS;
-  if (I.counter)
-    cand(I.counter.x, I.counter.y, 64, 'Blacksmith', () => openSmith(I.village), I.counter.y - 118);
-  if (I.bar) cand(I.bar.x, I.bar.y, 64, 'Barmaid', () => openTavern(I), I.bar.y - 150);
+  if (I.counter) {
+    const sm = I.npcs.find((n) => n.role === 'smith');
+    cand(
+      I.counter.x,
+      I.counter.y,
+      64,
+      'Blacksmith',
+      () => openSmith(I.village),
+      sm ? headTop(sm) : I.counter.y - 118,
+      sm ? sm.x : undefined,
+    );
+  }
+  if (I.bar) {
+    // the bubble sits just over the barmaid's head, like everyone's
+    const bm = I.npcs.find((n) => n.role === 'barmaid');
+    cand(
+      I.bar.x,
+      I.bar.y,
+      64,
+      'Barmaid',
+      () => openTavern(I),
+      bm ? headTop(bm) : I.bar.y - 150,
+      bm ? bm.x : undefined, // she walks along the bar: the bubble follows her
+    );
+  }
   I.npcs.forEach((n, i) => {
     if (n.role === 'smith' || n.role === 'barmaid') return;
     const job = n.role === 'patron' ? patronJob(I, i) : null;
-    const ly = n.y + crownY(n.look);
+    const ly = headTop(n);
     if (job && job.mark === '!') cand(n.x, n.y + 6, TALK_R, 'Job offer', () => openJob(I, i), ly);
     else if (job && job.mark === '?')
       cand(n.x, n.y + 6, TALK_R, 'Hand in', () => handInTask(job.q), ly);
