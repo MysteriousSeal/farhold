@@ -1019,11 +1019,6 @@ export function drawCaveBit(c, m, b: number, t: number) {
       }
     }
   } else if (m.k === 'crystal') {
-    const pulse = 0.2 + Math.sin(t * 1.8 + m.s) * 0.07;
-    c.fillStyle = 'rgba(' + glow + ',' + pulse.toFixed(3) + ')';
-    c.beginPath();
-    c.ellipse(0, -4, 17, 11, 0, 0, TAU);
-    c.fill();
     c.fillStyle = 'rgba(0,0,0,.28)';
     c.beginPath();
     c.ellipse(0, 2, 12, 4, 0, 0, TAU);
