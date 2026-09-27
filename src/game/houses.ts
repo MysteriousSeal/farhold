@@ -1,4 +1,4 @@
-import { HEAD_R, headY } from '../art/body';
+import { HEAD_R, headY } from './rig';
 import { SFX, ports } from '../core/ports';
 import { H, W } from '../core/dom';
 import { clamp } from '../core/math';

@@ -1,7 +1,7 @@
 import { spawnWarpPortal } from './warp';
 import { gainXp } from './combat';
 import { xpNeed } from './stats';
-import { SFX } from '../core/ports';
+import { SFX, ports } from '../core/ports';
 import { mulberry, strSeed } from '../core/math';
 import { settings } from '../core/settings';
 import { DTABLE, ET, typesFor } from '../data/enemies';
@@ -12,9 +12,8 @@ import { questEvent } from './quests';
 import { save } from './save';
 import { torchLeft } from './consumables';
 import { game } from './state';
-import { getChunk, solidAt } from '../world/chunks';
+import { solidAt } from '../world/chunks';
 import { genDungeon } from '../world/dungeon';
-import { CH } from '../world/terrain';
 /* ================= DUNGEONS ================= */
 export function enterDungeon(p) {
   doFade(() => {
@@ -106,10 +105,7 @@ export function enterDungeon(p) {
     game.DG.total = slots.length + 1;
     game.DG.killed = st.dead.length + (st.guardDead ? 1 : 0);
     game.DG.bonus = game.DG.killed >= game.DG.total;
-    game.genBudget = 99;
-    for (let i = -1; i <= 1; i++)
-      for (let j = -1; j <= 1; j++)
-        getChunk(Math.floor(game.P.x / CH) + i, Math.floor(game.P.y / CH) + j, true);
+    ports.warmChunks(); // paint the chunks around the hero before the fade ends
     banner(p.name, 'Danger level ' + p.lvl);
     game.zoneName = p.name;
     save();

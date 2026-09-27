@@ -19,7 +19,7 @@ import { calcStats, lookOfPlayer } from '../game/stats';
 import { isTouch } from '../input/input';
 import { setHud } from './hud';
 import { refreshMenu } from './menus';
-import { WCH, getChunk } from '../world/chunks';
+import { getChunk, resetChunks } from '../render/chunks';
 import { poiCache, poisNear } from '../world/poi';
 import { CH } from '../world/terrain';
 /* ================= SCREENS ================= */
@@ -353,8 +353,7 @@ function drawFace(cv: HTMLCanvasElement, look) {
 function startGame(p, fresh?) {
   game.P = p;
   game.SEED = strSeed(game.P.seed);
-  WCH.clear();
-  game.bgGen = null;
+  resetChunks();
   poiCache.clear();
   resetCityGround();
   backfillBossChests();

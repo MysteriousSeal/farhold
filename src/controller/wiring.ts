@@ -1,6 +1,7 @@
 import { SFX as SOUND } from '../audio/sfx';
 import { ports } from '../core/ports';
 import { moveInput } from '../input/input';
+import { warmChunks } from '../render/chunks';
 import { zoom } from '../render/render';
 import { setHud } from '../ui/hud';
 import { showBanner, showToast } from '../ui/messages';
@@ -17,6 +18,7 @@ ports.screen = showScreen;
 ports.hud = setHud;
 ports.moveInput = moveInput;
 ports.zoom = zoom;
+ports.warmChunks = warmChunks;
 ports.open.shop = openShop;
 ports.open.smith = openSmith;
 ports.open.tavern = openTavern;

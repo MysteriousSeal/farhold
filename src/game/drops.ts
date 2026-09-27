@@ -1,4 +1,4 @@
-import { crownY } from '../art/body';
+import { crownY } from './rig';
 import { solidAt } from '../world/chunks';
 import { SFX } from '../core/ports';
 import { $ } from '../core/dom';

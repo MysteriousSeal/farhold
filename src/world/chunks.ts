@@ -1,5 +1,4 @@
-import { mkCanvas } from '../core/dom';
-import { OUT, TAU, clamp, fbm, hs, lerp, mulberry, pick, rand, vn } from '../core/math';
+import { TAU, clamp, fbm, hs, lerp, mulberry, vn } from '../core/math';
 import { game } from '../game/state';
 import { traceCliffs } from './cliffs';
 import { sampleHeights } from './contour';
@@ -7,7 +6,6 @@ import { tracePools, traceShores } from './shores';
 import { genFlora } from './flora';
 import { roadHit, roadsOf } from './roads';
 import { IT } from './interior';
-import { genDungeonChunk } from './dungeon';
 import { poiSolid, poisNear } from './poi';
 import {
   CH,
@@ -22,6 +20,26 @@ import {
   terr,
   walkT,
 } from './terrain';
+/** A ground mark to paint on the chunk: local x, y, terrain type, biome, roll, and for a
+ * mountain crack its angle and length. */
+export type Mark = [number, number, number, number, number, number, number];
+export type ChunkModel = {
+  cx: number;
+  cy: number;
+  /** ground colours, FN × FN RGBA (one pixel per FR world units) */
+  px: Uint8ClampedArray;
+  marks: Mark[];
+  waves: number[][];
+  decor: { k: string; x: number; y: number; r: number; ph: number }[];
+  cliffs;
+  shores;
+  pools;
+  flora;
+  pois;
+  last: number;
+};
+/** Size of a chunk's colour buffer, in pixels per side (one per FR = 2 world units). */
+export const CHUNK_FN = CH / 2;
 /* ---------- World chunks ---------- */
 export const WCH = new Map();
 export function chunkRng(cx, cy) {
@@ -41,7 +59,7 @@ function startGen(cx, cy) {
     row: 0,
     phase: 0,
     F: new Float32Array(GN * GN * NF),
-    img: new ImageData(FN, FN),
+    img: new Uint8ClampedArray(FN * FN * 4), // ground colours, RGBA
     types: new Uint8Array(FN * FN),
     bio: new Uint8Array(FN * FN),
     // places in or near the chunk: swamp pools are kept out of them
@@ -115,7 +133,7 @@ function stepGen(G, steps) {
         G.row = 0;
       }
     } else {
-      const D = G.img.data,
+      const D = G.img,
         end = Math.min(FN, G.row + 32),
         v = new Float32Array(NF);
       for (let j = G.row; j < end; j++) {
@@ -210,40 +228,35 @@ function stepGen(G, steps) {
   }
   return G.phase === 2;
 }
-function genWorldChunk(cx, cy, G) {
+/** The chunk's model, sampling it all at once (or finishing a background sampling). */
+function genChunkModel(cx, cy, G) {
   if (!G || G.cx !== cx || G.cy !== cy) G = startGen(cx, cy);
   stepGen(G, 99);
-  return finishGen(G);
+  return buildChunk(G);
 }
-function finishGen(G) {
+/**
+ * Everything a chunk holds besides its picture: ground marks to paint (grass, cracks, snow
+ * ripples...), animated water ripples, decor (trees, rocks: they block the way), mountain
+ * cliffs and shorelines, swamp pools and flora. The random draws keep their old order, so
+ * every world is the same as before.
+ */
+function buildChunk(G): ChunkModel {
   const cx = G.cx,
     cy = G.cy,
-    img = G.img,
     ox = cx * CH,
     oy = cy * CH,
     types = G.types,
     bio = G.bio;
-  const sm = mkCanvas(FN, FN);
-  sm.getContext('2d').putImageData(img, 0, 0);
-  const cvs = mkCanvas(CH, CH),
-    x = cvs.getContext('2d');
-  x.imageSmoothingEnabled = true;
-  x.drawImage(sm, 0, 0, CH, CH);
   const rnd = chunkRng(cx, cy),
     at = (lx, ly) => {
       const q = clamp((ly / FR) | 0, 0, FN - 1) * FN + clamp((lx / FR) | 0, 0, FN - 1);
       return [types[q], bio[q]];
     };
   const pois = poisNear(ox + CH / 2, oy + CH / 2, CH * 0.75);
-  x.save();
-  x.translate(-ox, -oy);
-  for (const p of pois) paintPoiGround(x, p);
-  x.restore();
   const inPoi = (wx, wy, pad = 0) =>
     pois.some((p) => Math.hypot(wx - p.x, (wy - p.y) * 1.15) < p.r + pad);
-  x.lineCap = 'round';
-  x.lineJoin = 'round';
-  const waves = [];
+  const waves = [],
+    marks: Mark[] = [];
   for (let k = 0; k < 1000; k++) {
     const lx = rnd() * CH,
       ly = rnd() * CH,
@@ -253,107 +266,15 @@ function finishGen(G) {
       wy = oy + ly;
     if (t === 3) {
       if (inPoi(wx, wy, -20)) continue;
-      if (b === 0 || b === 1 || b === 2 || b === 5) {
-        // grass tufts and flowers are crisp vectors drawn each frame (world/flora.ts)
-        if (b === 2 && q < 0.35) {
-          x.fillStyle = pick(['#e07a2e', '#c8452f', '#f0b43a', '#a8542a']);
-          x.beginPath();
-          x.ellipse(lx, ly, 2.6, 1.5, q * 6, 0, TAU);
-          x.fill();
-        }
-        if (b === 1 && q < 0.03) {
-          x.lineWidth = 1.4;
-          x.strokeStyle = OUT;
-          x.fillStyle = '#e8dcc0';
-          x.fillRect(lx - 1, ly - 4, 2, 4);
-          x.fillStyle = q < 0.015 ? '#d8443a' : '#b8844a';
-          x.beginPath();
-          x.arc(lx, ly - 5, 3.5, Math.PI, 0);
-          x.fill();
-          x.fillStyle = '#fff';
-          x.fillRect(lx - 1.5, ly - 7, 1.2, 1.2);
-        }
-      } else if (b === 3) {
-        // desert pebbles, ripples and tufts are crisp vectors (world/flora.ts)
-      } else if (b === 4) {
-        if (q < 0.25) {
-          x.strokeStyle = 'rgba(170,195,225,.6)';
-          x.lineWidth = 2;
-          x.beginPath();
-          x.arc(lx, ly + 8, 9, 3.7, 5.7);
-          x.stroke();
-        } else if (q < 0.3) {
-          x.fillStyle = '#fff';
-          x.fillRect(lx, ly, 1.5, 1.5);
-        }
-      } else if (b === 6) {
-        if (q < 0.12) {
-          x.strokeStyle = 'rgba(40,20,50,.5)';
-          x.lineWidth = 1.5;
-          x.beginPath();
-          x.moveTo(lx, ly);
-          x.lineTo(lx + rand(-8, 8), ly + rand(-5, 5));
-          x.lineTo(lx + rand(-12, 12), ly + rand(-8, 8));
-          x.stroke();
-        } else if (q < 0.2) {
-          x.strokeStyle = 'rgba(70,40,80,.5)';
-          x.lineWidth = 1.6;
-          x.beginPath();
-          x.moveTo(lx - 2, ly - 5);
-          x.lineTo(lx, ly);
-          x.lineTo(lx + 2, ly - 6);
-          x.stroke();
-        }
-      }
-    } else if (t === 4 && q < 0.2) {
-      x.strokeStyle = 'rgba(60,55,60,.35)';
-      x.lineWidth = 1.4;
-      x.beginPath();
-      x.moveTo(lx, ly);
-      x.lineTo(lx + rand(-7, 7), ly + rand(-4, 4));
-      x.stroke();
+      marks.push([lx, ly, t, b, q, 0, 0]);
     } else if (t === 5 && q < 0.3) {
-      // rugged mountain top: branching cracks and loose stones
-      if (q < 0.18) {
-        const a = rnd() * TAU,
-          l = 6 + rnd() * 8;
-        x.strokeStyle = 'rgba(28,22,34,.45)';
-        x.lineWidth = 1.6;
-        x.beginPath();
-        x.moveTo(lx, ly);
-        x.lineTo(lx + Math.cos(a) * l, ly + Math.sin(a) * l * 0.6);
-        x.lineTo(lx + Math.cos(a + 0.6) * l * 1.6, ly + Math.sin(a + 0.6) * l);
-        x.moveTo(lx + Math.cos(a) * l, ly + Math.sin(a) * l * 0.6);
-        x.lineTo(lx + Math.cos(a - 0.7) * l * 1.5, ly + Math.sin(a - 0.7) * l * 0.9);
-        x.stroke();
-      } else {
-        x.fillStyle = 'rgba(255,255,255,.18)';
-        x.strokeStyle = 'rgba(28,22,34,.4)';
-        x.lineWidth = 1.2;
-        x.beginPath();
-        x.ellipse(lx, ly, 3 + q * 6, 2 + q * 3, q * 9, 0, TAU);
-        x.fill();
-        x.stroke();
-      }
-    } else if (t === 1) {
-      if (b === 5 && q < 0.08) {
-        x.lineWidth = 1.6;
-        x.strokeStyle = '#2e4a24';
-        x.fillStyle = '#5f9a44';
-        x.beginPath();
-        x.arc(lx, ly, 5, 0.4, TAU - 0.2);
-        x.lineTo(lx, ly);
-        x.closePath();
-        x.fill();
-        x.stroke();
-      } else if (b === 4 && q < 0.05) {
-        x.strokeStyle = 'rgba(255,255,255,.6)';
-        x.lineWidth = 1.2;
-        x.beginPath();
-        x.moveTo(lx, ly);
-        x.lineTo(lx + rand(-10, 10), ly + rand(-6, 6));
-        x.stroke();
-      } else if (q < 0.03 && b !== 4) waves.push([lx + ox, ly + oy, q * 200]);
+      // rugged mountain top: a crack takes two more draws for its angle and length
+      if (q < 0.18) marks.push([lx, ly, t, b, q, rnd() * TAU, 6 + rnd() * 8]);
+      else marks.push([lx, ly, t, b, q, 0, 0]);
+    } else if (t === 4 && q < 0.2) marks.push([lx, ly, t, b, q, 0, 0]);
+    else if (t === 1) {
+      if ((b === 5 && q < 0.08) || (b === 4 && q < 0.05)) marks.push([lx, ly, t, b, q, 0, 0]);
+      else if (q < 0.03 && b !== 4) waves.push([lx + ox, ly + oy, q * 200]);
     } else if (t === 0 && q < 0.02) waves.push([lx + ox, ly + oy, q * 300]);
   }
   const decor = [];
@@ -470,19 +391,6 @@ function finishGen(G) {
   const pools = hasPool ? tracePools(ox, oy, CH, (x, y) => inPlace(G.pois, x, y)) : null;
   // stray grass islands in the sand become sand again (their outline was dropped)
   const islands = (shores && shores.islands) || [];
-  for (const is of islands) {
-    const px = clamp(Math.round(is.x0 - ox - 6), 0, CH - 1),
-      py = clamp(Math.round((is.y0 + is.y1) / 2 - oy), 0, CH - 1),
-      d = x.getImageData(px, py, 1, 1).data;
-    x.fillStyle = 'rgb(' + d[0] + ',' + d[1] + ',' + d[2] + ')';
-    x.beginPath();
-    for (let p = 0; p < is.pts.length; p += 2) x.lineTo(is.pts[p] - ox, is.pts[p + 1] - oy);
-    x.closePath();
-    x.fill();
-    x.strokeStyle = x.fillStyle;
-    x.lineWidth = 3;
-    x.stroke();
-  }
   const onIsland = (wx: number, wy: number) =>
     islands.some((is) => wx > is.x0 - 4 && wx < is.x1 + 4 && wy > is.y0 - 4 && wy < is.y1 + 4);
   const flora = genFlora(
@@ -494,7 +402,7 @@ function finishGen(G) {
       inPoi(wx, wy, -10) ||
       pois.some((p) => p.kind === 'village' && roadHit(roadsOf(p), wx, wy, 4)),
   );
-  return { cvs, decor, waves, cliffs, shores, pools, flora, last: 0 };
+  return { cx, cy, px: G.img, marks, waves, decor, cliffs, shores, pools, flora, pois, last: 0 };
 }
 /** One of the three rock shapes. `q` is inside [lo, hi). B is the peak, C the double hump. */
 function rockKind(base, q, lo, hi) {
@@ -531,53 +439,6 @@ const DECOR_R = {
   palm: 7,
   log: 10,
 };
-function paintPoiGround(x, p) {
-  x.save();
-  // village plazas, lanes and roads are crisp vectors (world/roads.ts, art/roads.ts)
-  if (p.kind === 'village') {
-    x.restore();
-    return;
-  }
-  if (p.kind === 'lair') {
-    const gr = x.createRadialGradient(p.x, p.y, 20, p.x, p.y, 200);
-    gr.addColorStop(0, 'rgba(40,20,30,.65)');
-    gr.addColorStop(0.7, 'rgba(50,30,40,.4)');
-    gr.addColorStop(1, 'rgba(50,30,40,0)');
-    x.fillStyle = gr;
-    x.beginPath();
-    x.ellipse(p.x, p.y, 200, 160, 0, 0, TAU);
-    x.fill();
-    x.strokeStyle = 'rgba(20,10,20,.45)';
-    x.lineWidth = 4;
-    x.beginPath();
-    x.ellipse(p.x, p.y, 110, 80, 0, 0, TAU);
-    x.stroke();
-    x.beginPath();
-    x.ellipse(p.x, p.y, 90, 64, 0, 0, TAU);
-    x.stroke();
-    for (let i = 0; i < 5; i++) {
-      const a = (i / 5) * TAU - Math.PI / 2,
-        b2 = ((i + 2) / 5) * TAU - Math.PI / 2;
-      x.beginPath();
-      x.moveTo(p.x + Math.cos(a) * 90, p.y + Math.sin(a) * 64);
-      x.lineTo(p.x + Math.cos(b2) * 90, p.y + Math.sin(b2) * 64);
-      x.stroke();
-    }
-  } else if (p.kind === 'cave' || p.kind === 'gate') {
-    x.fillStyle = 'rgba(90,70,60,.45)';
-    x.beginPath();
-    x.ellipse(p.x, p.y + 14, p.kind === 'gate' ? 62 : 70, 34, 0, 0, TAU);
-    x.fill();
-    if (p.kind === 'gate') {
-      x.fillStyle = 'rgba(30,24,28,.4)';
-      x.beginPath();
-      x.ellipse(p.x, p.y + 4, 26, 10, 0, 0, TAU);
-      x.fill();
-    }
-  }
-  x.restore();
-}
-
 export function bgStep(cx, cy) {
   if (game.mode !== 'world') return;
   if (!game.bgGen) {
@@ -597,36 +458,34 @@ export function bgStep(cx, cy) {
       return;
     }
     if (stepGen(game.bgGen, 1)) {
-      WCH.set(game.bgGen.cx + ',' + game.bgGen.cy, finishGen(game.bgGen));
+      WCH.set(game.bgGen.cx + ',' + game.bgGen.cy, buildChunk(game.bgGen));
       game.bgGen = null;
     }
   }
 }
-export function getChunk(i, j, gen) {
-  if (game.mode === 'house') return null; // interiors are drawn by render/interior.ts
-  const map = game.mode === 'dungeon' ? game.DG.ch : WCH,
-    k = i + ',' + j;
-  let c = map.get(k);
+/**
+ * The model of world chunk (i, j): made on demand while the frame's generation budget lasts
+ * (`gen`), kept in WCH (the nearest 44). Its picture is painted by render/chunks.ts.
+ */
+export function chunkAt(i: number, j: number, gen: boolean): ChunkModel | null {
+  const k = i + ',' + j;
+  let c = WCH.get(k);
   if (!c && gen && game.genBudget > 0) {
     game.genBudget--;
-    c =
-      game.mode === 'dungeon'
-        ? genDungeonChunk(game.DG, i, j)
-        : genWorldChunk(
-            i,
-            j,
-            game.bgGen && game.bgGen.cx === i && game.bgGen.cy === j ? game.bgGen : null,
-          );
+    c = genChunkModel(
+      i,
+      j,
+      game.bgGen && game.bgGen.cx === i && game.bgGen.cy === j ? game.bgGen : null,
+    );
     if (game.bgGen && game.bgGen.cx === i && game.bgGen.cy === j) game.bgGen = null;
-    map.set(k, c);
-    // dungeon chunks are painted at up to 3× resolution, so fewer are kept
-    if (map.size > (game.mode === 'dungeon' ? 20 : 44)) {
-      const a = [...map.entries()].sort((p, q) => p[1].last - q[1].last);
-      for (let n = 0; n < 10; n++) map.delete(a[n][0]);
+    WCH.set(k, c);
+    if (WCH.size > 44) {
+      const a = [...WCH.entries()].sort((p, q) => p[1].last - q[1].last);
+      for (let n = 0; n < 10; n++) WCH.delete(a[n][0]);
     }
   }
   if (c) c.last = performance.now();
-  return c;
+  return c || null;
 }
 export function solidAt(x, y, r) {
   if (game.mode === 'house') {

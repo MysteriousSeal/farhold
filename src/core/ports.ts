@@ -47,6 +47,8 @@ export const ports = {
   hud: none as (on: boolean) => void,
   /** the movement the player is asking for, as a direction (0, 0 when idle) */
   moveInput: (() => [0, 0]) as () => [number, number],
+  /** paint the ground around the hero right away (after arriving somewhere) */
+  warmChunks: none as () => void,
   /** the camera zoom (world units to screen pixels) */
   zoom: (() => 1) as () => number,
   /** windows the model opens when the hero acts on something */

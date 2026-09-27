@@ -3,7 +3,7 @@ import { STYLE_CD, heroStyle } from './style';
 import type { Rec } from './types';
 import { SFX, ports } from '../core/ports';
 import { $ } from '../core/dom';
-import { crownY } from '../art/body';
+import { crownY } from './rig';
 import { angDiff, rand } from '../core/math';
 import { SKILLCD, SKILLN, rank } from '../data/skills';
 import { leaveDungeon } from './dungeons';

@@ -1,7 +1,7 @@
 import { drawFurn } from '../art/interior/furniture';
 import { drawRoomBack, drawRoomFront, drawRoomLights, partitionPieces } from '../art/interior/room';
 import { OUT } from '../core/math';
-import { drawNpc } from '../game/npcs';
+import { drawNpc } from './npcs';
 import { game } from '../game/state';
 import { headTop } from '../game/houses';
 import { patronJob } from '../game/tavernQuests';
