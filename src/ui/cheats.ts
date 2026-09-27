@@ -14,7 +14,7 @@ import { solidAt } from '../world/chunks';
 /* ================= CHEATS (dev builds only, loaded from main.ts) ================= */
 // A button in the bottom-left corner opens a panel to spawn any regular enemy, at the
 // hero's level, right next to the hero; start a world event; gain a level; jump to the
-// nearest uncleared cave or dungeon; or drop every helmet look into the bag.
+// nearest uncleared cave or stone-gate dungeon; or drop every helmet look into the bag.
 
 /** A free spot 70–110 units from the hero, or the hero's own position as a fallback. */
 function spotNearHero() {
@@ -94,10 +94,10 @@ function levelUp() {
   $('#cheatLv').textContent = 'Level ' + game.P.lvl;
 }
 /**
- * Jump to the nearest uncleared entrance (from the open world only). `kinds` is `cave`,
- * `gate`, or both.
+ * Jump to the nearest uncleared entrance of one kind (from the open world only).
+ * A dungeon is a stone gate; a cave mound is separate.
  */
-function toNearestPlace(kinds: string[]) {
+function toNearestPlace(kind: 'cave' | 'gate') {
   if (game.state !== 'play' || !game.P) return;
   if (game.mode !== 'world') {
     toast('Step outside first');
@@ -111,7 +111,7 @@ function toNearestPlace(kinds: string[]) {
   for (let i = ci - R; i <= ci + R; i++)
     for (let j = cj - R; j <= cj + R; j++) {
       const q = poiAt(i, j);
-      if (!q || !kinds.includes(q.kind) || game.P.cleared[q.key]) continue;
+      if (!q || q.kind !== kind || game.P.cleared[q.key]) continue;
       const d = Math.hypot(q.x - game.P.x, q.y - game.P.y);
       if (d < bd) {
         bd = d;
@@ -119,7 +119,7 @@ function toNearestPlace(kinds: string[]) {
       }
     }
   if (!best) {
-    toast(kinds.length > 1 ? 'No uncleared dungeon nearby' : 'No uncleared cave nearby');
+    toast(kind === 'cave' ? 'No uncleared cave nearby' : 'No uncleared dungeon nearby');
     return;
   }
   doFade(() => {
@@ -155,8 +155,8 @@ function giveHelms() {
 panel.innerHTML = '<div class="chead"><b>Cheats</b><small id="cheatLv"></small></div>';
 const hero = section('cHero', 'Hero', 'Level up, or jump to a cave or the nearest dungeon.');
 add(hero, '+1 level', levelUp, 'wide');
-add(hero, 'Nearest dungeon', () => toNearestPlace(['cave', 'gate']), 'wide');
-add(hero, 'Nearest cave', () => toNearestPlace(['cave']), 'wide');
+add(hero, 'Nearest dungeon', () => toNearestPlace('gate'), 'wide');
+add(hero, 'Nearest cave', () => toNearestPlace('cave'), 'wide');
 const gear = section('cGear', 'Gear', 'One of every metal, as a Cap and a Helm.');
 add(gear, 'All helmets', giveHelms, 'wide');
 const ev = section('cEv', 'World events', 'Start one right away, near you.', 'three');
