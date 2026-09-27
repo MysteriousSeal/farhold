@@ -6,6 +6,7 @@ import { SFX } from '../audio/sfx';
 import { $ } from '../core/dom';
 import { MATS, RAR, SLOT_NAME } from '../data/classes';
 import { BAGMAX } from '../game/drops';
+import { POT_CD, drinkPot } from '../game/combat';
 import { toast } from '../game/fx';
 import {
   equipSlot,
@@ -17,7 +18,7 @@ import {
 } from '../game/items';
 import { game } from '../game/state';
 import { calcStats, xpNeed } from '../game/stats';
-import { btn, goldPill, itemCard, potPill, iconCanvas, openModal, statLines } from './modal';
+import { POT_SVG, btn, goldPill, itemCard, iconCanvas, openModal, statLines } from './modal';
 import { closeAll } from './screens';
 /* ================= CHARACTER SHEET & BAGS ================= */
 // Two independent windows shown side by side (stacked on phones): the character sheet (C) with
@@ -235,10 +236,12 @@ function renderBags() {
         '/' +
         BAGMAX +
         '</span>',
-      goldPill(game.P.gold) + ' ' + potPill(game.P.pot),
+      goldPill(game.P.gold),
       'bags',
     ) +
-    '<div class="bagsplit"><div><div class="bag" id="iBag"></div><div class="acts" id="iBulk"></div></div><div id="detail"></div></div>';
+    '<div class="bagsplit"><div><div class="bag" id="iBag"></div><div class="acts" id="iBulk"></div>' +
+    '<div class="consum"><h3>Consumables</h3><div class="bag" id="iCons"></div></div></div>' +
+    '<div id="detail"></div></div>';
   const bg = $('#iBag');
   game.P.inv.forEach((it) => {
     // same card as the vendor: power change vs worn, level and salvage value
@@ -283,13 +286,52 @@ function renderBags() {
       ),
     );
   } else salvageArmed = false;
+  // consumables have their own row and never take bag space: health potions for now
+  const pc = document.createElement('div');
+  pc.className = 'cell potcell' + (selItem && selItem.pot ? ' sel' : '');
+  pc.style.opacity = game.P.pot > 0 ? '' : '.45';
+  pc.innerHTML = POT_SVG + '<span class="cnt">' + game.P.pot + '</span>';
+  pc.title = 'Health potion ×' + game.P.pot;
+  pc.onclick = () => {
+    selItem = { pot: true };
+    salvageArmed = false;
+    render();
+  };
+  $('#iCons').appendChild(pc);
   const dt = $('#detail');
-  if (selItem && !selItem.eq) renderDetail(dt);
+  if (selItem && selItem.pot) renderPotion(dt);
+  else if (selItem && !selItem.eq) renderDetail(dt);
   else
     dt.innerHTML =
       '<div class="dempty"><b>No item selected</b><span>Tap an item to see its stats. Badges show how much stronger (or weaker) it would make you.</span></div>';
 }
 
+/** The health potion stack: what it does, how many are left, and a Drink button. */
+function renderPotion(dt: HTMLElement) {
+  const heal = Math.round(game.ST.hp * 0.45 * (game.ST.potMul || 1));
+  dt.innerHTML =
+    '<div class="nm" style="color:#ff8a7a">Health potion</div>' +
+    '<div style="opacity:.75">Consumable</div>' +
+    '<div class="stats"><div>Restores <b>' +
+    heal +
+    ' health</b></div><div>You have <b>' +
+    game.P.pot +
+    '</b></div><div>Cooldown <b>' +
+    POT_CD +
+    's</b></div><div>Shortcut <b>Q</b></div></div>' +
+    '<div class="acts"></div>';
+  dt.querySelector('.acts').appendChild(
+    btn(
+      'Drink',
+      () => {
+        drinkPot();
+        render();
+      },
+      '',
+      game.P.pot <= 0,
+    ),
+  );
+}
 /* ---------- item details (equip / unequip / salvage) ---------- */
 function renderDetail(dt: HTMLElement) {
   const it = selItem.it,

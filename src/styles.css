@@ -1300,9 +1300,6 @@ input.txt {
   text-align: center;
   opacity: 0.75;
 }
-.potpill {
-  border-color: #6b3036;
-}
 .goldpill + .goldpill {
   margin-left: 8px;
 }
@@ -1319,8 +1316,37 @@ input.txt {
 .bagsplit #iBulk {
   margin-top: 14px;
 }
-.potpill b {
-  color: #ffb0a0;
+/* consumables: their own row under the gear, never counted as bag space */
+.consum {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(201, 145, 44, 0.3);
+}
+.consum h3 {
+  margin: 0 0 10px;
+  font: 700 15px var(--f);
+  color: #ffe7a8;
+}
+.potcell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.potcell svg {
+  width: 62%;
+  height: 62%;
+}
+.potcell .cnt {
+  position: absolute;
+  right: 4px;
+  bottom: 2px;
+  font: 700 15px var(--f);
+  color: #fff;
+  text-shadow:
+    0 0 3px #241a2e,
+    0 1px 0 #241a2e;
 }
 .sheetxp {
   margin: 8px 0 0;

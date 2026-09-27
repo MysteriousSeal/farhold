@@ -79,11 +79,8 @@ export const goldPill = (n: number) =>
   '<b>' +
   n.toLocaleString('en-US') +
   '</b></span>';
-const POT_SVG =
+export const POT_SVG =
   '<svg viewBox="0 0 20 20"><path d="M7.6 2.6 H12.4 V6.6 L16 13.4 Q17 17.4 13 17.6 H7 Q3 17.4 4 13.4 L7.6 6.6 Z" fill="#e8f2ff" stroke="#241a2e" stroke-width="1.8" stroke-linejoin="round"/><path d="M5.6 12 H14.4 L15.3 13.8 Q16 16.2 13 16.3 H7 Q4 16.2 4.7 13.8 Z" fill="#e0443a"/><rect x="7" y="1.6" width="6" height="2.4" rx="1" fill="#9a6a3a" stroke="#241a2e" stroke-width="1.4"/><circle cx="8.6" cy="13.8" r="1" fill="#ffb0a0"/></svg>';
-/** Potion count as a pill with the HUD potion flask. */
-export const potPill = (n: number) =>
-  '<span class="goldpill potpill" title="Health potions">' + POT_SVG + '<b>' + n + '</b></span>';
 export function hdr(title, sub) {
   return (
     '<div class="mh"><div><h2>' +
