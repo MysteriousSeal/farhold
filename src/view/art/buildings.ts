@@ -56,6 +56,72 @@ export function drawStall(c, v, t, pos = v.stall, awning = '#3f7fbf', goods = 'f
       c.fillRect(gx - 2, -31, 2, 2);
     }
     circ(c, 0, -25, 3, '#f5c451');
+  } else if (goods === 'bread') {
+    // loaves and a basket of rolls
+    for (const gx of [-22, -6, 10]) {
+      c.beginPath();
+      c.ellipse(gx, -26, 7, 4.5, 0, 0, TAU);
+      c.fillStyle = '#d8964a';
+      c.fill();
+      c.stroke();
+      c.strokeStyle = '#f0c080';
+      c.lineWidth = 1.2;
+      c.beginPath();
+      c.moveTo(gx - 3, -28);
+      c.lineTo(gx - 1, -25);
+      c.moveTo(gx + 1, -28);
+      c.lineTo(gx + 3, -25);
+      c.stroke();
+      c.strokeStyle = OUT;
+      c.lineWidth = 2.2;
+    }
+    circ(c, 25, -26, 5, '#e8b060');
+  } else if (goods === 'cloth') {
+    // folded bolts of cloth
+    for (const [col, gx] of [
+      ['#c8423a', -24],
+      ['#3f6fa0', -12],
+      ['#f5c451', 0],
+      ['#4f8a4a', 12],
+      ['#8a5a9c', 24],
+    ] as [string, number][]) {
+      rr(c, gx - 5, -32, 10, 10, 2, col);
+      c.fillStyle = 'rgba(255,255,255,.35)';
+      c.fillRect(gx - 4, -30, 8, 2);
+    }
+  } else if (goods === 'fish') {
+    for (const gx of [-20, -2, 16]) {
+      c.beginPath();
+      c.ellipse(gx, -26, 8, 3.5, 0, 0, TAU);
+      c.fillStyle = '#9ab8c8';
+      c.fill();
+      c.stroke();
+      c.beginPath();
+      c.moveTo(gx + 7, -26);
+      c.lineTo(gx + 12, -30);
+      c.lineTo(gx + 12, -22);
+      c.closePath();
+      c.fill();
+      c.stroke();
+    }
+  } else if (goods === 'pots') {
+    for (const [col, gx] of [
+      ['#b8623a', -22],
+      ['#c87a4a', -6],
+      ['#a8743a', 10],
+      ['#b8623a', 24],
+    ] as [string, number][]) {
+      c.beginPath();
+      c.moveTo(gx - 4, -34);
+      c.lineTo(gx + 4, -34);
+      c.quadraticCurveTo(gx + 8, -28, gx + 4, -22);
+      c.lineTo(gx - 4, -22);
+      c.quadraticCurveTo(gx - 8, -28, gx - 4, -34);
+      c.closePath();
+      c.fillStyle = col;
+      c.fill();
+      c.stroke();
+    }
   } else {
     const fruit = [
       ['#e0483e', -26],

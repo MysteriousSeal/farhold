@@ -112,12 +112,14 @@ export function poiAt(i, j) {
     const r = hs(i, j, 101),
       x = (i + 0.22 + hs(i, j, 102) * 0.56) * PC,
       y = (j + 0.22 + hs(i, j, 103) * 0.56) * PC;
-    if (Math.hypot(x, y) > 1000) {
+    // clear of Hearthfire's wall and the ponds of its river
+    if (Math.hypot(x / 1300, (y - 20) / 1080) > 1) {
       // the empty tail of the roll is a stone gate, so caves, villages and lairs stay put
       const kind = r < 0.27 ? 'village' : r < 0.54 ? 'cave' : r < 0.8 ? 'lair' : 'gate';
       if (kind) {
         const s = findLand(x, y, kind === 'village' ? 270 : kind === 'lair' ? 190 : 120);
-        if (s)
+        // (the spot may have moved: it must still keep clear of the town)
+        if (s && Math.hypot(s.x / 1300, (s.y - 20) / 1080) > 1)
           p =
             kind === 'village'
               ? checkVillage(makeVillage(s.x, s.y, 'v' + k))
@@ -165,6 +167,8 @@ export const HOUSE_HEIGHT = {
   hall: 172,
   smithy: 120,
   tavern: 152,
+  keep: 300,
+  temple: 290,
 };
 export const HOUSE_PROPS = ['barrel', 'crate', 'wood', 'pot', 'bench', 'fence'];
 // model weights per biome: cottage, townhouse, stone, hut, tower
@@ -329,7 +333,8 @@ export function makeSmithy(v, tx: number, ty: number) {
   let best = null,
     bd = 1e9;
   for (const h of v.houses) {
-    if (h.kind === 'tower' || h.kind === 'hall' || h.kind === 'tavern') continue;
+    if (h.kind !== 'cottage' && h.kind !== 'townhouse' && h.kind !== 'stone' && h.kind !== 'hut')
+      continue;
     const d = Math.hypot(h.x - tx, h.y - ty);
     if (d < bd) {
       bd = d;

@@ -6,6 +6,7 @@ import { tracePools, traceShores } from './shores';
 import { genFlora } from './flora';
 import { roadHit, roadsOf } from './roads';
 import { poiSolid, poisNear } from './poi';
+import { onBridge } from './city';
 import {
   CH,
   PEAK_H,
@@ -493,7 +494,7 @@ export function solidAt(x, y, r) {
   // indoors and underground the place itself knows what blocks the way
   if (game.mode === 'house') return game.HS.solidAt(x, y, r);
   if (game.mode === 'dungeon') return game.DG.solidAt(x, y, r);
-  if (!walkT(terr(x, y))) return true;
+  if (!walkT(terr(x, y)) && !onBridge(x, y)) return true;
   const i = Math.floor(x / CH),
     j = Math.floor(y / CH);
   for (let a = i - 1; a <= i + 1; a++)

@@ -359,6 +359,7 @@ export function houseInteract(cand) {
 /** Door prompts for the houses of a village (outside). */
 export function houseDoors(v, cand) {
   v.houses.forEach((h, idx) => {
+    if (h.closed) return;
     const d = doorOf(h);
     cand(
       d.x,
@@ -366,11 +367,13 @@ export function houseDoors(v, cand) {
       40,
       h.kind === 'hall'
         ? 'Enter the hall'
-        : h.kind === 'smithy'
-          ? 'Enter the smithy'
-          : h.kind === 'tavern'
-            ? 'Enter ' + h.name
-            : 'Enter house',
+        : h.kind === 'keep'
+          ? 'Enter the keep'
+          : h.kind === 'smithy'
+            ? 'Enter the smithy'
+            : h.kind === 'tavern'
+              ? 'Enter ' + h.name
+              : 'Enter house',
       () => enterHouse(v, h, idx),
       d.y - 44,
     );

@@ -2,12 +2,12 @@ import { $, mkCanvas } from '../dom';
 import { OUT, TAU, clamp, lerp } from '../../core/math';
 import { wantedTypes } from '../../model/game/quests';
 import { game, hero } from '../../model/game/state';
-import { CITY, STREETS } from '../../model/world/city';
+import { BRIDGES, BRIDGE_HL, CITY, FORECOURT, STREETS, wallPt } from '../../model/world/city';
 import { isoShape } from '../../model/world/contour';
 import { IT } from '../../model/world/interior';
 import { poisNear } from '../../model/world/poi';
 import { CAVE_FLOOR, CAVE_VOID } from '../../model/world/dungeon';
-import { COL, terr } from '../../model/world/terrain';
+import { COL, RIVER, riverY, terr } from '../../model/world/terrain';
 /* ================= MINIMAP ================= */
 // The overworld map is an illustrated snapshot of the terrain around the hero: smooth biome
 // colours with hill shading, water and peaks cut along crisp outlined contours, and the town
@@ -152,44 +152,127 @@ function bake(g): Snap {
   x.lineWidth = 1.5 * px;
   x.stroke(sea.edge);
   x.restore();
-  // Hearthfire: paved town inside its wall, with the streets
+  // Hearthfire, drawn in: paving, gardens, the river and bridges, streets, houses and walls
   const ox = g.x - SNAP_R,
-    oy = g.y - SNAP_R;
-  if (Math.abs(ox + SNAP_R) < SNAP_R + CITY.rx && Math.abs(oy + SNAP_R) < SNAP_R + CITY.ry) {
+    oy = g.y - SNAP_R,
+    city = poisNear(0, 0, 10).find((p) => p.city);
+  if (
+    city &&
+    Math.abs(ox + SNAP_R) < SNAP_R + CITY.rx &&
+    Math.abs(oy + SNAP_R) < SNAP_R + CITY.ry
+  ) {
     x.save();
     x.scale(sc, sc);
     x.translate(-ox, -oy);
-    x.beginPath();
-    x.ellipse(0, CITY.cy, CITY.rx, CITY.ry, 0, 0, TAU);
-    x.fillStyle = '#b9ab90';
-    x.fill();
-    x.strokeStyle = '#8a7a62';
-    x.lineWidth = CITY.sw;
-    for (const [ax, ay, bx, by] of STREETS) {
-      x.beginPath();
-      x.moveTo(ax, ay);
-      x.lineTo(bx, by);
-      x.stroke();
-    }
-    x.beginPath();
-    x.ellipse(0, CITY.py, CITY.prx, CITY.pry, 0, 0, TAU);
-    x.fillStyle = '#d6c8aa';
-    x.fill();
-    x.strokeStyle = '#8a7a62';
-    x.lineWidth = 2 / sc;
-    x.stroke();
-    // wall: dark outline and grey stone
-    x.beginPath();
-    x.ellipse(0, CITY.cy, CITY.rx, CITY.ry, 0, 0, TAU);
-    x.strokeStyle = OUT;
-    x.lineWidth = 5 / sc;
-    x.stroke();
-    x.strokeStyle = '#a49c94';
-    x.lineWidth = 2.5 / sc;
-    x.stroke();
+    cityMini(x, city, sc);
     x.restore();
   }
   return { c, x: g.x, y: g.y };
+}
+/** Hearthfire on the map, in world units (`sc` canvas px per unit, for line widths). */
+function cityMini(x: CanvasRenderingContext2D, v, sc: number) {
+  const px = 1 / sc;
+  x.lineJoin = 'round';
+  x.lineCap = 'round';
+  // paving inside the wall
+  x.beginPath();
+  x.ellipse(0, CITY.cy, CITY.rx, CITY.ry, 0, 0, TAU);
+  x.fillStyle = '#a8977c';
+  x.fill();
+  // gardens and the graveyard
+  for (const gd of [...v.gardens, v.graveyard]) {
+    x.fillStyle = gd === v.graveyard ? '#6f9a4a' : '#7cbf5a';
+    x.fillRect(gd.x0, gd.y0, gd.x1 - gd.x0, gd.y1 - gd.y0);
+  }
+  // streets, the square and the keep's forecourt
+  x.strokeStyle = x.fillStyle = '#e2d6ba';
+  for (const [ax, ay, bx, by, w] of STREETS) {
+    x.lineWidth = w;
+    x.beginPath();
+    x.moveTo(ax, ay);
+    x.lineTo(bx, by);
+    x.stroke();
+  }
+  x.beginPath();
+  x.ellipse(0, CITY.py, CITY.prx, CITY.pry, 0, 0, TAU);
+  x.fill();
+  const F = FORECOURT;
+  x.fillRect(F.x0, F.y0, F.x1 - F.x0, F.y1 - F.y0);
+  // the river, then the bridges over it
+  x.beginPath();
+  for (let rx = -CITY.rx; rx <= CITY.rx; rx += 20)
+    if (rx === -CITY.rx) x.moveTo(rx, riverY(rx));
+    else x.lineTo(rx, riverY(rx));
+  x.strokeStyle = '#5a4e40';
+  x.lineWidth = (RIVER.w + 12) * 2;
+  x.stroke();
+  x.strokeStyle = '#4f8fd8';
+  x.lineWidth = RIVER.w * 2;
+  x.stroke();
+  for (const br of BRIDGES) {
+    x.fillStyle = '#e2d6ba';
+    x.fillRect(br.x - br.hw, br.y - BRIDGE_HL, br.hw * 2, BRIDGE_HL * 2);
+    x.fillStyle = '#5a4e40';
+    for (const s of [-1, 1]) x.fillRect(br.x + s * br.hw - 5, br.y - BRIDGE_HL, 10, BRIDGE_HL * 2);
+  }
+  // the fountain and market stalls
+  x.fillStyle = '#6ab2ea';
+  x.beginPath();
+  x.ellipse(v.fountain.x, v.fountain.y - 8, 34, 20, 0, 0, TAU);
+  x.fill();
+  for (const m of [v.stall, ...v.shops, ...v.market]) {
+    x.fillStyle = m.awning || '#3f7fbf';
+    x.fillRect(m.x - 30, m.y - 24, 60, 22);
+  }
+  // buildings: roofs in their colours with a dark edge
+  x.lineWidth = 1.4 * px;
+  x.strokeStyle = OUT;
+  for (const w of v.castle) {
+    x.fillStyle = '#9a9288';
+    x.fillRect(w.x - 12, w.y0, 24, w.y1 - w.y0);
+    x.strokeRect(w.x - 12, w.y0, 24, w.y1 - w.y0);
+  }
+  for (const h of v.houses) {
+    const big = h.kind === 'keep' || h.kind === 'temple',
+      d = h.kind === 'keep' ? 150 : big ? 90 : 60;
+    x.fillStyle = h.kind === 'keep' ? '#9a9288' : h.roof[0];
+    x.fillRect(h.x - h.w / 2, h.y - d, h.w, d);
+    x.strokeRect(h.x - h.w / 2, h.y - d, h.w, d);
+    if (h.kind === 'keep') {
+      x.fillStyle = '#7a7268';
+      x.fillRect(-60, h.y - d + 10, 120, 90);
+      x.strokeRect(-60, h.y - d + 10, 120, 90);
+      for (const s of [-1, 1]) {
+        x.beginPath();
+        x.arc(h.x + s * (h.w / 2 - 26), h.y - 20, 30, 0, TAU);
+        x.fillStyle = '#4f5a74';
+        x.fill();
+        x.stroke();
+      }
+    }
+  }
+  // the wall (open at the gates) and its towers
+  x.beginPath();
+  for (const [a0, a1] of [...v.wall.segs, ...v.wall.water.map((wg) => [wg.a0, wg.a1])]) {
+    const p0 = wallPt(a0),
+      p1 = wallPt(a1);
+    x.moveTo(p0.x, p0.y);
+    x.lineTo(p1.x, p1.y);
+  }
+  x.strokeStyle = OUT;
+  x.lineWidth = 44;
+  x.stroke();
+  x.strokeStyle = '#c4bcae';
+  x.lineWidth = 44 - 3.4 * px;
+  x.stroke();
+  for (const tw of v.wall.towers) {
+    x.beginPath();
+    x.arc(tw.x, tw.y, tw.gate ? 42 : 32, 0, TAU);
+    x.fillStyle = '#c4bcae';
+    x.fill();
+    x.lineWidth = 1.6 * px;
+    x.stroke();
+  }
 }
 /** Two passes of a 3×3 box blur over an RGBA image (w×w), in place. */
 function softenImg(img: ImageData, w: number) {

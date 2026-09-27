@@ -35,6 +35,7 @@ import {
   windowAt,
   type Win,
 } from './houseParts';
+import { keep, temple } from './landmarks';
 
 /* ---------- models ---------- */
 type Built = {
@@ -681,7 +682,18 @@ function smithy(x: Ctx, h, rnd: () => number, B: Built) {
   // the anvil's outline spans -8k..11k across and -11k..0 up: centre it on the plank
   anvil(x, bx - 1.5 * k, -34.5 + 5.5 * k, k);
 }
-const MODELS = { cottage, townhouse, stone: stoneCottage, hut, tower, hall, smithy, tavern };
+const MODELS = {
+  cottage,
+  townhouse,
+  stone: stoneCottage,
+  hut,
+  tower,
+  hall,
+  smithy,
+  tavern,
+  keep,
+  temple,
+};
 const WALL_TOP = {
   cottage: -46,
   townhouse: -76,
@@ -691,6 +703,8 @@ const WALL_TOP = {
   hall: -70,
   smithy: -50,
   tavern: -80,
+  keep: -96,
+  temple: -104,
 };
 
 /** Ivy climbing a house corner: a wavy stem with leaf pairs. */
@@ -800,7 +814,7 @@ function paintHouse(c: Ctx, h) {
     shadow(c, side * 15, 2, h.w / 2 + 24, 8, 0.28);
   } else shadow(c, 0, 3, h.w / 2 + 16, 11, 0.3);
   MODELS[kind](c, h, rnd, B);
-  const plain = kind !== 'hall' && kind !== 'smithy' && kind !== 'tavern';
+  const plain = ['cottage', 'townhouse', 'stone', 'hut', 'tower'].includes(kind);
   if (plain && kind !== 'hut' && extra(h, 80) < 0.3) ivy(c, h);
   if (plain && kind !== 'tower' && extra(h, 90) < 0.3) garden(c, h);
   (h.props || []).forEach((pk, i) => {

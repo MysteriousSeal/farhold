@@ -129,7 +129,7 @@ export function genInterior(v, h, idx: number): Interior {
   const key = v.key + '/' + idx,
     rnd = mulberry((strSeed(key + ':in') ^ game.SEED) >>> 0),
     ri = (a: number, b: number) => a + Math.floor(rnd() * (b - a + 1)),
-    kind = h.kind === 'hall' ? 'hall' : SIZE[h.kind] ? h.kind : 'cottage',
+    kind = h.kind === 'hall' || h.kind === 'keep' ? 'hall' : SIZE[h.kind] ? h.kind : 'cottage',
     S = kind === 'tavern' && h.big ? SIZE.tavernL : SIZE[kind],
     w = ri(S.w[0], S.w[1]),
     d = ri(S.d[0], S.d[1]),

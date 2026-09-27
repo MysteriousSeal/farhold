@@ -9,10 +9,18 @@ import {
   drawGateArch,
   drawTower,
   drawWallSeg,
+  drawWaterGate,
   drawWell,
   wallSegKey,
 } from '../art/city';
 import { wallPt } from '../../model/world/city';
+import {
+  drawCityTree,
+  drawClutter,
+  drawCurtain,
+  drawGrave,
+  graveyardWalls,
+} from '../art/cityProps';
 import { drawHouse } from '../art/houses';
 import { drawPortal } from '../art/dungeonProps';
 import {
@@ -448,9 +456,16 @@ export function render() {
           drawCityGround(g, p, x0 - 20, y0 - 20, x1 + 20, y1 + 60);
           for (const [a0, a1] of p.wall.segs) {
             const m = wallPt((a0 + a1) / 2);
-            if (vis(m.x, m.y, 120))
-              list.push({ y: wallSegKey(a0, a1), f: (c) => drawWallSeg(c, a0, a1) });
+            if (!vis(m.x, m.y, 120)) continue;
+            // a segment meeting a tower goes behind it
+            let key = wallSegKey(a0, a1);
+            for (const tw of p.wall.towers)
+              if (Math.hypot(tw.x - m.x, tw.y - m.y) < 60) key = Math.min(key, tw.y + 5);
+            list.push({ y: key, f: (c) => drawWallSeg(c, a0, a1) });
           }
+          for (const wg of p.wall.water)
+            if (vis(wallPt(wg.a0).x, wallPt(wg.a0).y, 200))
+              list.push({ y: wallSegKey(wg.a0, wg.a1), f: (c) => drawWaterGate(c, wg.a0, wg.a1) });
           for (const tw of p.wall.towers)
             if (vis(tw.x, tw.y, 160))
               list.push({ y: tw.y + 11, f: (c) => drawTower(c, tw, game.time, '#c8423a') });
@@ -463,6 +478,20 @@ export function render() {
             { y: p.fountain.y, f: (c) => drawFountain(c, p.fountain, game.time) },
             { y: p.well.y, f: (c) => drawWell(c, p.well) },
           );
+          for (const w of p.castle)
+            if (vis(w.x, w.y1, 200)) list.push({ y: w.y1, f: (c) => drawCurtain(c, w) });
+          for (const it of p.clutter)
+            if (vis(it.x, it.y)) list.push({ y: it.y, f: (c) => drawClutter(c, it) });
+          for (const t of p.trees)
+            if (vis(t.x, t.y)) list.push({ y: t.y, f: (c) => drawCityTree(c, t) });
+          const gy = p.graveyard;
+          if (vis(gy.x0, gy.y0, 250)) {
+            for (const [y, f] of graveyardWalls(gy)) list.push({ y, f });
+            for (const g of gy.stones) list.push({ y: g.y, f: (c) => drawGrave(c, g) });
+          }
+          for (const s of p.market)
+            if (vis(s.x, s.y))
+              list.push({ y: s.y, f: (c) => drawStall(c, p, game.time, s, s.awning, s.goods) });
           for (const s of p.shops)
             list.push({ y: s.y, f: (c) => drawStall(c, p, game.time, s, s.awning, s.goods) });
         }

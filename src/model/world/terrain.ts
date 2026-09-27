@@ -11,10 +11,38 @@ export const BIOMES = [
   'Blightlands',
 ];
 export const corr = (d) => clamp((d - 5200) / 7000, 0, 1);
+/* ---------- Hearthfire's river ---------- */
+// A stream runs west to east through the town's south quarter, from one pond outside the west
+// wall to another outside the east wall. It is carved into the height field, so its water is
+// real terrain (shores, minimap, blocking); the city paints stone quays over its banks.
+export const RIVER = {
+  /** mean centre line */
+  y: 385,
+  /** half width of the water */
+  w: 34,
+  /** pond centres (±x), and pond radii */
+  pond: 1190,
+  prx: 190,
+  pry: 140,
+};
+/** The river's centre line at x. */
+export const riverY = (x: number) =>
+  RIVER.y + 26 * Math.sin(x / 210 + 0.6) + 12 * Math.sin(x / 97 + 2);
+/** How far (x, y) lies inside the river or a pond (> 0 in the water, < 0 on land). */
+export function riverDepth(x: number, y: number) {
+  const ax = Math.abs(x);
+  if (ax > RIVER.pond + RIVER.prx + 40 || Math.abs(y - RIVER.y) > 260) return -99;
+  const d = ax < RIVER.pond ? RIVER.w - Math.abs(y - riverY(x)) : -99,
+    px = ax - RIVER.pond,
+    py = y - riverY(Math.sign(x) * RIVER.pond);
+  return Math.max(d, (1 - Math.hypot(px / RIVER.prx, py / RIVER.pry)) * RIVER.pry);
+}
 export function hField(x, y, d) {
   let h = fbm(x * 0.0011, y * 0.0011, 4, 1) + Math.max(0, 1 - d / 520) * 0.3;
-  const k = clamp(1 - (d - 640) / 420, 0, 1); // Hearthfire stands on flat land
+  const k = clamp(1 - (d - 980) / 420, 0, 1); // Hearthfire stands on flat land
   if (k > 0) h = lerp(h, clamp(h, 0.47, 0.64), k);
+  const rd = riverDepth(x, y);
+  if (rd > -10) h = Math.min(h, lerp(h, 0.24, clamp((rd + 10) / 14, 0, 1)));
   return h;
 }
 /** The biome the fields give (before small patches are absorbed, see biomeMix). */
