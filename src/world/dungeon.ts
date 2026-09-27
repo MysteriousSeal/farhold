@@ -266,6 +266,7 @@ function genCavern(key, lvl, b) {
     }
     carve(x, y);
   }
+  smoothCave(gr, GW, GH);
   const pal = cavePal(),
     D: Dungeon = {
       key,
@@ -331,6 +332,31 @@ function genCavern(key, lvl, b) {
   D.chest = { x: end.cx * T + T / 2, y: end.cy * T + T / 2 - 30, open: false };
   D.grid = gr;
   return D;
+}
+/** Opens lone rock tiles, one-tile rock ribs and corner-only pinches, which draw as square
+ * blocks. It only ever adds floor, so nothing that was reachable stops being so. */
+function smoothCave(gr, GW, GH) {
+  const f = (x, y) => gr[y * GW + x] === 1;
+  for (let pass = 0; pass < 60; pass++) {
+    let changed = false;
+    for (let y = 1; y < GH - 1; y++)
+      for (let x = 1; x < GW - 1; x++) {
+        if (f(x, y)) continue;
+        let n = 0;
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++) if ((dx || dy) && f(x + dx, y + dy)) n++;
+        const rib = (f(x - 1, y) && f(x + 1, y)) || (f(x, y - 1) && f(x, y + 1)),
+          // floor on both sides of a corner with rock beyond it: two floors touching diagonally
+          pinch = [-1, 1].some((sx) =>
+            [-1, 1].some((sy) => f(x + sx, y) && f(x, y + sy) && !f(x + sx, y + sy)),
+          );
+        if (n >= 5 || rib || pinch) {
+          gr[y * GW + x] = 1;
+          changed = true;
+        }
+      }
+    if (!changed) break;
+  }
 }
 function reaches(gr, GW, GH, start, end) {
   const seen = new Uint8Array(gr.length),
