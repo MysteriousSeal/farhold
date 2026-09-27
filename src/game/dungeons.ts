@@ -29,6 +29,8 @@ export function enterDungeon(p) {
       rnd = mulberry(strSeed(p.key + ':' + st.gen)),
       rpick = (a) => a[(rnd() * a.length) | 0];
     game.DG.cave = st;
+    // wall torches taken this cycle stay gone until the cave resets
+    for (const i of st.torchesTaken || []) if (game.DG.torches[i]) game.DG.torches[i].taken = true;
     game.DG.cleared = !!game.P.cleared[p.key];
     game.DG.guardDead = st.guardDead;
     game.DG.chest.open = st.chestOpen;
@@ -208,6 +210,7 @@ export function caveState(key: string) {
       chestOpen: false,
       done: false,
       resetAt: 0,
+      torchesTaken: [],
       layout: CAVE_LAYOUT,
     });
   let s = all[key];
