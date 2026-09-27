@@ -85,7 +85,7 @@ export function calcStats() {
 export const UNDERWEAR = '#e6dcc4';
 export function lookOfPlayer(p) {
   const e = p.eq || {};
-  // Without body armor the hero is bare-skinned in linen shorts; the tunic comes with armor.
+  // Without body armor the hero is bare-skinned in underwear; the tunic comes with armor.
   const bare = !e.armor;
   const C2 = OUTFIT,
     L: Look = {
@@ -106,13 +106,12 @@ export function lookOfPlayer(p) {
       robe: false,
       tusks: p.race === 'orc',
     };
-  // legs stay bare (linen shorts) until pants are worn; gloves colour the hands
+  // legs stay bare (linen shorts) until pants are worn; gloves colour the hands.
   if (e.pants) L.pants = sh(MATS[e.pants.mat][1], -0.3);
   else {
     L.shorts = UNDERWEAR;
     L.pants = p.skin;
   }
-  if (bare && p.gender === 'f') L.top = UNDERWEAR; // a linen top with the shorts
   if (e.gloves) L.gloves = sh(MATS[e.gloves.mat][1], -0.12);
   if (e.armor) {
     const n = e.armor.name;

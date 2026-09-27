@@ -144,10 +144,11 @@ describe('player look', () => {
     }
   });
 
-  it('gender shapes the look: a linen top for women, facial hair only for men', () => {
+  it('gender shapes the look: linen shorts for both, facial hair only for men', () => {
     const f = lookOfPlayer(hero({ gender: 'f', hair: 5, beard: 2 }));
     expect(f.fem).toBe(true);
-    expect(f.top).toBe(UNDERWEAR);
+    expect(f.shorts).toBe(UNDERWEAR);
+    expect(f.top).toBeUndefined();
     expect(f.beard).toBe(false);
     expect(f.hair).toBe(5);
     const m = lookOfPlayer(hero({ gender: 'm', beard: 1 }));

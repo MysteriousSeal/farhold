@@ -26,6 +26,7 @@ import {
   drawTorch,
   drawWaystone,
 } from '../art/buildings';
+import { crownY } from '../art/body';
 import { drawEnemy } from '../art/creatures';
 import { SPR, TREESET } from '../art/decor';
 import {
@@ -220,7 +221,7 @@ function drawHero(c, t) {
     // channel cast bar above the hero
     const k = Math.min(1, hero.warp.t / WARP_TIME),
       bx = game.P.x - 28,
-      by = game.P.y - 70;
+      by = game.P.y + crownY(L);
     c.save();
     c.beginPath();
     if (c.roundRect) c.roundRect(bx, by, 56, 8, 4);

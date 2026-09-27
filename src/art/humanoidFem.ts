@@ -4,9 +4,8 @@ import { OUT, TAU, sh } from '../core/math';
 // Called from drawHumanoid (art/humanoid.ts). Hair style codes (look.hair):
 //   0 short · 3 bald · 7 buzz cut · 8 mohawk                                               (male)
 //   4 bob · 1 long · 2 ponytail · 5 braid · 6 bun · 11 pigtails · 9 curly · 12 pixie        (female)
-// look.fem marks a female figure: a softer torso (narrower shoulders, fuller hips, same size),
-// lashes, a linen top when bare-chested, and subtly shaped armor. look.stubble / look.beard give
-// male facial hair.
+// look.fem marks a female figure: the same short body as a man, told apart by hair and lashes.
+// look.stubble / look.beard give male facial hair.
 type Ctx = CanvasRenderingContext2D;
 type View = { up: boolean; side: boolean; diag: boolean; fd: boolean };
 
@@ -358,13 +357,19 @@ export function lashes(c: Ctx, hy: number, ex1: number, ex2: number, side: boole
   c.lineWidth = 1;
   c.beginPath();
   if (side) {
-    c.moveTo(6.4, hy + 0.2);
-    c.lineTo(7.6, hy - 0.5);
+    c.moveTo(6.2, hy + 0.15);
+    c.lineTo(8.1, hy - 0.85);
+    c.moveTo(5.5, hy - 0.05);
+    c.lineTo(6.6, hy - 1.05);
   } else {
-    c.moveTo(ex1 - 1.1, hy + 0.3);
-    c.lineTo(ex1 - 2.2, hy - 0.4);
-    c.moveTo(ex2 + 1.1, hy + 0.3);
-    c.lineTo(ex2 + 2.2, hy - 0.4);
+    c.moveTo(ex1 - 1.15, hy + 0.25);
+    c.lineTo(ex1 - 2.55, hy - 0.85);
+    c.moveTo(ex1 - 0.2, hy - 0.15);
+    c.lineTo(ex1 - 0.85, hy - 1.15);
+    c.moveTo(ex2 + 1.15, hy + 0.25);
+    c.lineTo(ex2 + 2.55, hy - 0.85);
+    c.moveTo(ex2 + 0.2, hy - 0.15);
+    c.lineTo(ex2 + 0.85, hy - 1.15);
   }
   c.stroke();
 }

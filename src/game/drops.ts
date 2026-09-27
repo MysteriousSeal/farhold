@@ -1,3 +1,4 @@
+import { crownY } from '../art/body';
 import { solidAt } from '../world/chunks';
 import { SFX } from '../audio/sfx';
 import { $ } from '../core/dom';
@@ -58,7 +59,7 @@ export function updateDrops(dt) {
         game.P.inv.push(d.item);
         d.gone = true;
         SFX.pick();
-        ftext(game.P.x, game.P.y - 60, d.item.name, RAR[d.item.r].c);
+        ftext(game.P.x, game.P.y + crownY(game.P.look), d.item.name, RAR[d.item.r].c);
         $('#bagBtn').classList.add('pulse');
       } else if (!d.warned) {
         d.warned = true;

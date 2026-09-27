@@ -13,7 +13,6 @@ import {
 import {
   HEAD_K,
   drawArm,
-  drawBust,
   drawCape,
   drawLeg,
   drawNeck,
@@ -72,7 +71,9 @@ export function drawHumanoid(c, x, y, o) {
   // behind the body: the cape, long hair falling down the back, the cowl
   if (L.cape && !up) drawCape(c, R, tint(L.cape), lw, sw, false);
   head(() => hairBehind(c, L, V, tint));
-  // the far arm (side and 3/4 views) is behind the body
+  // side and 3/4: the far arm is behind the body. Front and back: both arms are drawn
+  // under the torso, so the chest and hips keep their outline and the hands stay visible.
+  const armsBack = !side && !diag;
   for (const a of R.arms) if (a.far) drawArm(c, R, a, K, lw, L);
   if (L.robe) drawRobe(c, R, K, L, lw, tint, sw * 2);
   else if (L.noLegs) drawTatters(c, R, K, lw);
@@ -80,11 +81,11 @@ export function drawHumanoid(c, x, y, o) {
     for (const g of R.legs) if (g.far) drawLeg(c, R, g, K, lw, L);
     for (const g of R.legs) if (!g.far) drawLeg(c, R, g, K, lw, L);
   }
+  if (armsBack) for (const a of R.arms) drawArm(c, R, a, K, lw, L);
   drawNeck(c, R, K, lw);
   drawTorso(c, R, K, L, lw, tint);
   if (L.cape && up) drawCape(c, R, tint(L.cape), lw, sw, true);
-  for (const a of R.arms) if (!a.far) drawArm(c, R, a, K, lw, L);
-  drawBust(c, R, K, L, tint);
+  for (const a of R.arms) if (!a.far && !armsBack) drawArm(c, R, a, K, lw, L);
   drawPauldrons(c, R, A, tint, lw);
   head(() => drawHead(c, L, V, E, tint, c.lineWidth));
   c.restore();
@@ -222,18 +223,18 @@ function faceDetails(c, L, V, E: number, hy: number, HR: number, skin: string, t
     c.quadraticCurveTo(nx, ny + 1.2, nx + w, ny + 0.2);
     c.stroke();
   }
-  // mouth (a beard covers it)
+  // a small smile (a beard covers it)
   if (!L.beard && L.race !== 'dwarf') {
-    c.strokeStyle = 'rgba(70,30,30,.6)';
-    c.lineWidth = 0.95;
+    c.strokeStyle = 'rgba(70,30,30,.65)';
+    c.lineWidth = 1.05;
     c.beginPath();
     if (side) {
-      c.moveTo(HR - 3.2, hy + 6.4);
-      c.lineTo(HR - 1.4, hy + 6.1);
+      c.moveTo(HR - 3.4, hy + 6.2);
+      c.quadraticCurveTo(HR - 2.3, hy + 6.9, HR - 1.35, hy + 6.05);
     } else {
       const mx = E * 0.8;
-      c.moveTo(mx - 1.4, hy + 6.1);
-      c.quadraticCurveTo(mx, hy + 7, mx + 1.4, hy + 6.1);
+      c.moveTo(mx - 1.7, hy + 5.9);
+      c.quadraticCurveTo(mx, hy + 7.15, mx + 1.7, hy + 5.9);
     }
     c.stroke();
   }
@@ -417,32 +418,33 @@ function drawHead(c, L, V, E, tint, lw) {
     if (!up) {
       const ec = L.eyes || OUT;
       c.fillStyle = ec;
+      const erx = 2.35,
+        ery = 3.4;
       if (side) {
         c.beginPath();
-        c.ellipse(5.5, hy + 1.5, 1.5, L.fem ? 2.4 : 2.1, 0, 0, TAU);
+        c.ellipse(5.5, hy + 1.6, erx, ery, 0, 0, TAU);
         c.fill();
-        if (L.eyeC && !L.eyes) iris(c, 5.6, hy + 1.6, 1.5, L.fem ? 2.4 : 2.1, L.eyeC);
+        if (L.eyeC && !L.eyes) iris(c, 5.6, hy + 1.7, erx, ery, L.eyeC);
         if (L.fem && !L.eyes) lashes(c, hy, 0, 0, true);
       } else {
         // 3/4: the far eye moves in and narrows, the near eye moves toward the edge
-        const ex1 = fd ? -1 : -3.6,
-          ex2 = fd ? 5.6 : 3.6,
-          er1 = fd ? 1.1 : 1.5;
-        const ery = L.fem ? 2.4 : 2.1;
+        const ex1 = fd ? -1.2 : -4.1,
+          ex2 = fd ? 5.9 : 4.1,
+          er1 = fd ? erx * 0.72 : erx;
         c.beginPath();
-        c.ellipse(ex1, hy + 1.5, er1, ery, 0, 0, TAU);
-        c.ellipse(ex2, hy + 1.5, 1.5, ery, 0, 0, TAU);
+        c.ellipse(ex1, hy + 1.6, er1, ery, 0, 0, TAU);
+        c.ellipse(ex2, hy + 1.6, erx, ery, 0, 0, TAU);
         c.fill();
         if (L.eyeC && !L.eyes) {
-          iris(c, ex1, hy + 1.6, er1, ery, L.eyeC);
-          iris(c, ex2, hy + 1.6, 1.5, ery, L.eyeC);
+          iris(c, ex1, hy + 1.7, er1, ery, L.eyeC);
+          iris(c, ex2, hy + 1.7, erx, ery, L.eyeC);
         }
         if (L.fem && !L.eyes) lashes(c, hy, ex1, ex2, false);
         if (!L.eyes) {
           c.fillStyle = '#fff';
           c.beginPath();
-          c.arc(ex1 + 0.5, hy + 0.8, 0.5, 0, TAU);
-          c.arc(ex2 + 0.5, hy + 0.8, 0.6, 0, TAU);
+          c.arc(ex1 + 0.55, hy + 0.7, 0.7, 0, TAU);
+          c.arc(ex2 + 0.6, hy + 0.65, 0.85, 0, TAU);
           c.fill();
         }
       }
@@ -458,11 +460,12 @@ function drawHead(c, L, V, E, tint, lw) {
       }
       if (!L.bones && !L.wraps && !L.eyes && !L.hood) faceDetails(c, L, V, E, hy, HR, skin, tint);
       if (!L.bones && !L.wraps && !side && !L.eyes) {
-        c.fillStyle = 'rgba(255,110,110,.35)';
+        c.fillStyle = 'rgba(255,128,140,.42)';
+        const blush = 2.45;
         c.beginPath();
-        if (!fd) c.arc(-6, hy + 5, 1.8, 0, TAU);
-        else c.moveTo(7.3 + E * 0.5, hy + 5);
-        c.arc(6 + E * 0.5, hy + 5, 1.8, 0, TAU);
+        if (!fd) c.arc(-6.2, hy + 5.2, blush, 0, TAU);
+        else c.moveTo(7.3 + E * 0.5, hy + 5.2);
+        c.arc(6.2 + E * 0.5, hy + 5.2, blush, 0, TAU);
         c.fill();
       }
       if (L.bones) {

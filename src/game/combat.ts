@@ -3,6 +3,7 @@ import { STYLE_CD, heroStyle } from './style';
 import type { Rec } from './types';
 import { SFX } from '../audio/sfx';
 import { $ } from '../core/dom';
+import { crownY } from '../art/body';
 import { angDiff, rand } from '../core/math';
 import { SKILLCD, SKILLN, rank } from '../data/skills';
 import { leaveDungeon } from './dungeons';
@@ -325,13 +326,13 @@ export function drinkPot() {
   game.P.hp = Math.min(game.ST.hp, game.P.hp + h);
   SFX.pot();
   burst(game.P.x, game.P.y - 20, '#ff6a8a', 14, 90, 3, 40);
-  ftext(game.P.x, game.P.y - 50, '+' + h, '#7ee37a');
+  ftext(game.P.x, game.P.y + crownY(game.P.look), '+' + h, '#7ee37a');
 }
 export function hurtHero(d, sx, sy, o: Rec = {}) {
   if (hero.roll > 0 || hero.inv > 0 || hero.leap || game.state !== 'play') return;
   if (game.ST.dodge && Math.random() * 100 < game.ST.dodge) {
     hero.inv = 0.3;
-    ftext(game.P.x, game.P.y - 44, 'Dodge', '#bfe6ff');
+    ftext(game.P.x, game.P.y + crownY(game.P.look), 'Dodge', '#bfe6ff');
     return;
   }
   const dm = Math.max(
@@ -344,7 +345,7 @@ export function hurtHero(d, sx, sy, o: Rec = {}) {
   game.shake = Math.max(game.shake, 7);
   game.hitstop = Math.max(game.hitstop, 0.05);
   SFX.hurt();
-  ftext(game.P.x, game.P.y - 44, '-' + dm, '#ff6a5a');
+  ftext(game.P.x, game.P.y + crownY(game.P.look), '-' + dm, '#ff6a5a');
   burst(game.P.x, game.P.y - 16, '#ff6a5a', 8, 120, 3);
   $('#hurt').style.opacity = 0.7;
   setTimeout(() => ($('#hurt').style.opacity = 0), 120);
@@ -394,7 +395,7 @@ export function gainXp(n) {
     calcStats();
     game.P.hp = game.ST.hp;
     SFX.lvl();
-    ftext(game.P.x, game.P.y - 64, 'LEVEL UP!', '#ffd23a', true);
+    ftext(game.P.x, game.P.y + crownY(game.P.look) - 6, 'LEVEL UP!', '#ffd23a', true);
     ring(game.P.x, game.P.y - 10, '#ffd23a', 40, 190, 3.5);
     ring(game.P.x, game.P.y - 10, '#fff6e0', 24, 120, 2.5);
     banner('Level ' + game.P.lvl, 'A skill point awaits. Open Skills.');

@@ -1,5 +1,5 @@
 /* ---- enemies ---- */
-const HUM = (o) => Object.assign({ kind: 'hum', hbY: 72 }, o);
+const HUM = (o) => Object.assign({ kind: 'hum', hbY: 62 }, o);
 export const ET = {
   slime: {
     n: 'Slime',

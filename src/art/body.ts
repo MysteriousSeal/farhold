@@ -9,12 +9,13 @@ type Ctx = CanvasRenderingContext2D;
 type P = [number, number];
 
 export type Body = { h: number; w: number; m: number; s: number; p: number };
-/** The head is drawn at this scale of the classic head (radius 10.5), on a taller body. */
-export const HEAD_K = 0.9,
+/** The head is drawn at this scale of the classic head (radius 10.5): about half the figure. */
+export const HEAD_K = 1.22,
   HEAD_R = 10.5 * HEAD_K;
 /**
- * Everyone shares one lean build (a little tall, slim, lightly muscled); only skeletons are
- * thinner still. The skeleton's proportions below are written in terms of these values.
+ * Everyone shares one overworld build: a huge head on a short rounded body, about two
+ * heads tall, with simple arms and legs. Women and men are the same small shape.
+ * Skeletons are thinner. Dwarves are a little shorter and wider.
  */
 const LEAN: Body = { h: 0.3, w: -0.8, m: 0.1, s: -0.2, p: -0.3 };
 export function bodyOf(L): Body {
@@ -55,6 +56,7 @@ export type Rig = {
   sq: number;
   bulk: number;
   hk: number;
+  fem: boolean;
   ankY: number;
   hipY: number;
   waistY: number;
@@ -104,7 +106,6 @@ export function makeRig(
   carry?,
 ) {
   const B = bodyOf(L),
-    fem = !!L.fem,
     bulk = (L.race === 'dwarf' ? 1.15 : 1) * (L.bulk || 1),
     bl = Math.sqrt(bulk),
     hk = (L.race === 'dwarf' ? 0.84 : 1) * (1 + 0.14 * B.h),
@@ -114,40 +115,42 @@ export function makeRig(
     farS = diag ? (up ? -1 : 1) : 0,
     ph = walk || 0,
     mv = moving ? 1 : 0,
-    thigh = 10.5 * hk,
-    shin = 10 * hk,
-    ua = 9 * hk,
-    fa = 8.4 * hk,
-    ankY = -2.6,
+    // short stubby limbs: the head is about half the whole figure
+    thigh = 6.6 * hk,
+    shin = 5.6 * hk,
+    ua = 4.6 * hk,
+    fa = 4.0 * hk,
+    ankY = -2.2,
     // the hips dip as the legs part, and rise with the breath when standing
-    drop = mv ? Math.abs(Math.sin(ph)) * 1.5 : 0,
-    breath = mv ? 0 : Math.sin(t * 2.4) * 0.35,
-    hipY = ankY - (thigh + shin) * 0.975 + drop,
-    waistY = hipY - 5.2 * hk,
-    shY = waistY - 11.4 * hk - breath,
-    neckY = shY - 2,
-    hy = neckY - HEAD_R * 0.9,
+    drop = mv ? Math.abs(Math.sin(ph)) * 0.6 : 0,
+    breath = mv ? 0 : Math.sin(t * 2.4) * 0.2,
+    hipY = ankY - (thigh + shin) * 0.96 + drop,
+    waistY = hipY - 4.2 * hk,
+    shY = waistY - 8.0 * hk - breath,
+    neckY = shY - 0.25,
+    hy = neckY - HEAD_R * 0.62,
     W = {
-      sh: (10.2 + 1.3 * B.s + 1 * B.m + 0.6 * B.w) * (fem ? 0.9 : 1) * bulk,
+      sh: (8.1 + 0.45 * B.s + 0.3 * B.m + 0.2 * B.w) * bulk,
       chest: 0,
-      waist: (7.6 + 2.8 * B.w - 0.2 * B.m - (fem ? 1 : 0)) * bulk,
-      hips: (7.8 + 1.8 * B.w + 1.3 * B.p + (fem ? 1.3 : 0)) * bulk,
-      belly: Math.max(0, B.w) * 3.4,
-      ua: (5.4 + 1.4 * B.m + 1.4 * B.w) * bl,
-      fa: (4.6 + 1 * B.m + 0.9 * B.w) * bl,
-      hand: (2.9 + 0.25 * B.m + 0.15 * B.w) * bl,
-      th: (6.8 + 1.1 * B.m + 2 * B.w + (fem ? 0.4 : 0)) * bl,
-      kn: (5.2 + 0.5 * B.m + 0.9 * B.w) * bl,
-      calf: (5.6 + 1 * B.m + 1.2 * B.w) * bl,
-      ank: 3.9 * bl,
-      // side-view depths (half): chest, waist, hips
-      chD: 6.2 + 0.9 * B.m + 1 * B.w,
-      waD: 5.4 + 2 * B.w,
-      hpD: 5.8 + 1 * B.w + 0.7 * B.p + (fem ? 0.6 : 0),
+      waist: (7.5 + 0.7 * B.w + 0.12 * B.m) * bulk,
+      hips: (7.15 + 0.4 * B.w + 0.28 * B.p) * bulk,
+      belly: Math.max(0, B.w) * 1.6,
+      ua: 4.3 + (0.35 * B.m + 0.25 * B.w) * bl,
+      fa: 3.5 + (0.22 * B.m + 0.16 * B.w) * bl,
+      hand: 1.75 + 0.06 * B.m,
+      th: 3.15 + (0.16 * B.m + 0.16 * B.w) * bl,
+      kn: 2.45 + 0.1 * B.m,
+      calf: 2.7 + (0.12 * B.m + 0.1 * B.w) * bl,
+      ank: 1.9 * bl,
+      // side-view depths (half): one soft thickness, no bust and no pinched waist
+      chD: 4.7 + 0.22 * B.m + 0.18 * B.w,
+      waD: 4.55 + 0.35 * B.w,
+      hpD: 4.6 + 0.2 * B.w + 0.12 * B.p,
       legX: 0,
     };
-  W.chest = W.sh - 0.4 + (fem ? 0.2 : 0);
-  W.legX = Math.max(3, W.hips - 3.5);
+  W.chest = W.sh;
+  // feet under the body, far enough apart that the outline leaves a gap
+  W.legX = Math.max(3.7, W.hips - 2.55);
   const ts = diag ? (up ? -2 : 2) : 0,
     sq = diag ? 0.78 : 1;
   const legs: Limb[] = [],
@@ -157,22 +160,28 @@ export function makeRig(
     // side views: k = -1 far, +1 near; front views: -x and +x
     const p = ph + (k > 0 ? 0 : Math.PI),
       swing = mv * Math.sin(p),
-      lift = mv * Math.max(0, Math.cos(p)) * 3.2 * hk;
+      lift = mv * Math.max(0, Math.cos(p)) * 1.45 * hk;
     let hip: P, ank: P;
     if (side) {
-      hip = [k * 0.8, hipY];
-      ank = [swing * 7 * hk + (mv ? 0 : k * 1.6), ankY - lift];
+      hip = [k * 0.28, hipY];
+      // both feet under the body; a walking foot still swings forward and back
+      ank = [swing * 4.0 * hk + (mv ? 0 : 0.65), ankY - lift];
     } else if (diag) {
       const far = k === farS;
       hip = [ts * 0.5 + (far ? W.legX * 0.5 : -W.legX * 0.7) * (farS || 1), hipY - (far ? 0.8 : 0)];
-      ank = [hip[0] + swing * 4.2 * hk, ankY - lift - (far ? 0.8 : 0)];
+      ank = [hip[0] + swing * 2.6 * hk, ankY - lift - (far ? 0.8 : 0)];
     } else {
       hip = [k * W.legX, hipY];
       // toward (or away from) the viewer, the stepping foot rises and tucks under the body
       ank = [k * (W.legX + 0.4) - k * lift * 0.2, ankY - lift * 0.9 + swing * 0.8];
     }
     let knee: P;
-    if (side || diag) knee = ik(hip, ank, thigh, shin, -1)[0];
+    if (side) {
+      // the knee bends toward the front (+x), never back into the seat
+      const fore = ik(hip, ank, thigh, shin, -1)[0],
+        aft = ik(hip, ank, thigh, shin, 1)[0];
+      knee = fore[0] >= aft[0] ? fore : aft;
+    } else if (diag) knee = ik(hip, ank, thigh, shin, -1)[0];
     else {
       const f0 = thigh / (thigh + shin);
       knee = [hip[0] + (ank[0] - hip[0]) * f0 + k * 0.4, hip[1] + (ank[1] - hip[1]) * f0];
@@ -185,32 +194,29 @@ export function makeRig(
       swing = mv * Math.sin(p);
     let shd: P, el: P, wr: P;
     if (side) {
-      shd = [k * 0.6, shY + 2.4];
-      const a1 = -0.5 * swing,
-        a2 = a1 + 0.2 + 0.35 * Math.max(0, -swing);
+      shd = [k * 0.35, shY + 1.4];
+      // a short arm hanging just in front of the hip
+      const a1 = 0.08 - 0.42 * swing,
+        a2 = a1 + 0.16 + 0.28 * Math.max(0, -swing);
       el = along(shd, a1, ua);
       wr = along(el, a2, fa);
     } else if (diag) {
       const far = k === farS;
       shd = [
         ts * 0.8 + (far ? W.sh * 0.52 : -W.sh * 0.72) * (farS || 1),
-        shY + 2.4 + (far ? -0.4 : 0),
+        shY + 1.5 + (far ? -0.3 : 0),
       ];
-      const out = (far ? 0.06 : -0.1) * (farS || 1),
-        a1 = out - (far ? 0.18 : 0.3) * swing,
-        a2 = a1 + 0.12 + 0.25 * Math.max(0, -swing);
+      const out = (far ? 0.02 : -0.16) * (farS || 1),
+        a1 = out - (far ? 0.14 : 0.22) * swing,
+        a2 = a1 + 0.1 + 0.2 * Math.max(0, -swing);
       el = along(shd, a1, ua);
       wr = along(el, a2, fa);
     } else {
-      // women's arms hang a little wider, clear of the bust
-      shd = [k * (W.sh - (fem ? 0.6 : 1.3)), shY + 2.6];
-      el = along(shd, k * (fem ? 0.2 : 0.15), ua);
+      // outside the body, just under the big head, so the little arms stay visible
+      shd = [k * (W.sh + 1.15), shY + 2.6];
+      el = along(shd, k * 0.06, ua);
       // swinging toward the viewer shortens the forearm and brings the hand in
-      wr = along(
-        el,
-        k * 0.04 - k * 0.12 * Math.max(0, swing),
-        fa * (1 - 0.18 * Math.max(0, swing)),
-      );
+      wr = along(el, k * 0.02 - k * 0.1 * Math.max(0, swing), fa * (1 - 0.12 * Math.max(0, swing)));
     }
     arms.push({ a: shd, b: el, c: wr, far: side ? k < 0 : diag ? k === farS : false, k });
   }
@@ -239,6 +245,7 @@ export function makeRig(
     sq,
     bulk,
     hk,
+    fem: !!L.fem,
     ankY,
     hipY,
     waistY,
@@ -260,6 +267,38 @@ export function handAt(A: Limb, W): P {
 }
 
 /* ---------- drawing ---------- */
+/**
+ * A tapered limb. `pushX` adds flesh on the side facing that way (outward, or backward
+ * in a side view) without moving the knee. `exp` below 1 puts the fullness nearer the top.
+ */
+function shapedLimb(a: P, b: P, r0: number, r1: number, pushX: number, exp = 0.6) {
+  const p = new Path2D(),
+    dx = b[0] - a[0],
+    dy = b[1] - a[1],
+    d = Math.hypot(dx, dy) || 1,
+    px = -dy / d,
+    py = dx / d,
+    n = 10;
+  const pt = (u: number, sign: number): P => {
+    const r = r0 + (r1 - r0) * u,
+      bow = Math.sin(Math.PI * Math.pow(u, exp)),
+      facing = px * sign * pushX,
+      extra = facing > 0 ? Math.abs(pushX) * bow : Math.abs(pushX) * bow * 0.12;
+    return [a[0] + dx * u + px * sign * (r + extra), a[1] + dy * u + py * sign * (r + extra)];
+  };
+  const first = pt(0, 1);
+  p.moveTo(first[0], first[1]);
+  for (let i = 1; i <= n; i++) {
+    const q = pt(i / n, 1);
+    p.lineTo(q[0], q[1]);
+  }
+  for (let i = n; i >= 0; i--) {
+    const q = pt(i / n, -1);
+    p.lineTo(q[0], q[1]);
+  }
+  p.closePath();
+  return p;
+}
 /** A tapered capsule from a (radius r0) to b (radius r1). */
 function capsule(a: P, b: P, r0: number, r1: number) {
   const p = new Path2D(),
@@ -338,9 +377,16 @@ export function drawLeg(c: Ctx, R: Rig, g: Limb, K: Paint, lw: number, L) {
     col = (x: string) => (dk ? sh(x, dk) : x),
     pc = col(K.pants),
     bc = col(K.bareFeet ? K.skin : K.boots),
+    // a little thickness only, so the legs stay simple stubs
+    thighPush = R.side ? -0.25 : g.k * 0.3,
+    calfPush = R.side ? -0.18 : g.k * 0.16,
     parts: Part[] = [
-      { p: capsule(g.a, g.b, W.th / 2, W.kn / 2), col: pc, shade: 1.2 },
-      { p: capsule(g.b, g.c, W.calf / 2, W.ank / 2), col: pc, shade: 1 },
+      { p: shapedLimb(g.a, g.b, W.th / 2, W.kn / 2, thighPush, 0.7), col: pc, shade: 1 },
+      {
+        p: shapedLimb(g.b, g.c, W.kn / 2 + 0.15, W.ank / 2, calfPush, 0.85),
+        col: pc,
+        shade: 0.8,
+      },
     ];
   // boot shaft over the lower shin, and the foot pointing where the body faces
   if (!K.bareFeet) {
@@ -352,10 +398,10 @@ export function drawLeg(c: Ctx, R: Rig, g: Limb, K: Paint, lw: number, L) {
     fx = g.c[0],
     fy = g.c[1] + 1.4;
   if (R.side || R.diag) {
-    const len = R.side ? 6.6 : 5,
-      back = R.side ? 2.4 : 2.2;
-    foot.roundRect(fx - back, fy - 2.2, back + len, 3.8, [2, 2.4, 1.6, 1.4]);
-  } else foot.ellipse(fx + g.k * 0.4, fy, 3.2, R.up ? 2 : 2.4, 0, 0, TAU);
+    const len = R.side ? 4.2 : 3.3,
+      back = R.side ? 1.5 : 1.4;
+    foot.roundRect(fx - back, fy - 1.5, back + len, 2.7, [1.3, 1.5, 1, 0.9]);
+  } else foot.ellipse(fx + g.k * 0.25, fy, 2.2, R.up ? 1.45 : 1.7, 0, 0, TAU);
   parts.push({ p: foot, col: bc });
   drawParts(c, parts, lw);
   if (K.bareLegs && !L.robe && R.B.m > 0.25 && !g.far) {
@@ -409,68 +455,52 @@ export function drawArm(c: Ctx, R: Rig, A: Limb, K: Paint, lw: number, L) {
   }
 }
 
-/** The torso outline (front, back or side), including the hips down to the crotch. */
 /**
- * The torso outline (front, back or side), down to the crotch. With `briefs` (women's
- * underwear) it ends at the briefs' high-cut leg openings instead, so the thighs carry on
- * from the hips below them.
+ * The torso outline (front, back or side): one small rounded body. `notch` opens the hips
+ * when the legs are bare so the two short legs read separately. A tunic keeps a flat hem.
  */
-function torsoPath(R: Rig, fem: boolean, bottom?: number, briefs = false) {
+function torsoPath(R: Rig, notch = false) {
   const W = R.W,
     p = new Path2D(),
-    { shY, waistY, hipY } = R,
-    by = bottom ?? hipY + 4.5;
+    { shY, waistY, hipY } = R;
   if (R.side) {
     const ch = W.chD,
       wa = W.waD,
-      hp = W.hpD,
-      bel = W.belly;
-    p.moveTo(1.8, shY - 1.6);
-    p.quadraticCurveTo(ch - 1, shY - 0.4, ch, shY + 4.5);
-    // the bust in profile
-    if (fem) p.bezierCurveTo(ch + 3.4, shY + 5, ch + 4, shY + 10.2, ch - 0.4, shY + 10.8);
-    p.quadraticCurveTo(wa + bel + 0.6, waistY - 2, wa + bel * 0.8, waistY + 1);
-    p.quadraticCurveTo(hp * 0.95, hipY, hp * 0.8, Math.min(by, hipY + 2));
-    if (briefs) {
-      // the leg opening: low at the front, rising toward the back
-      p.lineTo(hp * 0.6, hipY + 5);
-      p.lineTo(hp * 0.05, hipY + 5);
-      p.quadraticCurveTo(-hp * 0.35, hipY + 1.2, -hp * 0.9, hipY + 1.5);
-    } else {
-      p.lineTo(hp * 0.7, by);
-      p.lineTo(-hp * 0.9, by);
-    }
-    p.quadraticCurveTo(-hp - 0.4, hipY, -wa + 0.4, waistY);
-    p.quadraticCurveTo(-ch - 0.6, shY + 5, -ch + 1.2, shY + 0.6);
-    p.quadraticCurveTo(-2.4, shY - 1.8, -1.6, shY - 1.8);
+      hp = W.hpD;
+    // chest, belly and seat are one soft shape
+    p.moveTo(1.1, shY - 0.3);
+    p.quadraticCurveTo(ch * 0.72, shY + 0.7, ch * 0.9, shY + 2.4);
+    p.quadraticCurveTo(wa * 0.98, (shY + hipY) * 0.5, hp * 0.7, hipY + 0.5);
+    p.quadraticCurveTo(hp * 0.18, hipY + 2.15, -0.15, hipY + 2.3);
+    p.quadraticCurveTo(-hp * 0.52, hipY + 1.9, -hp * 0.8, hipY + 0.25);
+    p.quadraticCurveTo(-wa * 0.92, waistY + 0.35, -wa * 0.86, waistY - 0.15);
+    p.quadraticCurveTo(-ch * 0.88, shY + 2.2, -ch * 0.42, shY + 0.25);
+    p.quadraticCurveTo(-1.15, shY - 0.6, -0.85, shY - 0.4);
     p.closePath();
     return p;
   }
   const s = W.sh,
-    ch = W.chest,
-    wa = W.waist + W.belly * 0.45,
-    hp = W.hips;
-  p.moveTo(-3, shY - 1.8);
-  p.quadraticCurveTo(-s + 1.4, shY - 1.2, -s, shY + 2.4);
-  p.quadraticCurveTo(-ch - 0.2, shY + 6, fem ? -wa - 0.2 : -ch + 0.4, shY + 8.5);
-  p.quadraticCurveTo(-wa - 0.3, waistY - 1, -wa, waistY);
-  if (briefs) {
-    // the leg openings: from high on the hips down to the crotch
-    p.quadraticCurveTo(-hp - 0.3, hipY - 1.5, -hp, hipY - 0.5);
-    p.quadraticCurveTo(-hp * 0.35, hipY + 0.5, -hp * 0.25, hipY + 5);
-    p.lineTo(hp * 0.25, hipY + 5);
-    p.quadraticCurveTo(hp * 0.35, hipY + 0.5, hp, hipY - 0.5);
+    wa = W.waist + W.belly * 0.35,
+    hp = W.hips,
+    sideW = Math.max(s, wa);
+  p.moveTo(-1.8, shY - 0.45);
+  p.quadraticCurveTo(-s * 0.5, shY - 1.05, -s, shY + 1.35);
+  p.quadraticCurveTo(-sideW * 0.98, (shY + waistY) / 2, -wa, waistY);
+  if (notch) {
+    p.quadraticCurveTo(-hp * 0.98, hipY - 0.1, -hp * 0.68, hipY + 1.05);
+    p.quadraticCurveTo(-hp * 0.24, hipY + 2.2, -0.9, hipY + 2.85);
+    p.lineTo(0.9, hipY + 2.85);
+    p.quadraticCurveTo(hp * 0.24, hipY + 2.2, hp * 0.68, hipY + 1.05);
+    p.quadraticCurveTo(hp * 0.98, hipY - 0.1, wa, waistY);
   } else {
-    p.quadraticCurveTo(-hp - 0.3, hipY - 1.5, -hp, Math.min(by, hipY + 1.5));
-    p.lineTo(-hp + 0.6, by);
-    p.lineTo(hp - 0.6, by);
-    p.lineTo(hp, Math.min(by, hipY + 1.5));
+    const hem = hipY + 1.55;
+    p.quadraticCurveTo(-hp, hipY - 0.15, -hp * 0.9, hem);
+    p.lineTo(hp * 0.9, hem);
+    p.quadraticCurveTo(hp, hipY - 0.15, wa, waistY);
   }
-  p.quadraticCurveTo(hp + 0.3, hipY - 1.5, wa, waistY);
-  p.quadraticCurveTo(wa + 0.3, waistY - 1, fem ? wa + 0.2 : ch - 0.4, shY + 8.5);
-  p.quadraticCurveTo(ch + 0.2, shY + 6, s, shY + 2.4);
-  p.quadraticCurveTo(s - 1.4, shY - 1.2, 3, shY - 1.8);
-  p.quadraticCurveTo(0, shY - 0.8, -3, shY - 1.8);
+  p.quadraticCurveTo(sideW * 0.98, (shY + waistY) / 2, s, shY + 1.35);
+  p.quadraticCurveTo(s * 0.5, shY - 1.05, 1.8, shY - 0.45);
+  p.quadraticCurveTo(0, shY + 0.2, -1.8, shY - 0.45);
   p.closePath();
   return p;
 }
@@ -486,90 +516,68 @@ function turned(c: Ctx, R: Rig, fn: () => void) {
 }
 /** Neck from the shoulders up under the chin. */
 export function drawNeck(c: Ctx, R: Rig, K: Paint, lw: number) {
-  const w = (2.5 + 0.45 * R.B.m + 0.2 * R.B.w) * Math.sqrt(R.bulk);
+  const w = (2.05 + 0.22 * R.B.m) * Math.sqrt(R.bulk);
   drawParts(
     c,
-    [{ p: capsule([R.hx * 0.6, R.shY + 1], [R.hx, R.hy + 4], w, w - 0.3), col: sh(K.skin, -0.08) }],
+    [
+      {
+        p: capsule([R.hx * 0.35, R.shY + 0.35], [R.hx, R.hy + HEAD_R * 0.32], w, w * 0.82),
+        col: sh(K.skin, -0.08),
+      },
+    ],
     lw,
   );
 }
 /**
- * The torso with its clothes: tunic or bare chest (muscles, a linen top for women), shorts,
- * belt, armour (leather, mail, plate), apron and amulet; skeleton ribs, mummy wraps and fur.
+ * The torso with its clothes: skin or a tunic, linen shorts, belt, armour (leather, mail,
+ * plate), apron and amulet; skeleton ribs, mummy wraps and fur.
  */
 export function drawTorso(c: Ctx, R: Rig, K: Paint, L, lw: number, tint: (c: string) => string) {
-  const fem = !!L.fem,
-    A = L.armor,
+  const A = L.armor,
     { shY, waistY, hipY } = R,
     W = R.W;
   turned(c, R, () => {
-    const briefs = fem && !!L.shorts,
-      body = torsoPath(R, fem, undefined, briefs),
+    const notch = K.bareLegs && !L.robe && !L.bones,
+      body = torsoPath(R, notch),
       top = K.bareTop ? K.skin : K.cloth,
       side = R.side;
     // the side panel of a turned torso shows on the near side
     if (R.diag) {
-      const sp = torsoPath(R, fem, undefined, briefs);
+      const sp = torsoPath(R, notch);
       c.save();
-      c.translate(-R.farS * 3.2, 0);
+      c.translate(-R.farS * 2.2, 0);
       c.scale(0.7, 1);
       drawParts(c, [{ p: sp, col: sh(A ? tint(A.col) : top, -0.3) }], lw);
-      if (briefs && !A) {
-        // the briefs carry on round the turned hip, in shadow
-        c.save();
-        c.clip(sp);
-        c.fillStyle = sh(tint(L.shorts), -0.22);
-        c.fillRect(-20, R.waistY + 3.2, 40, 20);
-        c.restore();
-        c.lineWidth = lw * 2;
-        c.strokeStyle = OUT;
-        c.stroke(sp);
-        c.lineWidth = lw;
-      }
       c.restore();
     }
-    drawParts(c, [{ p: body, col: top, shade: side ? 1.6 : 2.2 }], lw);
+    drawParts(c, [{ p: body, col: top, shade: side ? 1.3 : 1.6 }], lw);
     c.save();
     c.clip(body);
-    // shorts over the hips when bare-legged or bare-chested
-    if (L.shorts && fem) {
-      // women: snug linen briefs; the torso outline below them is their high-cut leg line
-      const col = tint(L.shorts),
-        y0 = waistY + 3.2;
-      c.fillStyle = col;
-      c.fillRect(-20, y0, 40, 20);
-      c.strokeStyle = sh(col, -0.35);
-      c.lineWidth = 1;
-      c.beginPath();
-      c.moveTo(-20, y0);
-      c.lineTo(20, y0);
-      c.stroke();
-    } else if (L.shorts) {
+    // linen shorts over the hips when the legs are bare
+    if (L.shorts) {
       c.fillStyle = tint(L.shorts);
-      c.fillRect(-20, waistY + 1.5, 40, 20);
-      c.strokeStyle = sh(tint(L.shorts), -0.3);
+      c.fillRect(-16, waistY + 0.3, 32, 6.4);
+      c.strokeStyle = sh(tint(L.shorts), -0.28);
       c.lineWidth = 1;
       c.beginPath();
-      c.moveTo(-20, waistY + 1.5);
-      c.lineTo(20, waistY + 1.5);
+      c.moveTo(-16, waistY + 0.3);
+      c.lineTo(16, waistY + 0.3);
       c.stroke();
     } else if (!K.bareTop && !L.robe) {
       // trousers show under the tunic hem
       c.fillStyle = K.pants;
-      c.fillRect(-20, hipY + 2.6, 40, 10);
+      c.fillRect(-16, hipY - 0.2, 32, 4.2);
     }
-    if (K.bareTop && !L.bones && !L.wraps && !L.fur) bareChest(c, R, L, fem, tint);
     if (A) armour(c, R, A, tint, lw);
-    // in profile the bust belongs to the torso outline; from the front it is drawn after
-    // the arms (drawBust), standing out in front of them
-    if (fem && side && !L.bones && !L.wraps) bust(c, R, bustCol(K, L, tint), A ? A.k : -1);
     if (L.bones) {
       c.strokeStyle = '#8a8272';
       c.lineWidth = 1.4;
-      for (let i = 0; i < 4; i++) {
+      const span = hipY - shY;
+      for (let i = 0; i < 3; i++) {
+        const y = shY + span * (0.28 + i * 0.22);
         c.beginPath();
-        c.moveTo(-W.chest * 0.7, shY + 4 + i * 3);
-        c.quadraticCurveTo(0, shY + 5.5 + i * 3, W.chest * 0.7, shY + 4 + i * 3);
+        c.moveTo(-W.chest * 0.62, y);
+        c.quadraticCurveTo(0, y + 1.1, W.chest * 0.62, y);
         c.stroke();
       }
       c.beginPath();
@@ -625,200 +633,6 @@ export function drawTorso(c: Ctx, R: Rig, K: Paint, L, lw: number, tint: (c: str
       drawParts(c, [{ p: am, col: tint(L.amulet) }], lw * 0.8);
     }
   });
-}
-/** The colour of whatever covers the bust: armour, the linen top, the tunic or skin. */
-function bustCol(K: Paint, L, tint: (c: string) => string) {
-  const A = L.armor;
-  return A
-    ? A.k === 0
-      ? tint(mixCol(A.col, '#8a5a36', 0.55))
-      : tint(A.col)
-    : K.bareTop
-      ? L.top
-        ? tint(L.top)
-        : K.skin
-      : K.cloth;
-}
-/** A woman's bust seen from the front or 3/4, over the arms (called after they are drawn). */
-export function drawBust(c: Ctx, R: Rig, K: Paint, L, tint: (c: string) => string) {
-  if (!L.fem || R.up || R.side || L.bones || L.wraps) return;
-  // (not squeezed with the turned torso: it keeps its full size, shifted with the chest)
-  c.save();
-  if (R.diag) c.translate(R.ts, 0);
-  bust(c, R, bustCol(K, L, tint), L.armor ? L.armor.k : -1);
-  c.restore();
-}
-/**
- * A woman's bust in whatever covers it (linen top, tunic, leather, mail or plate): two rounded
- * shapes with a shadow beneath and a soft highlight; in profile, a shadow under the curve of
- * the torso outline. `armour` is the armour kind (-1 none) for mail rings and plate shine.
- */
-function bust(c: Ctx, R: Rig, col: string, armour: number) {
-  const y = R.shY + 6.4,
-    gap = 3.7,
-    rx = 4.9,
-    ry = 4.6;
-  c.save();
-  if (R.side) {
-    c.strokeStyle = 'rgba(40,20,30,.3)';
-    c.lineWidth = 1.1;
-    c.beginPath();
-    c.arc(R.W.chD - 0.5, y + 1.2, 3.2, 0.1, Math.PI * 0.62);
-    c.stroke();
-    c.restore();
-    return;
-  }
-  // front: a symmetric pair. 3/4: the body turns, so the near side is full and the far side
-  // is narrower and pushed toward the facing edge, half hidden behind the near one
-  const parts: { x: number; rx: number; ry: number }[] = R.diag
-    ? [
-        { x: R.farS * gap * 1.05, rx: rx * 0.8, ry: ry * 0.96 },
-        { x: -R.farS * gap * 0.75, rx, ry },
-      ]
-    : [
-        { x: -gap, rx, ry },
-        { x: gap, rx, ry },
-      ];
-  for (const P of parts) {
-    const shape = new Path2D();
-    shape.ellipse(P.x, y, P.rx, P.ry, 0, 0, TAU);
-    c.fillStyle = col;
-    c.fill(shape);
-    // the shadow low on the right, the lit fabric over it, mail rings, a highlight
-    c.save();
-    c.clip(shape);
-    c.fillStyle = sh(col, -0.2);
-    c.beginPath();
-    c.ellipse(P.x + 0.8, y + 1.9, P.rx * 0.95, P.ry * 0.75, 0, 0, TAU);
-    c.fill();
-    c.fillStyle = col;
-    c.beginPath();
-    c.ellipse(P.x - 0.3, y - 0.5, P.rx * 0.92, P.ry * 0.9, 0, 0, TAU);
-    c.fill();
-    if (armour === 1) {
-      c.strokeStyle = sh(col, -0.35);
-      c.lineWidth = 0.9;
-      for (let yy = y - P.ry; yy < y + P.ry + 2; yy += 2.6)
-        for (let xx = P.x - P.rx; xx < P.x + P.rx; xx += 3) {
-          c.beginPath();
-          c.arc(xx + (Math.round(yy) % 2 ? 1.5 : 0), yy, 1.6, 0, Math.PI);
-          c.stroke();
-        }
-    }
-    c.fillStyle = armour === 2 ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.22)';
-    c.beginPath();
-    c.ellipse(P.x - 1.3 * (P.rx / rx), y - 2, 1.7 * (P.rx / rx), 1.1, -0.4, 0, TAU);
-    c.fill();
-    c.restore();
-    // the lower curve's outline
-    c.strokeStyle = OUT;
-    c.lineWidth = 1.4;
-    c.beginPath();
-    c.ellipse(P.x, y, P.rx, P.ry, 0, 0.15, Math.PI - 0.15);
-    c.stroke();
-  }
-
-  // the cleft between them (front only; in 3/4 the near side hides it)
-  if (!R.diag) {
-    c.strokeStyle = 'rgba(40,20,30,.35)';
-    c.lineWidth = 1;
-    c.beginPath();
-    c.moveTo(0, y - ry * 0.6);
-    c.lineTo(0, y + ry * 0.55);
-    c.stroke();
-  }
-  c.restore();
-}
-/** Muscle and body lines on a bare chest; women wear a linen top. */
-function bareChest(c: Ctx, R: Rig, L, fem: boolean, tint: (c: string) => string) {
-  const { shY, waistY } = R,
-    W = R.W,
-    m = R.B.m,
-    ink = (a: number) => 'rgba(80,40,30,' + a.toFixed(3) + ')';
-  c.lineWidth = 0.9;
-  if (R.up) {
-    // back: spine and shoulder blades
-    c.strokeStyle = ink(0.22 + Math.max(0, m) * 0.2);
-    c.beginPath();
-    c.moveTo(0, shY + 3);
-    c.lineTo(0, waistY);
-    for (const k of [-1, 1]) {
-      c.moveTo(k * 1.5, shY + 3.5);
-      c.quadraticCurveTo(k * (W.chest * 0.7), shY + 4, k * (W.chest * 0.5), shY + 8);
-    }
-    c.stroke();
-  } else if (R.side) {
-    c.strokeStyle = ink(0.22 + Math.max(0, m) * 0.2);
-    c.beginPath();
-    c.moveTo(W.chD - 3.5, shY + 7.5);
-    c.quadraticCurveTo(W.chD - 0.8, shY + 7.6, W.chD - 0.2, shY + 5.5);
-    c.stroke();
-  } else if (!fem) {
-    // collarbones, pecs and, when fit, the abs
-    c.strokeStyle = ink(0.2 + Math.max(0, m) * 0.28);
-    c.beginPath();
-    for (const k of [-1, 1]) {
-      c.moveTo(k * 1.2, shY + 0.4);
-      c.quadraticCurveTo(k * 3.5, shY + 0.2, k * (W.sh - 3), shY + 0.8);
-      c.moveTo(k * 0.6, shY + 7.2 + m * 0.6);
-      c.quadraticCurveTo(k * (W.chest * 0.55), shY + 8.4 + m, k * (W.chest - 1.8), shY + 5.2);
-    }
-    c.stroke();
-    if (m > -0.3 && R.B.w < 0.5) {
-      c.strokeStyle = ink(0.12 + Math.max(0, m) * 0.28);
-      c.beginPath();
-      c.moveTo(0, shY + 8.5);
-      c.lineTo(0, waistY + 1);
-      for (const yy of [shY + 11, waistY - 1.5])
-        for (const k of [-1, 1]) {
-          c.moveTo(k * 0.7, yy);
-          c.lineTo(k * 2.6, yy - 0.3);
-        }
-      c.stroke();
-    }
-  }
-  if (R.B.w > 0.3 && !R.up) {
-    // a round belly
-    c.strokeStyle = ink(0.25);
-    c.beginPath();
-    if (R.side) c.arc(W.waD, waistY - 1, 3, -0.4, 1.2);
-    else c.arc(0, waistY - 2.4, W.waist * 0.55, 0.35, Math.PI - 0.35);
-    c.stroke();
-  }
-  if (fem && L.top) {
-    // the linen top across the bust
-    c.fillStyle = tint(L.top);
-    c.strokeStyle = OUT;
-    c.lineWidth = 1.4;
-    if (R.side) {
-      // in profile the top wraps the curve of the bust: a band of the torso itself (this is
-      // drawn inside the torso's clip), with its seams
-      const y0 = shY + 2.8,
-        y1 = shY + 11.6;
-      c.fillRect(-20, y0, 40, y1 - y0);
-      c.lineWidth = 1.2;
-      c.beginPath();
-      c.moveTo(-20, y0);
-      c.lineTo(20, y0);
-      c.moveTo(-20, y1);
-      c.lineTo(20, y1);
-      c.stroke();
-    } else {
-      const tp = new Path2D();
-      tp.roundRect(-W.chest - 1, shY + 3, (W.chest + 1) * 2, 6.6, 2.8);
-      c.fill(tp);
-      c.stroke(tp);
-    }
-    if (!R.up && !R.side) {
-      c.strokeStyle = sh(tint(L.top), -0.25);
-      c.lineWidth = 1;
-      c.beginPath();
-      c.moveTo(0, shY + 3.6);
-      c.lineTo(0, shY + 9);
-      c.stroke();
-    }
-  }
-  c.strokeStyle = OUT;
 }
 /** Armour over the torso: 0 leather vest, 1 mail hauberk, 2 plate cuirass (with trim). */
 function armour(c: Ctx, R: Rig, A, tint: (c: string) => string, lw: number) {
@@ -1009,3 +823,5 @@ export function drawCape(c: Ctx, R: Rig, col: string, lw: number, sw: number, ov
 }
 /** Height of the head centre above the feet for this look, standing (portraits frame on it). */
 export const headY = (L) => makeRig(L, 'down', false, false, 0, 0).hy;
+/** A point just above the hair, for bars and floating text. */
+export const crownY = (L) => headY(L) - HEAD_R - 10;

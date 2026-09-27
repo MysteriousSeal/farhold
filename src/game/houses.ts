@@ -1,3 +1,4 @@
+import { crownY } from '../art/body';
 import { WALL_H } from '../art/interior/room';
 import { SFX } from '../audio/sfx';
 import { H, W } from '../core/dom';
@@ -339,12 +340,12 @@ export function houseInteract(cand) {
   I.npcs.forEach((n, i) => {
     if (n.role === 'smith' || n.role === 'barmaid') return;
     const job = n.role === 'patron' ? patronJob(I, i) : null;
-    if (job && job.mark === '!')
-      cand(n.x, n.y + 6, TALK_R, 'Job offer', () => openJob(I, i), n.y - 62);
+    const ly = n.y + crownY(n.look);
+    if (job && job.mark === '!') cand(n.x, n.y + 6, TALK_R, 'Job offer', () => openJob(I, i), ly);
     else if (job && job.mark === '?')
-      cand(n.x, n.y + 6, TALK_R, 'Hand in', () => handInTask(job.q), n.y - 62);
-    else if (job) cand(n.x, n.y + 6, TALK_R, 'Talk', () => remind(n), n.y - 62);
-    else cand(n.x, n.y + 6, TALK_R, 'Talk', () => talkTo(n), n.y - 62);
+      cand(n.x, n.y + 6, TALK_R, 'Hand in', () => handInTask(job.q), ly);
+    else if (job) cand(n.x, n.y + 6, TALK_R, 'Talk', () => remind(n), ly);
+    else cand(n.x, n.y + 6, TALK_R, 'Talk', () => talkTo(n), ly);
   });
   cand(I.door.x, I.door.y - 6, 50, 'Go outside', () => leaveHouse(), I.door.y - 60);
 }
