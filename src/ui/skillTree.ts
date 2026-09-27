@@ -6,6 +6,7 @@ import {
   SKILL_LVL,
   SKILL_MAX,
   bossPoints,
+  pointsEarned,
   canLearn,
   ownedNodes,
   pointsFree,
@@ -42,6 +43,7 @@ let sel: string | null = null,
 export function openSkillTree() {
   if (game.state !== 'play') return;
   sel = null;
+  game.P.ptsSeen = pointsEarned();
   render();
 }
 function render() {

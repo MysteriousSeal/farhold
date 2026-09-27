@@ -5,7 +5,7 @@ import { zoom } from '../render/render';
 import { clearBonusXp, fmtClock, resetLeft } from '../game/dungeons';
 import { $, H, W } from '../core/dom';
 import { clamp } from '../core/math';
-import { canSpend, rank, SKILLCD, skillTree } from '../data/skills';
+import { pointsNew, rank, SKILLCD, skillTree } from '../data/skills';
 import { game, hero } from '../game/state';
 import { xpNeed } from '../game/stats';
 import { POT_CD } from '../game/combat';
@@ -218,7 +218,7 @@ export function updHud() {
     : active
       ? '<div class="qhdr">Quests <small>' + active + ' untracked · L</small></div>'
       : '';
-  $('#skillsBtn').classList.toggle('pulse', canSpend());
+  $('#skillsBtn').classList.toggle('pulse', pointsNew());
 }
 
 /** Keep the interaction prompt floating over its target (called every frame). */

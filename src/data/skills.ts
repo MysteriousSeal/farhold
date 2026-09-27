@@ -278,6 +278,10 @@ export const rank = (id: string) => {
 };
 /** Skill points from lair bosses: one for each boss's first defeat. */
 export const bossPoints = (p = game.P) => (p.bossDone || []).length;
+/** Every point the hero has earned, spent or not. */
+export const pointsEarned = (p = game.P) => p.lvl - 1 + bossPoints(p);
+/** The Skills button blinks only for points earned since the tree was last opened. */
+export const pointsNew = (p = game.P) => canSpend(p) && pointsEarned(p) > (p.ptsSeen || 0);
 export const ownedNodes = (p = game.P): string[] => p.tree || [];
 /** Points not yet spent: one per level after the first, plus one per lair boss. */
 export function pointsFree(p = game.P) {
