@@ -1,7 +1,7 @@
 import { WARP_TIME } from '../game/warp';
 import { heroStyle } from '../game/style';
 import { drawCaveBit, drawMoss } from '../art/decor';
-import { drawDarkness, markDark, underDark } from './darkness';
+import { drawDarkness, heroDark, markDark, underDark } from './darkness';
 import { torchLeft } from '../game/consumables';
 import {
   drawCityGround,
@@ -147,7 +147,8 @@ function drawZone(c, z) {
   }
   c.restore();
 }
-function drawHero(c, t) {
+/** The hero with weapon and torch; `bodyOnly` leaves out the roll trail and overlays. */
+function drawHero(c, t, bodyOnly = false) {
   const L = game.P.look,
     w = game.P.eq.weapon,
     wcol = w ? MATS[w.mat][1] : null,
@@ -205,7 +206,7 @@ function drawHero(c, t) {
     farW = behind && hero.whirl <= 0 && (carry ? carry.far : hp.far);
   if (behind && hero.whirl <= 0 && !farW) wd();
   const alpha = hero.inv > 0 && !leap && Math.sin(t * 50) > 0 ? 0.5 : null;
-  if (rolling && Math.random() < 0.7)
+  if (rolling && !bodyOnly && Math.random() < 0.7)
     game.ghosts.push({
       x: game.P.x,
       y: game.P.y,
@@ -247,6 +248,7 @@ function drawHero(c, t) {
     wd();
     if (!rolling && hero.whirl <= 0) handOver(c, wx, wy, L); // grip inside the fist
   }
+  if (bodyOnly) return;
   if (hero.warp) {
     // channel cast bar above the hero
     const k = Math.min(1, hero.warp.t / WARP_TIME),
@@ -323,6 +325,30 @@ function drawHero(c, t) {
  * Where a bare fist goes during a punch (drawHumanoid's carry target, local unflipped
  * coordinates): out from the resting hand toward the aim, peaking mid-swing, at chest height.
  */
+let dimCv: HTMLCanvasElement | null = null;
+/** The hero drawn solid on its own canvas, then laid over the dark at low opacity as one
+ * piece (parts drawn half-transparent one by one would show through each other). */
+function dimHero(t: number) {
+  const tf = g.getTransform(),
+    s = tf.a,
+    bw = 150,
+    bh = 190,
+    x0 = game.P.x - bw / 2,
+    y0 = game.P.y - 150,
+    w = Math.ceil(bw * s),
+    h = Math.ceil(bh * s);
+  if (!dimCv || dimCv.width !== w || dimCv.height !== h) dimCv = mkCanvas(w, h);
+  const c = dimCv.getContext('2d');
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.clearRect(0, 0, w, h);
+  c.setTransform(s, 0, 0, s, -x0 * s, -y0 * s);
+  drawHero(c, t, true);
+  g.save();
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.globalAlpha = 0.35;
+  g.drawImage(dimCv, Math.round(tf.a * x0 + tf.e), Math.round(tf.d * y0 + tf.f));
+  g.restore();
+}
 function jab(hp) {
   const m = hp.flip ? -1 : 1,
     k = Math.sin(Math.PI * clamp(1 - hero.atk, 0, 1)),
@@ -605,6 +631,8 @@ export function render() {
       if (p.glow && p.life > p.max * 0.3 && lights.length < 60)
         lights.push({ x: p.x, y: p.y, r: 20, i: 0.5 });
   drawDarkness(g, game.time);
+  // in a pitch-black cave, the hero stays visible but dim
+  if (heroDark && underDark() >= 1 && game.P && game.state !== 'dead') dimHero(game.time);
   g.textAlign = 'center';
   g.lineJoin = 'round';
   for (const t of game.texts) {

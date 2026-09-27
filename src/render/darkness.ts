@@ -9,10 +9,10 @@ import { torchLeft } from '../game/consumables';
 
 type Light = { x: number; y: number; r: number; col?: string };
 
-/** How dark the unlit ground is here: 0 outside, 0.85 in caves, 0.55 in crypts. */
+/** How dark the unlit ground is here: 0 outside, pitch black in caves, 0.55 in crypts. */
 export function underDark() {
   if (game.mode !== 'dungeon' || !game.DG) return 0;
-  return game.DG.style === 'cave' ? 0.85 : 0.55;
+  return game.DG.style === 'cave' ? 1 : 0.55;
 }
 const flick = (t: number, ph: number) =>
   1 + Math.sin(t * 9 + ph) * 0.03 + Math.sin(t * 23 + ph * 2) * 0.02;
@@ -20,14 +20,16 @@ const flick = (t: number, ph: number) =>
 function baseLights(t: number): Light[] {
   const D = game.DG,
     L: Light[] = [];
+  // the hero's own light: a lit torch, or (in crypts only) a small glow; caves are pitch black
   if (game.P) {
     const torch = torchLeft() > 0;
-    L.push({
-      x: game.P.x,
-      y: game.P.y - 16,
-      r: torch ? 175 * flick(t, 0) : 95,
-      col: torch ? '#ffa04a' : undefined,
-    });
+    if (torch || D.style !== 'cave')
+      L.push({
+        x: game.P.x,
+        y: game.P.y - 16,
+        r: torch ? 175 * flick(t, 0) : 95,
+        col: torch ? '#ffa04a' : undefined,
+      });
   }
   for (const tr of D.torches)
     if (!tr.taken) L.push({ x: tr.x, y: tr.y - 24, r: 150 * flick(t, tr.ph) }); // glow: drawTorch
@@ -58,12 +60,15 @@ export function markDark(t: number) {
   for (const e of game.enemies) e.inDark = lightAt(L, e.x, e.y - 12) < 0.12;
 }
 let mask: HTMLCanvasElement | null = null;
+/** Whether the hero stood out of every light this frame (set by drawDarkness). */
+export let heroDark = false;
 /** Lays the darkness over the world (in world transform), cut open by every light. */
 export function drawDarkness(g: CanvasRenderingContext2D, t: number) {
   const dark = underDark();
   if (!dark) return;
   const L = baseLights(t);
   for (const l of lights) if (l.r > 0) L.push({ x: l.x, y: l.y, r: l.r * 0.8, col: l.col });
+  heroDark = !!game.P && lightAt(L, game.P.x, game.P.y - 16) < 0.25;
   if (!mask || mask.width !== Math.ceil(W) || mask.height !== Math.ceil(H)) mask = mkCanvas(W, H);
   const m = mask.getContext('2d'),
     tf = g.getTransform();
