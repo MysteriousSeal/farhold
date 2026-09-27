@@ -230,19 +230,54 @@ function drawSmoothIn(x, t, stepPx, w, alpha) {
   x.restore();
 }
 
-/* ---------- Caves: smooth floor plan baked once per cave ---------- */
+/* ---------- Caves: the floor plan is the square tiles, baked once per cave ---------- */
 const CAVE_PAL = { 3: '#a58a66', 4: '#7a90aa', 6: '#6a5480' };
+/** Sharp outline of the floor cells. Holes (walls inside a room) wind the other way. */
+function cellOutline(grid, GW, GH) {
+  const floor = (i, j) => i >= 0 && j >= 0 && i < GW && j < GH && grid[j * GW + i] > 0,
+    next = new Map<string, string[]>();
+  const add = (x0, y0, x1, y1) => {
+    const k = x0 + ',' + y0,
+      list = next.get(k);
+    if (list) list.push(x1 + ',' + y1);
+    else next.set(k, [x1 + ',' + y1]);
+  };
+  for (let j = 0; j < GH; j++)
+    for (let i = 0; i < GW; i++) {
+      if (!floor(i, j)) continue;
+      if (!floor(i, j - 1)) add(i, j, i + 1, j);
+      if (!floor(i + 1, j)) add(i + 1, j, i + 1, j + 1);
+      if (!floor(i, j + 1)) add(i + 1, j + 1, i, j + 1);
+      if (!floor(i - 1, j)) add(i, j + 1, i, j);
+    }
+  const path = new Path2D();
+  for (const [start, dests] of next)
+    while (dests.length) {
+      const [sx, sy] = start.split(',').map(Number);
+      path.moveTo(sx, sy);
+      let cur = start;
+      do {
+        const nxt = next.get(cur).pop(),
+          [x, y] = nxt.split(',').map(Number);
+        path.lineTo(x, y);
+        cur = nxt;
+      } while (cur !== start);
+      path.closePath();
+    }
+  return path;
+}
 function bakeCave(D, sc) {
   const { GW, GH, T, grid } = D,
     c = mkCanvas(Math.ceil(GW * T * sc), Math.ceil(GH * T * sc)),
     x = c.getContext('2d'),
-    // cell centres are the samples: the outline runs along the cell borders, corners rounded
-    { fill, edge } = isoShape(grid, GW - 1, GH - 1, 0.5, 0.5, 1, 0.5),
+    fill = cellOutline(grid, GW, GH),
     k = T * sc;
   x.fillStyle = '#16111f';
   x.fillRect(0, 0, c.width, c.height);
   x.scale(k, k);
-  x.lineCap = x.lineJoin = 'round';
+  x.lineCap = 'butt';
+  x.lineJoin = 'miter';
+  x.miterLimit = 2;
   x.save();
   x.translate(0.12, 0.2);
   x.fillStyle = 'rgba(0,0,0,.55)';
@@ -268,12 +303,12 @@ function bakeCave(D, sc) {
   x.restore();
   x.strokeStyle = OUT;
   x.lineWidth = 3 / k;
-  x.stroke(edge);
+  x.stroke(fill);
   x.strokeStyle = 'rgba(255,255,255,.22)';
   x.lineWidth = 1 / k;
   x.save();
   x.translate(0.08, 0.08);
-  x.stroke(edge);
+  x.stroke(fill);
   x.restore();
   return c;
 }
